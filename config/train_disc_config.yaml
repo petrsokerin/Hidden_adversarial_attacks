@@ -1,0 +1,77 @@
+dataset: Ford_A
+slice: True
+
+model_folder: 'checkpoints/LSTM/${dataset}/'
+save_path: results/${dataset}/IFGSM/Discriminator_pickle
+disc_path: 'results/${dataset}/IFGSM/Discriminator_pickle'
+
+
+model_ids: [0, 1, 2, 3, 4]
+prefix: '_check_same'
+
+cuda: 'cuda:2'
+
+TS2Vec: False
+verbose_ts2vec: False
+
+attack_model:
+  _target_: models.models.LSTM_net
+  hidden_dim: 50
+  n_layers: 1
+  output_dim: 1
+  dropout: 0.0
+
+disc_model:
+  _target_: models.models.LSTM_net
+  hidden_dim: 50
+  n_layers: 1
+  output_dim: 1
+  dropout: 0.0
+
+
+#Attack_params:
+attack_type: fgsm_disc_attack
+n_iterations: 50
+alpha: 10
+eps: 0.0056
+
+list_reg_model_params:
+ - model_id: 0
+   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=1_nsteps=10'
+ - model_id: 0
+   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=10_nsteps=10'  
+ - model_id: 1
+   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=1_nsteps=10'
+ - model_id: 1
+   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=10_nsteps=10'  
+ - model_id: 2
+   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=1_nsteps=10'
+ - model_id: 2
+   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=10_nsteps=10'  
+ - model_id: 0
+   model_name: 'fgsm_disc_attack_eps=0.03_alpha=0.1_nsteps=10'
+ - model_id: 0
+   model_name: 'fgsm_disc_attack_eps=0.03_alpha=0.01_nsteps=10'
+ - model_id: 1
+   model_name: 'fgsm_disc_attack_eps=0.03_alpha=0.1_nsteps=10'
+ - model_id: 1
+   model_name: 'fgsm_disc_attack_eps=0.03_alpha=0.01_nsteps=10'
+ - model_id: 0
+   model_name: 'fgsm_reg_attack_eps=0.03_alpha=0.1_nsteps=10'
+ - model_id: 0
+   model_name: 'fgsm_reg_attack_eps=0.03_alpha=0.01_nsteps=10'
+ - model_id: 1
+   model_name: 'fgsm_reg_attack_eps=0.03_alpha=0.1_nsteps=10'
+ - model_id: 1
+   model_name: 'fgsm_reg_attack_eps=0.03_alpha=0.01_nsteps=10'
+
+
+
+# training disc params
+lr: 0.001
+step_lr: 20
+gamma: 0.5
+n_epochs: 60
+early_stop_patience: 10
+
+

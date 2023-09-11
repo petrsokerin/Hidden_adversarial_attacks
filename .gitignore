@@ -1,0 +1,15 @@
+raw.githubusercontent.com/hfawaz/cd-diagram/*
+results/*
+results_old/*
+data/*
+checkpoints/*
+.ipynb_checkpoints/*
+**/__pycache__/**
+outputs/*
+utils/__pycache__/*
+old/*
+multirun/*
+utils/__pycache__/attacks.cpython-38.pyc
+utils/__pycache__/discrim_attack.cpython-38.pyc
+utils/__pycache__/estimation.cpython-38.pyc
+*.pyc
