@@ -118,7 +118,8 @@ class HideAttackExp:
             n_epochs=self.disc_n_epoch, 
             print_every=self.disc_print_every, 
             device=self.disc_device,
-            multiclass=self.multiclass)
+            multiclass=self.multiclass
+        )
         
         self.trainer.train_model(early_stop_patience)
 

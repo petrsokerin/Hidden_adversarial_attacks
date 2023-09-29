@@ -104,7 +104,7 @@ def load_disc_model(
         path='results/FordA/Regular/Discriminator_pickle', 
         model_name='fgsm_attack_eps=0.03_nsteps=10',
         device='cpu', 
-        model_id=0
+        model_id=0,
         ):
     path = fr'{path}/{model_name}/{model_id}.pt'
 
