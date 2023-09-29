@@ -1,19 +1,19 @@
-dataset: Coffee  
+dataset: GunPointOldVersusYoung  
 slice: True
-save_path: checkpoints/Coffee/LSTM_slice
+save_path: checkpoints/${dataset}/TS2Vec
 
-model_id_start: 0
-model_id_finish: 1
+model_id_start: 1
+model_id_finish: 5
 
 print_every: 1
 
-TS2Vec: False
+TS2Vec: True
 model:
-  _target_: models.models.LSTM_net
-  hidden_dim: 128
-  n_layers: 1
-  output_dim: 1
-  dropout: 0.3
+  _target_: models.models.TS2VecClassifier
+  # hidden_dim: 128
+  # n_layers: 1
+  # output_dim: 1
+  # dropout: 0.3
 
 
 cuda: 'cuda:2'
@@ -22,4 +22,4 @@ batch_size: 64
 lr: 0.0001
 step_size: 9
 gamma: 0.01
-n_epochs: 20
+n_epochs: 7
