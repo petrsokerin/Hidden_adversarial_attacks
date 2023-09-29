@@ -11,7 +11,7 @@ from hydra.utils import instantiate
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from tqdm.notebook import tqdm
+from tqdm.auto import tqdm
 from utils.attacks import (fgsm_disc_attack, fgsm_attack, fgsm_reg_attack, 
 simba_binary, simba_binary_reg, simba_binary_disc_reg)
 from utils.discrim_training import HideAttackExp
@@ -35,6 +35,8 @@ def main(cfg: DictConfig):
     train_loader, test_loader = build_dataloaders(X_train, X_test, y_train, y_test)
 
     device= torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
+
+    print(cfg['alpha'], type(cfg['alpha']))
 
     for model_id in tqdm(cfg['model_ids']):
 
