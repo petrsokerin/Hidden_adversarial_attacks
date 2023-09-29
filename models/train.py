@@ -159,14 +159,13 @@ class Trainer:
         
         losses, n_batches = 0, 0
         self.model.eval()    
-        for x, labels in self.test_loader:
+        for i, (x, labels) in enumerate(self.test_loader):
             with torch.no_grad():
                 x = x.to(self.device)
                 labels = labels.reshape(-1, 1).to(self.device)
 
-
                 y_out = self.model(x)
-                #print(y_out)
+
                 loss = self.criterion(y_out, labels)
                 losses += loss
                 n_batches += 1
