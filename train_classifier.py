@@ -1,4 +1,3 @@
-import copy
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -30,8 +29,6 @@ def main(cfg: DictConfig):
     
     X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test, slice_data=cfg['slice'])
 
-    print(X_train.shape)
-
     train_loader = DataLoader(
         MyDataset(X_train, y_train), 
         batch_size=cfg['batch_size'] , 
@@ -45,12 +42,14 @@ def main(cfg: DictConfig):
         shuffle=False
         )
     
-    print(len(train_loader))
+    print('N batches: ', len(train_loader))
 
     criterion = torch.nn.BCELoss()
-    device= torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
+    device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
+    print(device)
 
     for model_id in range(cfg['model_id_start'], cfg['model_id_finish']):
+        print('trainig model', model_id)
         fix_seed(model_id)
 
         model_name = f'model_{model_id}_{cfg["dataset"]}'
