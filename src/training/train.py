@@ -1,13 +1,12 @@
 import os
 import pickle
 
+from tqdm.auto import tqdm
 import torch
-
 import numpy as np
 from sklearn.metrics import (accuracy_score, precision_score, 
                              recall_score, f1_score)
 
-from tqdm.auto import tqdm
 
 def req_grad(model, state: bool = True) -> None:
     """Set requires_grad of all model parameters to the desired value.
@@ -19,13 +18,17 @@ def req_grad(model, state: bool = True) -> None:
         param.requires_grad_(state)
 
 class EarlyStopper:
-    def __init__(self, patience=1, min_delta=0):
+    def __init__(
+        self, 
+        patience: int = 1, 
+        min_delta: float = 0.0,
+    ) -> None:
         self.patience = patience
         self.min_delta = min_delta
         self.counter = 0
         self.min_validation_loss = np.inf
 
-    def early_stop(self, validation_loss):
+    def early_stop(self, validation_loss: float) -> bool:
         if validation_loss < self.min_validation_loss:
             self.min_validation_loss = validation_loss
             self.counter = 0
@@ -208,94 +211,3 @@ class Trainer:
 
 
         
-################----------------------------------------------------------------------------------------------------------
-
-def train_step(model, loader, criterion, device, optimizer, scheduler=None):
-    losses, n_batches = 0, 0
-    model.train(True)
-    for x, labels in loader:
-
-        optimizer.zero_grad()
-        x = x.to(device)
-        labels = labels.reshape(-1, 1).to(device)
-        
-        y_out = model(x)
-        loss = criterion(y_out, labels) 
-        
-        loss.backward()     
-        optimizer.step()
-        losses += loss
-        n_batches += 1
-
-    mean_loss = losses / n_batches
-
-    if scheduler:
-        scheduler.step()
-    
-    return mean_loss
-
-def valid_step(model, loader, criterion, device):
-    
-    losses, n_batches = 0, 0
-    model.eval()    
-    for x, labels in loader:
-        with torch.no_grad():
-            x = x.to(device)
-            labels = labels.reshape(-1, 1).to(device)
-
-            y_out = model(x)
-            loss = criterion(y_out, labels)
-            losses += loss
-
-            n_batches += 1
-
-    mean_loss = losses / n_batches
-    return mean_loss
-
-
-def calculate_metrics(y_true, y_pred):
-    acc = accuracy_score(y_true, y_pred)
-    pr = precision_score(y_true, y_pred)
-    rec = recall_score(y_true, y_pred)
-    f1 = f1_score(y_true, y_pred)
-    return acc, pr, rec, f1
-    
-def estimate_epoch(loader, model=None, device='cpu', round_=True, multiclass=False):
-    
-    y_all_pred = torch.tensor([])
-    y_all_true = torch.tensor([])
-    
-    for X, y_true in loader:
-        X = X.to(device)
-        y_pred = model(X)
-        
-        if multiclass:
-            y_pred = torch.argmax(y_pred, axis=1)
-        else:
-            y_pred = torch.round(y_pred)
-        
-        y_all_true = torch.cat((y_all_true, y_true.cpu().detach()), dim=0)
-        y_all_pred = torch.cat((y_all_pred, y_pred.cpu().detach()), dim=0)
-        
-    y_all_pred = y_all_pred.numpy().reshape([-1, 1])
-    y_all_true = y_all_true.numpy().reshape([-1, 1])
-    
-    acc, pr, rec, f1 = calculate_metrics(y_all_true, y_all_pred)
-    
-    return acc, pr, rec, f1
-
-def train_procedure(model, train_loader, test_loader, criterion, optimizer, scheduler=None,
-                   num_epochs=30, step_print=5, device='cpu'):
-    
-    for epoch in tqdm(range(num_epochs)):
-        train_loss = train_step(model, train_loader, criterion, device, optimizer, scheduler)
-        test_loss = valid_step(model, test_loader, criterion, device) 
-
-        acc_train, _, _, f1_train = estimate_epoch(train_loader, model, device=device)
-        acc_test, _, _, f1_test = estimate_epoch(test_loader, model, device=device)
-
-        if epoch % step_print == 0:
-            print(f'[Epoch {epoch + 1}] train loss: {train_loss:.3f}; acc_train {acc_train:.3f}; f1_train {f1_train:.3f}; test loss: {test_loss:.3f}; acc_test {acc_test:.3f}; f1_test {f1_test:.3f};')
-            
-    return model
-
