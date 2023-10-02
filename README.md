@@ -33,6 +33,5 @@ The goal of the project is to create hardly detected adversarial attacks for tim
 | config | folder contains config files with params of models and paths |
 | data | folder contains datasets For LSTM model (Ford_A) and datasets UCR, UEA datasets for TS2Vec models |
 | docker_scripts | folder for set environment in docker container (if needed) |
-| models | folder for models architectures and for trainer class |
 | notebooks | folder with notebooks for data visualisation and small experiments|
-| utils | folder with necessary functions |
+| src | folder with code|
