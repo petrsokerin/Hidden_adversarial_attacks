@@ -42,7 +42,6 @@ def main(cfg: DictConfig):
     device= torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
     attack_func = get_attack(cfg['attack_type'])
 
-
     model = instantiate(cfg.attack_model).to(device)
     
     disc_model = instantiate(cfg.disc_model).to(device)
