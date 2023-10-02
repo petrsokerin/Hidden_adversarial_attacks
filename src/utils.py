@@ -4,13 +4,14 @@ import pickle
 from typing import Dict
 import shutil 
 
-from .discrim_training import HideAttackExp
-from utils.data import MyDataset
-
 import pandas as pd
 import numpy as np
 import torch
 import random
+
+from .training.discrim_training import HideAttackExp
+from src.data import MyDataset
+
 
 def save_experiment(
         aa_res_df: pd.DataFrame, 
@@ -57,9 +58,7 @@ def build_dataframe_metrics(experiment):
     return df
 
 
-
 def save_train_disc(experiment, model_id, cfg, save_csv=True):
-
     if 'prefix' not in cfg:
         cfg['prefix'] = ''
 
@@ -91,7 +90,6 @@ def save_train_disc(experiment, model_id, cfg, save_csv=True):
 
 
 def save_train_classifier(model, save_path, model_name):
-
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
 
@@ -115,10 +113,11 @@ def load_disc_model(
 
     return disc_model
 
+
 def fix_seed(seed: int) -> None:
-    torch.manual_seed(123)
-    torch.cuda.manual_seed(123)
-    np.random.seed(123)
-    random.seed(123)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
     torch.backends.cudnn.enabled=False
     torch.backends.cudnn.deterministic=True

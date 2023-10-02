@@ -11,24 +11,16 @@ from tqdm.auto import tqdm
 import torch
 from torch.utils.data import DataLoader
 
-from utils.data import load_Ford_A, transform_data, MyDataset
-from models.models import LSTM_net
-
-from utils.attacks import attack_procedure
-from utils.utils import save_experiment, load_disc_model
-from utils.config import get_attack, load_disc_config
-from utils.TS2Vec.datautils import load_UCR
-
+from src.data import load_data, transform_data, MyDataset
+from src.attack import attack_procedure
+from src.utils import save_experiment, load_disc_model
+from src.config import get_attack, load_disc_config
 
 
 @hydra.main(config_path='config', config_name='attack_run_config', version_base=None)
 def main(cfg: DictConfig):
     # load data
-    if cfg['dataset'] == 'Ford_A':
-        X_train, X_test, y_train, y_test = load_Ford_A()
-    else:
-        X_train, y_train, X_test, y_test = load_UCR(cfg['dataset'])
-    
+    X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
     X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test, slice_data=cfg['slice'])
   
     test_loader = DataLoader(
@@ -90,7 +82,8 @@ def main(cfg: DictConfig):
                                                     n_objects=n_objects, train_mode=cfg['train_mode'],
                                                     disc_model=disc_model_check)
 
-        save_experiment( aa_res_df, rej_curves_dict, path=cfg['save_path'], attack=cfg["attack_type"], dataset=cfg["dataset"], model_id=cfg["model_id_attack"], alpha=alpha)
+        if not cfg['test_run']:
+            save_experiment( aa_res_df, rej_curves_dict, path=cfg['save_path'], attack=cfg["attack_type"], dataset=cfg["dataset"], model_id=cfg["model_id_attack"], alpha=alpha)
         
 
 if __name__=='__main__':

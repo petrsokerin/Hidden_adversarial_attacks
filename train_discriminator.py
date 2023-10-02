@@ -12,24 +12,16 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from tqdm.auto import tqdm
-from utils.attacks import (fgsm_disc_attack, fgsm_attack, fgsm_reg_attack, 
-simba_binary, simba_binary_reg, simba_binary_disc_reg)
-from utils.discrim_training import HideAttackExp
-from utils.data import load_Ford_A, transform_data, build_dataloaders, MyDataset
-from utils.utils import save_train_disc
-from utils.TS2Vec.datautils import load_UCR
-from utils.config import get_attack, load_disc_config
+from src.training.discrim_training import HideAttackExp
+from src.data import load_data, transform_data, build_dataloaders, MyDataset
+from src.utils import save_train_disc
+from src.config import get_attack, load_disc_config
 
 
 @hydra.main(config_path='config', config_name='train_disc_config', version_base=None)
 def main(cfg: DictConfig):
 
-    if cfg['dataset'] == 'Ford_A':
-        X_train, X_test, y_train, y_test = load_Ford_A()
-        X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test)
-    else:
-        X_train, y_train, X_test, y_test = load_UCR(cfg['dataset'])
-    
+    X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
     X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test, slice_data=cfg['slice'])
 
     train_loader, test_loader = build_dataloaders(X_train, X_test, y_train, y_test)
@@ -80,8 +72,9 @@ def main(cfg: DictConfig):
                                 attack_test_params, discriminator_model, disc_train_params, logger=logger)
         experiment.run(cfg['TS2Vec'], cfg['early_stop_patience'], cfg['verbose_ts2vec'])
 
-        save_train_disc(experiment, model_id, cfg)
-        print('Success')
+        if not cfg['test_run']:
+            save_train_disc(experiment, model_id, cfg)
+            print('Success')
 
 
 if __name__=='__main__':

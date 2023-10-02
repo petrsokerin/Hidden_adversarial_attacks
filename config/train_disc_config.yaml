@@ -1,11 +1,12 @@
 dataset: GunPointOldVersusYoung
 slice: True
+test_run: True # If true results will be not saved!!!!
 
 model_folder: checkpoints/${dataset}/TS2Vec/
 save_path: results/${dataset}/IFGSM/${attack_type}
 disc_path: results/${dataset}/IFGSM/Discriminator_pickle
 
-model_ids: [0, 1, 2, 3, 4]
+model_ids: [0, 1]
 prefix: ''
 
 TS2Vec: False
@@ -14,24 +15,24 @@ verbose_ts2vec: False
 cuda: 'cuda:2'
 
 attack_model:
-  _target_: models.models.TS2VecClassifier
+  _target_: src.models.TS2VecClassifier
   dropout: None
 
 # attack_model:
-#   _target_: models.models.LSTM_net
+#   _target_: src.models.LSTM_net
 #   hidden_dim: 50
 #   n_layers: 1
 #   output_dim: 1
 #   dropout: 0.0
 
 disc_model:
-  _target_: models.models.TS2VecClassifier
+  _target_: src.models.TS2VecClassifier
   dropout: 0.0
   device: 2
   n_layers: 2
 
 disc_model_check:
-  _target_: models.models.TS2VecClassifier
+  _target_: src.models.TS2VecClassifier
   dropout: 0.0
   device: 2
   n_layers: 2

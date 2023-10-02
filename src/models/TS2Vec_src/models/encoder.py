@@ -5,7 +5,7 @@ import numpy as np
 from .dilated_conv import DilatedConvEncoder
 
 def generate_continuous_mask(B, T, n=5, l=0.1):
-    res = torch.full((B, T), True, dtype=torch.bool)
+    res = torch.full((B, T), True, dtyexitpe=torch.bool)
     if isinstance(n, float):
         n = int(n * T)
     n = max(min(n, T // 2), 1)

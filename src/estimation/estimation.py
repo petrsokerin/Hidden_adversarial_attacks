@@ -1,9 +1,7 @@
-
 from typing import Dict, Any, Tuple, List, Union, Sequence, Callable
 
-
 import numpy as np
-import pandas as pd
+
 import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
 
@@ -11,9 +9,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch import nn
 
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
-
-
+from sklearn.metrics import accuracy_score, roc_auc_score, average_precision_score
 
 
 def calculate_metrics_class(y_true:np.array,

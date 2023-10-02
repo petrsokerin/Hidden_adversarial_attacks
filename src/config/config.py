@@ -2,9 +2,9 @@ from typing import List
 import os
 import shutil 
 
-from .attacks import (fgsm_disc_attack, fgsm_attack, fgsm_reg_attack, 
+from src.attacks import (fgsm_disc_attack, fgsm_attack, fgsm_reg_attack, 
 simba_binary, simba_binary_reg, simba_binary_disc_reg, deepfool_attack)
-from .utils import load_disc_model
+from src.utils import load_disc_model
 
 def get_attack(attack_name):
     dict_attack = {

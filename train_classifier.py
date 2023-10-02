@@ -11,22 +11,16 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from utils.data import load_Ford_A, transform_data, MyDataset
-from utils.TS2Vec.datautils import load_UCR
-from models.train import Trainer
-
-from utils.utils import fix_seed
+from src.data import load_data, transform_data, MyDataset
+from src.training.train import Trainer
+from src.utils import fix_seed
 
 
 @hydra.main(config_path='config', config_name='train_classifier_config', version_base=None)
 def main(cfg: DictConfig):
 
     # load data
-    if cfg['dataset'] == 'Ford_A':
-        X_train, X_test, y_train, y_test = load_Ford_A()
-    else:
-        X_train, y_train, X_test, y_test = load_UCR(cfg['dataset'])
-    
+    X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
     X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test, slice_data=cfg['slice'])
 
     train_loader = DataLoader(
@@ -68,7 +62,8 @@ def main(cfg: DictConfig):
 
         logger.close()
 
-        trainer.save_result(cfg['save_path'], model_name)
+        if not cfg['test_run']:
+            trainer.save_result(cfg['save_path'], model_name)
         
 if __name__=='__main__':
     main()
