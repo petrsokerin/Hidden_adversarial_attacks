@@ -12,7 +12,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from src.data import load_data, transform_data, MyDataset
-from src.attack import attack_procedure
+from src.attacks import attack_procedure
 from src.utils import save_experiment, load_disc_model
 from src.config import get_attack, load_disc_config
 
