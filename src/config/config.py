@@ -33,13 +33,15 @@ def load_disc_config(
     disc_model,
     path: str, 
     device: str, 
-    list_disc_params: List
+    list_disc_params: List,
+    train_mode: bool = True,
     ) -> List:
 
     list_disc_models = list()
 
     for params in list_disc_params:
         model = load_disc_model(disc_model, device=device, path=path, **params)
+        model.train(train_mode)
         list_disc_models.append(model)
 
     return list_disc_models

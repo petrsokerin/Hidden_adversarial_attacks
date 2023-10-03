@@ -47,7 +47,7 @@ def main(cfg: DictConfig):
             model_name=cfg['disc_check_params']['model_name'], 
             device=device,
             )
-        disc_model_check.eval()
+        disc_model_check.train(cfg['train_mode'])
     else: 
         disc_model_check = None
 
@@ -68,7 +68,8 @@ def main(cfg: DictConfig):
                 copy.deepcopy(disc_model),
                 cfg['disc_path'], 
                 device, 
-                cfg['list_reg_model_params']
+                cfg['list_reg_model_params'],
+                train_mode=cfg['train_mode']
                 )  
             
             attack_params['disc_models'] = [model.eval() for model in  attack_params['disc_models']]
