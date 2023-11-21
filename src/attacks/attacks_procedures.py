@@ -29,11 +29,11 @@ class IterGradAttack:
         self.disc_model = disc_model
 
     def run_iterations(self):
-        
+
         if self.logging:
             x_original, y_true, preds = self.run_one_iter(realize_attack=False)
             self.log_one_iter(0, y_true, preds, x_original)
-        
+
         for iter_ in tqdm(range(1, self.n_steps + 1)):
 
             if self.logging:
@@ -70,26 +70,24 @@ class IterGradAttack:
             y_true = y_true.to(self.device).reshape(-1, 1)
 
             y_pred = self.model(x)
-                
+
             if realize_attack:
                 x_adv = self.attack_func(self.model, self.criterion, x, y_true, **self.attack_params)
                 x_tensor = torch.cat((x_tensor, x_adv.cpu().detach()), dim=0)
 
                 if self.logging:
-                    with torch.no_grad(): # prediction for adv input
+                    with torch.no_grad():  # prediction for adv input
                         y_pred_adv = self.model(x_adv)
                     all_preds.extend(y_pred_adv.cpu().detach().data.numpy())
             else:
                 x_tensor = torch.cat((x_tensor, x.cpu().detach()), dim=0)
                 if self.logging:
                     all_preds.extend(y_pred.cpu().detach().data.numpy())
-                
 
         if self.logging:
             return x_tensor.detach(), all_y_true.detach(), all_preds
         else:
             return x_tensor.detach(), all_y_true.detach()
-
 
     def log_one_iter(self, iter_, y_true, preds, x):
         if self.multiclass:
@@ -108,13 +106,12 @@ class IterGradAttack:
         self.iter_broken_objs[mask] = iter_ + 1
 
         self.rejection_dict['diff'][iter_ + 1] = np.sum(
-            (self.preds_no_attack - np.array(preds)) ** 2, 
+            (self.preds_no_attack - np.array(preds)) ** 2,
             axis=shape_diff
         )
 
         self.rejection_dict['iter_broke'] = self.iter_broken_objs
         self.aa_res_dict[iter_ + 1] = self.metric_fun(y_true_flat, preds_flat_round, x, self.disc_model)
-
 
     def run_iterations_logging(self, metric_fun, n_objects, multiclass=False):
 
@@ -124,8 +121,8 @@ class IterGradAttack:
 
         self.logging = True
 
-        self.aa_res_dict = dict() #structure for saving decreasing of metrics
-        self.rejection_dict = dict()  #structure for saving rejection curves params
+        self.aa_res_dict = dict()  # structure for saving decreasing of metrics
+        self.rejection_dict = dict()  # structure for saving rejection curves params
         self.rejection_dict['diff'] = dict()
         self.iter_broken_objs = np.array([10 ** 7] * n_objects)
 
@@ -135,32 +132,32 @@ class IterGradAttack:
 
 
 def attack_procedure(model: nn.Module,
-                    loader: DataLoader,
-                    criterion: nn.Module,
-                    attack_func,
-                    attack_params,
-                    all_eps,
-                    n_steps: int,
-                    metric_func=calculate_metrics_class_and_hiddens,
-                    n_objects=100,
-                    train_mode=False,
-                    disc_model=None
-                   ):
+                     loader: DataLoader,
+                     criterion: nn.Module,
+                     attack_func,
+                     attack_params,
+                     all_eps,
+                     n_steps: int,
+                     metric_func=calculate_metrics_class_and_hiddens,
+                     n_objects=100,
+                     train_mode=False,
+                     disc_model=None
+                     ):
     aa_res_df = pd.DataFrame()
 
-    rej_curves_dict = dict() # multilevel dict  eps -> diff and object
+    rej_curves_dict = dict()  # multilevel dict  eps -> diff and object
     # diff -> #n_iteration -> np.array difference between original prediction without attack and broken predictions
     # object -> np.array n_iter when wrong prediction
-
 
     for eps in tqdm(all_eps):
         print(f'*****************  EPS={eps}  ****************')
 
-        attack_params['eps']=eps
+        attack_params['eps'] = eps
         attack_class = IterGradAttack(model, loader, attack_func, attack_params,
                                       criterion, n_steps, train_mode=train_mode,
                                       disc_model=disc_model)
-        aa_res_iter_dict, rej_curves_iter_dict = attack_class.run_iterations_logging(metric_func, n_objects, multiclass=False)
+        aa_res_iter_dict, rej_curves_iter_dict = attack_class.run_iterations_logging(metric_func, n_objects,
+                                                                                     multiclass=False)
 
         rej_curves_dict[eps] = rej_curves_iter_dict
         aa_res_df = pd.concat([aa_res_df, build_df_aa_metrics(aa_res_iter_dict, eps)])

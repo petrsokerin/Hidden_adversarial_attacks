@@ -39,7 +39,6 @@ def main(cfg: DictConfig):
 
     criterion = torch.nn.BCELoss()
     device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
-    print(device)
 
     for model_id in range(cfg['model_id_start'], cfg['model_id_finish']):
         print('trainig model', model_id)
@@ -63,6 +62,7 @@ def main(cfg: DictConfig):
 
         if not cfg['test_run']:
             trainer.save_result(cfg['save_path'], model_name)
-        
+
+
 if __name__=='__main__':
     main()

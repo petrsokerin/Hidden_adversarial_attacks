@@ -1,26 +1,24 @@
-dataset: PowerCons  
+dataset: PowerCons
 slice: True
-save_path: checkpoints/${dataset}/TS2Vec
+save_path: checkpoints/${dataset}/SeqS4
 test_run: True # If true results will be not saved!!!!
 
-model_id_start: 0
-model_id_finish: 1
+model_id_start: 2
+model_id_finish: 3
 
 print_every: 1
 
-TS2Vec: True
+TS2Vec: False
 model:
-  _target_: src.models.TS2VecClassifier
-  # hidden_dim: 128
-  # n_layers: 1
-  # output_dim: 1
-  # dropout: 0.3
+  _target_: src.models.SeqS4
+  device: 'cuda'
+  hidden_dim: 32
+  dropout: 0.3
 
-
-cuda: 'cuda:1'
+cuda: 'cuda'
 
 batch_size: 256
-lr: 0.0001
-step_size: 9
-gamma: 0.01
-n_epochs: 3
+lr: 0.001
+step_size: 20
+gamma: 0.3
+n_epochs: 20

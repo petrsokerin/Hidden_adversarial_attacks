@@ -9,4 +9,6 @@ scipy==1.6.2
 sktime==0.11.4
 torch==2.0.1
 tqdm==4.64.0
-tensorboard
+tensorboard==2.14.1
+pytorch-lightning==2.1.1
+einops==0.7.0

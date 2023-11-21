@@ -26,7 +26,7 @@ def main(cfg: DictConfig):
 
     train_loader, test_loader = build_dataloaders(X_train, X_test, y_train, y_test)
 
-    device= torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
+    device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
 
     print(cfg['alpha'], type(cfg['alpha']))
 

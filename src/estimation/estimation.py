@@ -12,9 +12,9 @@ from torch import nn
 from sklearn.metrics import accuracy_score, roc_auc_score, average_precision_score
 
 
-def calculate_metrics_class(y_true:np.array,
+def calculate_metrics_class(y_true: np.array,
                             y_pred: np.array):
-    #-> Tuple(float, float, float):
+    # -> Tuple(float, float, float):
     acc = accuracy_score(y_true, y_pred)
     roc = roc_auc_score(y_true, y_pred)
     pr = average_precision_score(y_true, y_pred)
@@ -139,7 +139,7 @@ def get_ensemble_std(preds: np.ndarray) -> np.ndarray:
 
 def sort_data_by_metric(
         metric: Sequence, preds: np.ndarray, labels: np.ndarray):
-    #) -> Tuple[List, List]:
+    # ) -> Tuple[List, List]:
     """Sort preds and labels by descending uncertainty metric.
     :param metric: uncertainty metric according to which preds and labels will be sorted
     :param preds: model predictions
@@ -261,7 +261,7 @@ def reject_by_diff(
     preds = np.average(np.copy(preds), axis=0)
 
     preds_sorted, labels_sorted = sort_data_by_metric(1 / (diff_vec + 0.001), preds, labels)
-    #preds_sorted, labels_sorted = sort_data_by_metric(diff_vec, preds, labels)
+    # preds_sorted, labels_sorted = sort_data_by_metric(diff_vec, preds, labels)
 
     upper_indices = get_upper_bound_idx(preds.size, rejection_rates)
     res = reject_and_eval(preds_sorted, labels_sorted, upper_indices, scoring_func)
@@ -349,7 +349,7 @@ def build_basic_dict_curve(
                                                     metric)
 
         dict_curve_metric['MaxProb'] = reject_by_metric(get_minprob,
-                                                        preds, #[0, :],
+                                                        preds,  # [0, :],
                                                         labels,
                                                         rejection_rates,
                                                         metric)

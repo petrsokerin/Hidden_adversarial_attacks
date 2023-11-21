@@ -16,8 +16,7 @@ class LSTM_net(nn.Module):
         self.fc2 = nn.Linear(hidden_dim, output_dim)
         self.dropout = nn.Dropout(dropout)
         self.tanh = nn.Tanh()
-        
-        
+
     def forward(self, data, use_sigmoid=True, use_tanh=False):
         
         packed_output, (hidden, cell) = self.rnn(data)
