@@ -71,8 +71,6 @@ def main(cfg: DictConfig):
                 cfg['list_reg_model_params'],
                 train_mode=cfg['train_mode']
                 )  
-            
-            attack_params['disc_models'] = [model.eval() for model in  attack_params['disc_models']]
         
         model_path = cfg['model_folder'] + f'model_{cfg["model_id_attack"]}_{cfg["dataset"]}.pth'
         model.load_state_dict(copy.deepcopy(torch.load(model_path)))
