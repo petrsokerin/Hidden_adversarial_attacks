@@ -6,7 +6,18 @@ from src.models.TS2Vec_src.ts2vec import TS2Vec
 from src.models.head import HeadClassifier
 
 class TS2VecClassifier(nn.Module):
-    def __init__(self, emb_size=320, input_dim=1, n_layers=3,  n_classes=2, emb_batch_size=16, dropout='None', dropout_ts2vec=0.1, device='cpu'):
+    def __init__(
+        self,
+        emb_size = 320,
+        input_dim = 1,
+        n_layers = 3,
+        n_classes = 2,
+        emb_batch_size = 16,
+        fine_tune = False,
+        dropout = 'None',
+        dropout_ts2vec = 0.0,
+        device = 'cpu',
+    ):
         super().__init__()
         
         if n_classes == 2:
@@ -23,8 +34,11 @@ class TS2VecClassifier(nn.Module):
         )
         
         self.emd_model = self.ts2vec.net
-
-        self.classifier = HeadClassifier(emb_size, output_size, n_layers=n_layers, dropout='None')
+        if not fine_tune:
+            for param in self.emd_model.parameters():
+                param.requires_grad = False
+        
+        self.classifier = HeadClassifier(emb_size, output_size, n_layers=n_layers, dropout=dropout)
     
     def train_embedding(self, X_train, verbose=False):
         self.ts2vec.fit(X_train, verbose=verbose)
