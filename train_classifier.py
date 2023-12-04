@@ -26,8 +26,7 @@ def main(cfg: DictConfig):
     train_loader = DataLoader(
         MyDataset(X_train, y_train), 
         batch_size=cfg['batch_size'] , 
-        shuffle=True,
-        drop_last=True
+        shuffle=True
         )
 
     test_loader = DataLoader(
