@@ -11,14 +11,15 @@ print_every: 1
 TS2Vec: False
 model:
   _target_: src.models.SeqS4
-  device: 'cuda'
-  hidden_dim: 32
+#  device: 'cuda'
+  hidden_dim: 128
   dropout: 0.3
+  activ_type: 'sigmoid'
 
 cuda: 'cuda'
 
 batch_size: 256
 lr: 0.001
-step_size: 20
+step_size: 100
 gamma: 0.3
-n_epochs: 20
+n_epochs: 500
