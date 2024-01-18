@@ -3,7 +3,7 @@ import os
 import shutil 
 
 from src.attacks import (fgsm_disc_attack, fgsm_attack, fgsm_reg_attack, 
-simba_binary, simba_binary_reg, simba_binary_disc_reg, deepfool_attack)
+simba_binary, simba_binary_reg, simba_binary_disc_reg, deepfool_attack, only_disc_attack)
 from src.utils import load_disc_model
 
 def get_attack(attack_name):
@@ -14,7 +14,8 @@ def get_attack(attack_name):
         'simba_binary': simba_binary, 
         'simba_binary_reg': simba_binary_reg, 
         'simba_binary_disc_reg': simba_binary_disc_reg, 
-        'deepfool_attack': deepfool_attack
+        'deepfool_attack': deepfool_attack,
+        'only_disc_attack': only_disc_attack,
     }
 
     if attack_name in dict_attack:

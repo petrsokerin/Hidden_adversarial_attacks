@@ -96,6 +96,26 @@ def fgsm_reg_attack(model, loss_func, x, y_true, eps, alpha):
 
     return x_adv
 
+def only_disc_attack(
+    model, 
+    loss_func, 
+    x, 
+    y_true, 
+    eps: float, 
+    alpha: float, 
+    disc_models: List, 
+):
+    reg_value = reg_disc(x, alpha, disc_models)
+    grad_reg = torch.autograd.grad(reg_value, x, retain_graph=True)[0]
+
+    grad_ = - grad_reg
+
+    # print('grad loss', grad_loss[:3, :3].flatten())
+    # print('grad reg', grad_reg[:3, :3].flatten())
+    # print(torch.norm(grad_loss), torch.norm(grad_reg), torch.norm(grad_))
+    x_adv = x.data + eps * torch.sign(grad_)
+
+    return x_adv
 
 def fgsm_disc_attack(
     model, 
@@ -137,7 +157,7 @@ def reg_disc(x, alpha: float, disc_models: List):
     reg_value = 0
     for d_model in disc_models:
         req_grad(d_model, state=True)
-        model_output = torch.mean(torch.log(d_model(x)))
+        model_output = torch.mean(torch.log(F.sigmoid(d_model(x))))
         reg_value = reg_value + model_output
 
     reg_value = alpha* reg_value / n_models
