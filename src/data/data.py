@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 
 
 def load_data(dataset:str = 'Ford_A_LSTM'):
-    if dataset == 'Ford_A':
+    if dataset == 'Ford_A_LSTM':
         X_train, X_test, y_train, y_test = load_Ford_A()
     else:
         X_train, y_train, X_test, y_test = load_UCR(dataset)
