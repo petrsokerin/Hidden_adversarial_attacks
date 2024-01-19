@@ -163,11 +163,12 @@ def build_dataloaders(X_train, X_test, y_train, y_test, batch_size=64):
 
 
 class MyDataset(Dataset):
-    def __init__(self, X, y, window=50):
+    def __init__(self, X, y, window=50, transform=None):
         super().__init__()
         self.X = X
         self.y = y
         self.window=window
+        self.transform = transform
         
     def __len__(self):
         return len(self.y)
@@ -177,4 +178,8 @@ class MyDataset(Dataset):
 
         X = X.reshape([-1, 1])
         y = torch.tensor(self.y[idx], dtype=torch.float32)
+
+        if self.transform:
+            X = self.transform(X)
+
         return X, y
