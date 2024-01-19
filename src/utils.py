@@ -107,7 +107,7 @@ def load_disc_model(
     path = fr'{path}/{model_name}/{model_id}.pt'
 
     disc_model = copy.deepcopy(disc_model)
-    disc_model.load_state_dict(torch.load(path))
+    disc_model.load_state_dict(torch.load(path, map_location=torch.device(device)))
     disc_model.to(device)
     disc_model.train(True)
 
