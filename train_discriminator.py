@@ -21,6 +21,9 @@ from src.config import get_attack, load_disc_config
 @hydra.main(config_path='config', config_name='train_disc_config', version_base=None)
 def main(cfg: DictConfig):
 
+    if cfg['transform_data']:
+        transforms = [instantiate(trans) for trans in cfg['transform_data']]    
+
     X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
     X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test, slice_data=cfg['slice'])
 
@@ -70,8 +73,17 @@ def main(cfg: DictConfig):
                             'scheduler': torch.optim.lr_scheduler.StepLR(optimizer, cfg['step_lr'], gamma=cfg['gamma'])}      
 
         logger = SummaryWriter(cfg['save_path']+f'/tensorboard/{model_id}')
-        experiment = HideAttackExp(attack_model, train_loader, test_loader, attack_train_params, 
-                                attack_test_params, discriminator_model, disc_train_params, logger=logger)
+        experiment = HideAttackExp(
+            attack_model,
+            train_loader,
+            test_loader,
+            transforms,
+            attack_train_params,
+            attack_test_params,
+            discriminator_model,
+            disc_train_params,
+            logger = logger,
+        )
         experiment.run(cfg['TS2Vec'], cfg['early_stop_patience'], cfg['verbose_ts2vec'])
 
         if not cfg['test_run']:

@@ -19,9 +19,19 @@ from src.utils import fix_seed
 @hydra.main(config_path='config', config_name='train_classifier_config', version_base=None)
 def main(cfg: DictConfig):
 
+    if cfg['transform_data']:
+        transforms = [instantiate(trans) for trans in cfg['transform_data']]    
+
     # load data
     X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
-    X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test, slice_data=cfg['slice'])
+    X_train, X_test, y_train, y_test = transform_data(
+        X_train, 
+        X_test, 
+        y_train, 
+        y_test, 
+        slice_data = cfg['slice'],
+        transforms = transforms,
+    )
 
     train_loader = DataLoader(
         MyDataset(X_train, y_train), 

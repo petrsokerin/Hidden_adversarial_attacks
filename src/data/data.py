@@ -1,4 +1,5 @@
 import os
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -7,6 +8,7 @@ from sklearn.preprocessing import StandardScaler
 
 import torch
 from torch.utils.data import Dataset, DataLoader
+from tsai.data.core import TSTensor
 
 
 def load_data(dataset:str = 'Ford_A_LSTM'):
@@ -130,7 +132,15 @@ def readucr(filename):
     return x, y.astype(int)
 
 
-def transform_data(X_train, X_test, y_train, y_test, slice_data=True, window=50):
+def transform_data(
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        slice_data = True,
+        window = 50,
+        transforms = None,
+    ):
     X_train = X_train.reshape(X_train.shape[0], X_train.shape[1])
     X_test = X_test.reshape(X_test.shape[0], X_test.shape[1])
 
@@ -153,6 +163,10 @@ def transform_data(X_train, X_test, y_train, y_test, slice_data=True, window=50)
     y_train_tensor = torch.tensor(y_train, dtype=torch.int32)
     y_test_tensor = torch.tensor(y_test, dtype=torch.int32)
 
+    if transforms:
+        augmentator = Augmentator(transforms)
+        X_train_tensor = augmentator(X_train_tensor)
+
     return X_train_tensor, X_test_tensor, y_train_tensor, y_test_tensor
 
 
@@ -161,6 +175,18 @@ def build_dataloaders(X_train, X_test, y_train, y_test, batch_size=64):
     test_loader = DataLoader(MyDataset(X_test, y_test), batch_size=batch_size, shuffle=False)
     return train_loader, test_loader
 
+class Augmentator:
+    def __init__(self, methods):
+        if isinstance(methods, Iterable):
+            self.methods = methods
+        else:
+            self.methods = [methods]
+
+    def __call__(self, x):
+        for method in self.methods:
+            x = TSTensor(x.unsqueeze(0).transpose(1, 2))
+            x = method.encodes(x).data.transpose(1, 2).squeeze(0)
+        return x
 
 class MyDataset(Dataset):
     def __init__(self, X, y, window=50, transform=None):
