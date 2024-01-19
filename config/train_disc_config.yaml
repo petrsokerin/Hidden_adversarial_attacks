@@ -1,21 +1,22 @@
-dataset: FordA
-slice: False
-test_run: False # If true results will be not saved!!!!
+dataset: GunPointOldVersusYoung
+slice: True
+test_run: True # If true results will be not saved!!!!
 
-model_folder: checkpoints/${dataset}/ResCNN/
-save_path: results/${dataset}/IFGSM/${attack_type}_new/ResCNN
-disc_path: results/${dataset}/IFGSM/ #TS2Vec/Discriminator_pickle
+model_folder: checkpoints/${dataset}/TS2Vec/
+save_path: results/${dataset}/IFGSM/${attack_type}
+disc_path: results/${dataset}/IFGSM/Discriminator_pickle
 
-model_ids: [0]
+model_ids: [0, 1]
 prefix: ''
 
 TS2Vec: False
 verbose_ts2vec: False
 
-cuda: 'cuda:3'
+cuda: 'cuda:2'
 
 attack_model:
-  _target_: src.models.ResidualCNN.ResidualCNN #src.models.TS2VecClassifier 
+  _target_: src.models.TS2VecClassifier
+  dropout: None
 
 # attack_model:
 #   _target_: src.models.LSTM_net
@@ -25,50 +26,44 @@ attack_model:
 #   dropout: 0.0
 
 disc_model:
-  _target_: src.models.ResidualCNN.ResidualCNN #src.models.TS2VecClassifier
-  # device: 3
-  # n_layers: 2
+  _target_: src.models.TS2VecClassifier
+  dropout: 0.0
+  device: 2
+  n_layers: 2
 
 disc_model_check:
-  _target_: src.models.ResidualCNN.ResidualCNN #src.models.TS2VecClassifier 
-  # dropout: 0.0
-  # device: 3
-  # n_layers: 2
+  _target_: src.models.TS2VecClassifier
+  dropout: 0.0
+  device: 2
+  n_layers: 2
 
 
 attack_type: fgsm_attack
-n_iterations: 10 #[10, 20, 30]
-eps: 0.006 #[0.001, 0.002, 0.003, 0.005, 0.01, 0.05] #[0.001, 0.0056, 0.0316, 0.1778, 1.0 ]  #  #[0.001, 0.01, 0.05, 0.2, 1.]
+n_iterations: 10
+eps: 0.03 #[0.001, 0.0056, 0.0316, 0.1778, 1.0 ]  #  #[0.001, 0.01, 0.05, 0.2, 1.]
 train_mode: False
-batch_size: 128
+batch_size: 64
 
-alpha: 100 #10, 0.0001, 0.001, 0.1, 1, 100]
+alpha: 10 #[0.01, 10, 0.0001, 0.001, 0.1, 1, 100]
 
 # training disc params
-lr: 0.0001
+lr: 0.001
 step_lr: 20
 gamma: 0.5
-n_epochs: 15
-early_stop_patience: 5
+n_epochs: 20
+early_stop_patience: 10
 
 disc_check_params:
   model_id : 0
-  model_name: 'fgsm_attack/ResCNN/fgsm_attack_eps=0.01_nsteps=10' 
+  model_name: fgsm_attack_eps=0.0056_nsteps=50
 
 list_reg_model_params:
  - model_id: 0
-   model_name: 'fgsm_reg_attack/ResCNN/fgsm_reg_attack_eps=0.02_alpha=100_nsteps=10'
+   model_name: 'fgsm_reg_attack_eps=0.0056_alpha=1_nsteps=50'
  - model_id: 0
-   model_name: 'fgsm_reg_attack/ResCNN/fgsm_reg_attack_eps=0.03_alpha=100_nsteps=10'
- - model_id: 0
-   model_name: 'fgsm_reg_attack/ResCNN/fgsm_reg_attack_eps=0.005_alpha=0.01_nsteps=10'
- - model_id: 0
-   model_name: 'fgsm_reg_attack/ResCNN/fgsm_reg_attack_eps=0.005_alpha=0.1_nsteps=10'
- - model_id: 0
-   model_name: 'fgsm_reg_attack/ResCNN/fgsm_reg_attack_eps=0.005_alpha=1_nsteps=10'
- - model_id: 0
-   model_name: 'fgsm_reg_attack/ResCNN/fgsm_reg_attack_eps=0.005_alpha=10_nsteps=10'
- - model_id: 0
-   model_name: 'fgsm_reg_attack/ResCNN/fgsm_reg_attack_eps=0.005_alpha=100_nsteps=10'
-
+   model_name: 'fgsm_reg_attack_eps=0.0056_alpha=10_nsteps=50'
+ - model_id: 1
+   model_name: 'fgsm_reg_attack_eps=0.0056_alpha=1_nsteps=50'
+ - model_id: 1
+   model_name: 'fgsm_reg_attack_eps=0.0056_alpha=10_nsteps=50'
 
