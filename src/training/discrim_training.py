@@ -6,16 +6,28 @@ from src.training.train import Trainer
 from src.attacks import IterGradAttack
 
 class HideAttackExp:
-    def __init__(self, attack_model, train_loader, test_loader, attack_train_params, 
-                 attack_test_params, discriminator_model, disc_train_params, multiclass=False,
-                 disc_print_every=1, logger=None):
+    def __init__(
+        self,
+        attack_model,
+        train_loader,
+        test_loader,
+        transforms,
+        attack_train_params,
+        attack_test_params,
+        discriminator_model,
+        disc_train_params,
+        multiclass = False,
+        disc_print_every = 1,
+        logger = None
+    ):
         
-        self.attack_loaders = {'train': train_loader,
-                       'test': test_loader}
+        self.attack_loaders = {'train': train_loader, 'test': test_loader}
         self.attack_train = {'train':IterGradAttack(attack_model, train_loader, **attack_train_params),
                              'test': IterGradAttack(attack_model, test_loader, **attack_test_params)}
         
         self.disc_loaders = dict()
+
+        self.transforms = transforms
         
         self.attack_train_params = attack_train_params
         self.attack_test_params = attack_test_params
@@ -27,11 +39,9 @@ class HideAttackExp:
             self.alpha = attack_train_params['attack_params']['alpha']
         self.n_steps = attack_train_params['n_steps']
         self.multiclass = multiclass
-
         
         self.attack_model = attack_model
         self.disc_model = discriminator_model
-        
 
         self.disc_criterion = torch.nn.BCELoss()
         self.disc_n_epoch = disc_train_params['n_epoch']
@@ -77,8 +87,19 @@ class HideAttackExp:
         new_x = torch.concat([X_orig, X_adv], dim=0)
         new_y = torch.concat([disc_labels_zeros, disc_labels_ones], dim=0)
 
-        suffle_status = mode == 'train'
-        disc_loader = DataLoader(dataset_class(new_x, new_y), batch_size=batch_size, shuffle=suffle_status)
+        if mode == 'train':
+            disc_loader = DataLoader(
+                dataset_class(new_x, new_y, transforms=self.transforms), 
+                batch_size=batch_size, 
+                shuffle=True
+            )
+        else:
+            disc_loader = DataLoader(
+                dataset_class(new_x, new_y), 
+                batch_size=batch_size, 
+                shuffle=False
+            )
+
         self.disc_loaders[mode] = disc_loader
         self.X_train_disc = new_x.unsqueeze(-1).cpu().detach().numpy()
         return disc_loader
@@ -124,6 +145,3 @@ class HideAttackExp:
         self.dict_logging = self.trainer.dict_logging
         self.disc_model = self.trainer.model
         del self.trainer
-
-    
-

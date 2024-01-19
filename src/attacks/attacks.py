@@ -118,18 +118,19 @@ def only_disc_attack(
     return x_adv
 
 def fgsm_disc_attack(
-    model, 
-    loss_func, 
-    x, 
-    y_true, 
-    eps: float, 
-    alpha: float, 
-    disc_models: List, 
+    model,
+    loss_func,
+    x,
+    y_true,
+    eps: float,
+    alpha: float,
+    disc_models: List,
+    use_sigmoid: bool,
 ):
     y_pred = model(x)
     loss_val = loss_func(y_pred, y_true)
     grad_loss = torch.autograd.grad(loss_val, x, retain_graph=True)[0]
-    reg_value = reg_disc(x, alpha, disc_models)
+    reg_value = reg_disc(x, alpha, disc_models, use_sigmoid)
     grad_reg = torch.autograd.grad(reg_value, x, retain_graph=True)[0]
 
     grad_ = grad_loss - grad_reg
@@ -152,12 +153,15 @@ def reg_neigh(x, alpha):
     return reg_value
 
 
-def reg_disc(x, alpha: float, disc_models: List):
+def reg_disc(x, alpha: float, disc_models: List, use_sigmoid: bool = True):
     n_models = len(disc_models)
     reg_value = 0
     for d_model in disc_models:
         req_grad(d_model, state=True)
-        model_output = torch.mean(torch.log(F.sigmoid(d_model(x))))
+        if use_sigmoid:
+            model_output = torch.mean(torch.log(F.sigmoid(d_model(x))))
+        else:
+            model_output = torch.mean(torch.log(d_model(x)))
         reg_value = reg_value + model_output
 
     reg_value = alpha* reg_value / n_models

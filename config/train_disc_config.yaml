@@ -1,12 +1,12 @@
-dataset: GunPointOldVersusYoung
-slice: True
+dataset: PowerCons
+slice: False
 test_run: True # If true results will be not saved!!!!
 
 model_folder: checkpoints/${dataset}/TS2Vec/
 save_path: results/${dataset}/IFGSM/${attack_type}
 disc_path: results/${dataset}/IFGSM/Discriminator_pickle
 
-model_ids: [0, 1]
+model_ids: [0, 1, 2]
 prefix: ''
 
 TS2Vec: False
@@ -14,9 +14,15 @@ verbose_ts2vec: False
 
 cuda: 'cuda:2'
 
+transform_data: 
+- _target_: tsai.data.transforms.TSRandomResizedCrop
+  magnitude: 0.1
+
+
 attack_model:
   _target_: src.models.TS2VecClassifier
-  dropout: None
+  n_layers: 1
+  dropout: 0.0
 
 # attack_model:
 #   _target_: src.models.LSTM_net
@@ -27,7 +33,7 @@ attack_model:
 
 disc_model:
   _target_: src.models.TS2VecClassifier
-  dropout: 0.0
+  dropout: 0.1
   device: 2
   n_layers: 2
 
@@ -35,35 +41,34 @@ disc_model_check:
   _target_: src.models.TS2VecClassifier
   dropout: 0.0
   device: 2
-  n_layers: 2
+  n_layers: 1
 
 
-attack_type: fgsm_attack
-n_iterations: 10
+attack_type: fgsm_reg_attack
+n_iterations: 30
 eps: 0.03 #[0.001, 0.0056, 0.0316, 0.1778, 1.0 ]  #  #[0.001, 0.01, 0.05, 0.2, 1.]
 train_mode: False
 batch_size: 64
 
-alpha: 10 #[0.01, 10, 0.0001, 0.001, 0.1, 1, 100]
+alpha: 0.01 #[0.01, 10, 0.0001, 0.001, 0.1, 1, 100]
 
 # training disc params
 lr: 0.001
 step_lr: 20
 gamma: 0.5
-n_epochs: 20
-early_stop_patience: 10
+n_epochs: 10
+early_stop_patience: 3
 
 disc_check_params:
   model_id : 0
   model_name: fgsm_attack_eps=0.0056_nsteps=50
 
 list_reg_model_params:
- - model_id: 0
-   model_name: 'fgsm_reg_attack_eps=0.0056_alpha=1_nsteps=50'
- - model_id: 0
-   model_name: 'fgsm_reg_attack_eps=0.0056_alpha=10_nsteps=50'
  - model_id: 1
-   model_name: 'fgsm_reg_attack_eps=0.0056_alpha=1_nsteps=50'
- - model_id: 1
-   model_name: 'fgsm_reg_attack_eps=0.0056_alpha=10_nsteps=50'
-
+   model_name: 'fgsm_attack_eps=0.0056_alpha=1_nsteps=50'
+ - model_id: 2
+   model_name: 'fgsm_attack_eps=0.0056_alpha=10_nsteps=50'
+ - model_id: 3
+   model_name: 'fgsm_attack_eps=0.0056_alpha=1_nsteps=50'
+ - model_id: 4
+   model_name: 'fgsm_attack_eps=0.0056_alpha=10_nsteps=50'
