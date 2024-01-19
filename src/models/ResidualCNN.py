@@ -8,7 +8,6 @@ def set_requires_grad(m, requires_grad, batch_size):
     for param in m.parameters():
         param.requires_grad_(requires_grad)
 
-
 class ResidualCNN(nn.Module):
     def __init__(self):
         super().__init__() 
