@@ -3,7 +3,6 @@ import os
 import pickle
 import warnings
 warnings.simplefilter("ignore")
-import numpy as np
 
 import hydra
 from omegaconf import DictConfig
@@ -37,7 +36,7 @@ def main(cfg: DictConfig):
         model_path = cfg['model_folder'] + f'model_{model_id}_{cfg["dataset"]}.pth'
         attack_model.load_state_dict(copy.deepcopy(torch.load(model_path)))
         
-        attack_params = {'eps': cfg['eps']} # вот тут менял
+        attack_params = {'eps': cfg['eps']}
 
         attack_func = get_attack(cfg['attack_type'])
 
@@ -58,7 +57,7 @@ def main(cfg: DictConfig):
         attack_train_params = {'attack_func':attack_func, 
                         'attack_params':attack_params, 
                         'criterion':torch.nn.BCELoss(), 
-                        'n_steps': cfg['n_iterations'], # менял тут
+                        'n_steps': cfg['n_iterations'],
                         'train_mode': True}
         attack_test_params = attack_train_params
 

@@ -1,7 +1,6 @@
 import copy
 import warnings
 warnings.filterwarnings('ignore')
-import numpy as np
 
 import hydra
 from hydra.utils import instantiate
@@ -78,7 +77,7 @@ def main(cfg: DictConfig):
 
         aa_res_df, rej_curves_dict = attack_procedure(model=model, loader=test_loader, criterion=criterion,
                                                     attack_func=attack_func, attack_params=attack_params,
-                                                    all_eps=cfg['all_eps'], n_steps=cfg['n_iterations'], # ЗАМЕНА
+                                                    all_eps=cfg['all_eps'], n_steps=cfg['n_iterations'],
                                                     n_objects=n_objects, train_mode=cfg['train_mode'],
                                                     disc_model=disc_model_check)
 
