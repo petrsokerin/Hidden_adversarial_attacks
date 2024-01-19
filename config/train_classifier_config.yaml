@@ -1,26 +1,26 @@
-dataset: PowerCons  
-slice: True
+dataset: FordA  
+slice: False
 save_path: checkpoints/${dataset}/TS2Vec
-test_run: True # If true results will be not saved!!!!
+test_run: False # If true results will be not saved!!!!
 
-model_id_start: 0
-model_id_finish: 1
+model_id_start: 4
+model_id_finish: 5
 
 print_every: 1
 
 TS2Vec: True
 model:
-  _target_: src.models.TS2VecClassifier
+  _target_: src.models.TS2VecClassifier #src.models.ResidualCNN.ResidualCNN 
   # hidden_dim: 128
   # n_layers: 1
   # output_dim: 1
   # dropout: 0.3
 
 
-cuda: 'cuda:1'
+cuda: 'cuda:2'
 
-batch_size: 256
-lr: 0.0001
+batch_size: 32
+lr: 0.001
 step_size: 9
 gamma: 0.01
 n_epochs: 3

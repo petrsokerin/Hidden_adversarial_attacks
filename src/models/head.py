@@ -41,40 +41,26 @@ def build_head(emb_size, out_size, n_layers=3, dropout='None'):
     if n_layers == 3:
         if dropout != 'None':
             classifier = nn.Sequential(
-                nn.Linear(emb_size, 128), 
-                nn.ReLU(), 
-                nn.BatchNorm1d(128), 
-                nn.Dropout(dropout),
-                nn.Linear(128, 32), 
-                nn.ReLU(),
-                nn.BatchNorm1d(32),
-                nn.Dropout(dropout),
-                nn.Linear(32, out_size),
+                nn.Linear(emb_size, 128), nn.ReLU(), nn.BatchNorm1d(128), nn.Dropout(dropout),
+                nn.Linear(128, 32), nn.ReLU(),nn.BatchNorm1d(32),nn.Dropout(dropout),
+                nn.Linear(32, out_size)
             )
         else:
             classifier = nn.Sequential(
-                nn.Linear(emb_size, 128),
-                nn.ReLU(),
-                nn.BatchNorm1d(128),
-                nn.Linear(128, 32),
-                nn.ReLU(),
-                nn.BatchNorm1d(32),
-                nn.Linear(32, out_size),
+                nn.Linear(emb_size, 128),nn.ReLU(),nn.BatchNorm1d(128),
+                nn.Linear(128, 32), nn.ReLU(),nn.BatchNorm1d(32),
+                nn.Linear(32, out_size)
             )
     elif n_layers == 2:
         if dropout != 'None':
             classifier = nn.Sequential(
-                nn.Linear(emb_size, 64), 
-                nn.ReLU(), nn.BatchNorm1d(64), 
-                nn.Dropout(dropout),
-                nn.Linear(64, out_size),
+                nn.Linear(emb_size, 64), nn.ReLU(), nn.BatchNorm1d(64), nn.Dropout(dropout),
+                nn.Linear(64, out_size)
             )
         else:
             classifier = nn.Sequential(
-                nn.Linear(emb_size, 64), 
-                nn.ReLU(), 
-                nn.BatchNorm1d(64),
-                nn.Linear(64, out_size),
+                nn.Linear(emb_size, 64), nn.ReLU(), nn.BatchNorm1d(64),
+                nn.Linear(64, out_size)
             )
 
     elif n_layers == 1:

@@ -83,6 +83,7 @@ class Trainer:
         fill_line = 'Epoch {} train loss: {}; acc_train {}; test loss: {}; acc_test {}; f1_test {}; balance {}'
 
         for epoch in range(self.n_epoch):
+            
             train_metrics_epoch = self._train_step()
             train_metrics_epoch = {met_name:met_val for met_name, met_val
                                    in zip(metric_names, train_metrics_epoch)}
