@@ -54,11 +54,13 @@ def main(cfg: DictConfig):
                 cfg['list_reg_model_params']
                 )  
 
-        attack_train_params = {'attack_func':attack_func, 
-                        'attack_params':attack_params, 
-                        'criterion':torch.nn.BCELoss(), 
-                        'n_steps': cfg['n_iterations'],
-                        'train_mode': True}
+        attack_train_params = {
+            'attack_func': attack_func, 
+            'attack_params': attack_params, 
+            'criterion': torch.nn.BCELoss(), 
+            'n_steps': cfg['n_iterations'],
+            'train_mode': True,
+        }
         attack_test_params = attack_train_params
 
         
