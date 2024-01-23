@@ -134,18 +134,19 @@ class IterGradAttack:
         return self.aa_res_dict, self.rejection_dict
 
 
-def attack_procedure(model: nn.Module,
-                    loader: DataLoader,
-                    criterion: nn.Module,
-                    attack_func,
-                    attack_params,
-                    all_eps,
-                    n_steps: int,
-                    metric_func=calculate_metrics_class_and_hiddens,
-                    n_objects=100,
-                    train_mode=False,
-                    disc_model=None
-                   ):
+def attack_procedure(
+    model: nn.Module,
+    loader: DataLoader,
+    criterion: nn.Module,
+    attack_func,
+    attack_params,
+    all_eps,
+    n_steps: int,
+    metric_func=calculate_metrics_class_and_hiddens,
+    n_objects=100,
+    train_mode=False,
+    disc_model=None,
+):
     aa_res_df = pd.DataFrame()
 
     rej_curves_dict = dict() # multilevel dict  eps -> diff and object
