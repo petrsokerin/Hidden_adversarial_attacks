@@ -16,8 +16,9 @@ from src.attacks import attack_procedure
 from src.utils import save_experiment, load_disc_model
 from src.config import get_attack, load_disc_config
 
+CONFIG_NAME = 'attack_run_config copy'
 
-@hydra.main(config_path='config', config_name='attack_run_config', version_base=None)
+@hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
     # load data
     X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
@@ -70,7 +71,8 @@ def main(cfg: DictConfig):
                 device, 
                 cfg['list_reg_model_params'],
                 train_mode=cfg['train_mode']
-                )  
+            )  
+            attack_params['use_sigmoid'] = cfg['use_extra_sigmoid']
         
         model_path = cfg['model_folder'] + f'model_{cfg["model_id_attack"]}_{cfg["dataset"]}.pth'
         model.load_state_dict(copy.deepcopy(torch.load(model_path)))
@@ -86,13 +88,20 @@ def main(cfg: DictConfig):
             n_objects = n_objects,
             train_mode = cfg['train_mode'],
             disc_model = disc_model_check,
-            use_sigmoid = cfg['use_extra_sigmoid']
         )
 
         if not cfg['test_run']:
             print('Saving')
-            save_experiment( aa_res_df, rej_curves_dict, path=cfg['save_path'], attack=cfg["attack_type"], dataset=cfg["dataset"], model_id=cfg["model_id_attack"], alpha=alpha)
-        
+            save_experiment(
+                aa_res_df,
+                rej_curves_dict,
+                config_name = CONFIG_NAME,
+                path = cfg['save_path'],
+                attack = cfg["attack_type"],
+                dataset = cfg["dataset"],
+                model_id = cfg["model_id_attack"],
+                alpha = alpha
+            )
 
 if __name__=='__main__':
     main()

@@ -1,6 +1,7 @@
 dataset: PowerCons
 slice: False
 test_run: True # If true results will be not saved!!!!
+use_extra_sigmoid: True
 
 model_folder: checkpoints/${dataset}/TS2Vec/
 save_path: results/${dataset}/IFGSM/${attack_type}
@@ -23,13 +24,6 @@ attack_model:
   _target_: src.models.TS2VecClassifier
   n_layers: 1
   dropout: 0.0
-
-# attack_model:
-#   _target_: src.models.LSTM_net
-#   hidden_dim: 50
-#   n_layers: 1
-#   output_dim: 1
-#   dropout: 0.0
 
 disc_model:
   _target_: src.models.TS2VecClassifier

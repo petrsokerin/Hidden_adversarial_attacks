@@ -17,8 +17,9 @@ from src.data import load_data, transform_data, build_dataloaders, MyDataset
 from src.utils import save_train_disc
 from src.config import get_attack, load_disc_config
 
+CONFIG_NAME = 'train_disc_config'
 
-@hydra.main(config_path='config', config_name='train_disc_config', version_base=None)
+@hydra.main(config_path='config', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
     if cfg['transform_data']:
@@ -55,7 +56,8 @@ def main(cfg: DictConfig):
                 cfg['disc_path'], 
                 device, 
                 cfg['list_reg_model_params']
-                )  
+            )  
+            attack_params['use_sigmoid'] = cfg['use_extra_sigmoid']
 
         attack_train_params = {
             'attack_func': attack_func, 
@@ -68,9 +70,11 @@ def main(cfg: DictConfig):
 
         
         optimizer = torch.optim.Adam(discriminator_model.parameters(), lr=cfg['lr'])
-        disc_train_params = {'n_epoch': cfg['n_epochs'],
-                            'optimizer': optimizer,
-                            'scheduler': torch.optim.lr_scheduler.StepLR(optimizer, cfg['step_lr'], gamma=cfg['gamma'])}      
+        disc_train_params = {
+            'n_epoch': cfg['n_epochs'],
+            'optimizer': optimizer,
+            'scheduler': torch.optim.lr_scheduler.StepLR(optimizer, cfg['step_lr'], gamma=cfg['gamma'])
+        }      
 
         logger = SummaryWriter(cfg['save_path']+f'/tensorboard/{model_id}')
         experiment = HideAttackExp(
@@ -87,7 +91,7 @@ def main(cfg: DictConfig):
         experiment.run(cfg['TS2Vec'], cfg['early_stop_patience'], cfg['verbose_ts2vec'])
 
         if not cfg['test_run']:
-            save_train_disc(experiment, model_id, cfg)
+            save_train_disc(experiment, CONFIG_NAME, model_id, cfg)
             print('Success')
 
 

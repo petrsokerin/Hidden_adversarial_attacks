@@ -1,62 +1,65 @@
-dataset: GunPointOldVersusYoung  
+dataset: Ford_A_LSTM  
 slice: True
+use_extra_sigmoid: True
 use_disc_check: True
-test_run: True # If true results will be not saved!!!!
+test_run: False # If true results will be not saved!!!!
+exp_name: '_LSTM_NEW'
 
-model_folder: checkpoints/${dataset}/TS2Vec/
-disc_path: results/${dataset}/IFGSM
-save_path: ${disc_path}/${attack_type}
- 
+model_folder: checkpoints/LSTM/${dataset}/
+# disc_path: results/${dataset}/IFGSM
+# save_path: ${disc_path}/${attack_type}${exp_name}
+disc_path: results/Ford_A/IFGSM/Discriminator_pickle
+save_path: results/${dataset}/IFGSM/${attack_type}${exp_name}
 
 model_id_attack: 0
 
 attack_model:
-  _target_: src.models.TS2VecClassifier
-  dropout: None
-
-# attack_model:
-#   _target_: src.models.LSTM_net
-#   hidden_dim: 50
-#   n_layers: 1
-#   output_dim: 1
-#   dropout: 0.0
+  _target_: src.models.LSTM.LSTM_net
+  hidden_dim: 50
+  n_layers: 1
+  output_dim: 1
+  dropout: 0.0
 
 disc_model:
-  _target_: src.models.TS2VecClassifier
+  _target_: src.models.LSTM.LSTM_net
+  hidden_dim: 50
+  n_layers: 1
+  output_dim: 1
   dropout: 0.0
-  device: 2
-  n_layers: 2
-
 
 disc_model_check:
-  _target_: src.models.TS2VecClassifier
+  _target_: src.models.LSTM.LSTM_net
+  hidden_dim: 50
+  n_layers: 1
+  output_dim: 1
   dropout: 0.0
-  device: 2
-  n_layers: 2
 
-cuda: 'cuda:2'
+cuda: 'cuda:1'
 
 attack_type: fgsm_disc_attack
-n_iterations: 5
-all_eps: [0.1] #[0.03, 0.07, 0.1, 0.13, 0.17] #[0.001, 0.005, 0.0316, 0.1778, 1.0 ]  #  #[0.001, 0.01, 0.05, 0.2, 1.]
-train_mode: False
+n_iterations: 50
+all_eps: [0.005, 0.001, 0.03, 0.07, 0.1, 0.13] #[0.03, 0.07, 0.1, 0.13, 0.17] #[0.001, 0.005, 0.0316, 0.1778, 1.0 ]  #  #[0.001, 0.01, 0.05, 0.2, 1.]
+train_mode: True
 batch_size: 64
 
-alphas: [10, 1, 100, 0.01] #[ 10, 1, 100, 0.01, 0.0001, 0.001, 0.1]
+alphas: [10] #[0.01, 0.03, 0.05, 0.07, 0.1] #[ 10, 1, 100, 0.01, 0.0001, 0.001, 0.1]
 
 disc_check_params:
   model_id : 0
-  model_name: fgsm_attack/fgsm_attack_eps=0.0056_nsteps=50
+  model_name: fgsm_attack_eps=0.03_nsteps=10
 
 list_reg_model_params:
  - model_id: 0
-   model_name: 'fgsm_reg_attack/fgsm_reg_attack_eps=0.0056_alpha=1_nsteps=50'
+   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=1_nsteps=10'
  - model_id: 0
-   model_name: 'fgsm_reg_attack/fgsm_reg_attack_eps=0.0056_alpha=10_nsteps=50'
+   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=10_nsteps=10'  
  - model_id: 1
-   model_name: 'fgsm_reg_attack/fgsm_reg_attack_eps=0.0056_alpha=1_nsteps=50'
+   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=1_nsteps=10'
  - model_id: 1
-   model_name: 'fgsm_reg_attack/fgsm_reg_attack_eps=0.0056_alpha=10_nsteps=50'
+   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=10_nsteps=10'  
+ - model_id: 2
+   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=1_nsteps=10'
+ - model_id: 2
 
 
 
