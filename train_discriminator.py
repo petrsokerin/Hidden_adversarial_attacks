@@ -42,7 +42,7 @@ def main(cfg: DictConfig):
 
         attack_func = get_attack(cfg['attack_type'])
 
-        discriminator_model = instantiate(cfg.disc_model).to(device)
+        discriminator_model = instantiate(cfg['disc_model']).to(device)
 
         if 'reg' in cfg['attack_type'] :
             attack_params['alpha'] = cfg['alpha']
@@ -62,7 +62,7 @@ def main(cfg: DictConfig):
             'attack_params': attack_params, 
             'criterion': torch.nn.BCELoss(), 
             'n_steps': cfg['n_iterations'],
-            'train_mode': True,
+            'train_mode': cfg['train_mode'],
         }
         attack_test_params = attack_train_params
 
