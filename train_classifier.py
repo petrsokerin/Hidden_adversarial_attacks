@@ -15,8 +15,9 @@ from src.data import load_data, transform_data, MyDataset
 from src.training.train import Trainer
 from src.utils import fix_seed
 
+CONFIG_NAME = 'attack_run_config'
 
-@hydra.main(config_path='config', config_name='train_classifier_config', version_base=None)
+@hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
     if cfg['transform_data']:
