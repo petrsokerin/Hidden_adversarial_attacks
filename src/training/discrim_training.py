@@ -11,7 +11,7 @@ class HideAttackExp:
         attack_model,
         train_loader,
         test_loader,
-        transforms,
+        augmentator,
         attack_train_params,
         attack_test_params,
         discriminator_model,
@@ -27,7 +27,7 @@ class HideAttackExp:
         
         self.disc_loaders = dict()
 
-        self.transforms = transforms
+        self.transforms = augmentator
         
         self.attack_train_params = attack_train_params
         self.attack_test_params = attack_test_params
@@ -68,8 +68,11 @@ class HideAttackExp:
         if TS2Vec:
             self.del_attack_model()
     
-    def _generate_adv_data(self, mode='train', TS2Vec=False, batch_size=64):
+    def _generate_adv_data(self, mode='train', batch_size=None):
         
+        if not batch_size:
+            batch_size = self.attack_loaders['train'].batch_size
+
         self.disc_batch_size = batch_size
         dataset_class = self.attack_train[mode].dataset_class
 
@@ -89,7 +92,7 @@ class HideAttackExp:
 
         if mode == 'train':
             disc_loader = DataLoader(
-                dataset_class(new_x, new_y, transforms=self.transforms), 
+                dataset_class(new_x, new_y, transform=self.transforms), 
                 batch_size=batch_size, 
                 shuffle=True
             )

@@ -139,7 +139,6 @@ def transform_data(
         y_test,
         slice_data = True,
         window = 50,
-        transforms = None,
     ):
     X_train = X_train.reshape(X_train.shape[0], X_train.shape[1])
     X_test = X_test.reshape(X_test.shape[0], X_test.shape[1])
@@ -162,10 +161,6 @@ def transform_data(
 
     y_train_tensor = torch.tensor(y_train, dtype=torch.int32)
     y_test_tensor = torch.tensor(y_test, dtype=torch.int32)
-
-    if transforms:
-        augmentator = Augmentator(transforms)
-        X_train_tensor = augmentator(X_train_tensor)
 
     return X_train_tensor, X_test_tensor, y_train_tensor, y_test_tensor
 

@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from src.data import load_data, transform_data, MyDataset
+from src.data import load_data, transform_data, MyDataset, Augmentator
 from src.training.train import Trainer
 from src.utils import fix_seed
 
@@ -20,9 +20,7 @@ CONFIG_NAME = 'train_classifier_config'
 @hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
-    if cfg['transform_data']:
-        transforms = [instantiate(trans) for trans in cfg['transform_data']]    
-
+    augmentator = Augmentator([instantiate(trans) for trans in cfg['transform_data']]) if cfg['transform_data'] else None
     # load data
     X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
     X_train, X_test, y_train, y_test = transform_data(
@@ -31,11 +29,10 @@ def main(cfg: DictConfig):
         y_train, 
         y_test, 
         slice_data = cfg['slice'],
-        transforms = transforms,
     )
 
     train_loader = DataLoader(
-        MyDataset(X_train, y_train), 
+        MyDataset(X_train, y_train, augmentator), 
         batch_size=cfg['batch_size'] , 
         shuffle=True
         )

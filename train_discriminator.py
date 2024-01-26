@@ -13,18 +13,16 @@ from torch.utils.tensorboard import SummaryWriter
 
 from tqdm.auto import tqdm
 from src.training.discrim_training import HideAttackExp
-from src.data import load_data, transform_data, build_dataloaders, MyDataset
+from src.data import load_data, transform_data, build_dataloaders, MyDataset, Augmentator
 from src.utils import save_train_disc
 from src.config import get_attack, load_disc_config
 
 CONFIG_NAME = 'train_disc_config'
 
-@hydra.main(config_path='config', config_name=CONFIG_NAME, version_base=None)
+@hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
-    if cfg['transform_data']:
-        transforms = [instantiate(trans) for trans in cfg['transform_data']]    
-
+    augmentator = Augmentator([instantiate(trans) for trans in cfg['transform_data']]) if cfg['transform_data'] else None
     X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
     X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test, slice_data=cfg['slice'])
 
@@ -81,7 +79,7 @@ def main(cfg: DictConfig):
             attack_model,
             train_loader,
             test_loader,
-            transforms,
+            augmentator,
             attack_train_params,
             attack_test_params,
             discriminator_model,
