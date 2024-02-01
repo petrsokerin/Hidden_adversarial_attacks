@@ -1,4 +1,4 @@
-dataset: Ford_A_LSTM  
+dataset: FordA
 slice: True
 use_extra_sigmoid: True
 use_disc_check: True
@@ -13,26 +13,9 @@ save_path: results/${dataset}/IFGSM/${attack_type}${exp_name}
 
 model_id_attack: 0
 
-attack_model:
-  _target_: src.models.LSTM.LSTM_net
-  hidden_dim: 50
-  n_layers: 1
-  output_dim: 1
-  dropout: 0.0
-
-disc_model:
-  _target_: src.models.LSTM.LSTM_net
-  hidden_dim: 50
-  n_layers: 1
-  output_dim: 1
-  dropout: 0.0
-
-disc_model_check:
-  _target_: src.models.LSTM.LSTM_net
-  hidden_dim: 50
-  n_layers: 1
-  output_dim: 1
-  dropout: 0.0
+attack_model: LSTM
+disc_model: LSTM
+disc_model_check: LSTM
 
 cuda: 'cuda:1'
 
