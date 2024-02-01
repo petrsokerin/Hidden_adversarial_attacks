@@ -87,7 +87,7 @@ def save_train_disc(experiment, config_name, model_id, cfg, save_csv=True):
     with open(logs_name, 'wb') as f:
         pickle.dump(experiment.dict_logging, f)
 
-    shutil.copyfile(f'config/{config_name}.yaml', full_path+'/' + f"{model_id}_config.yaml")
+    shutil.copyfile(f'config/my_configs/{config_name}.yaml', full_path+'/' + f"{model_id}_config.yaml")
 
 
 def save_train_classifier(model, save_path, model_name):
