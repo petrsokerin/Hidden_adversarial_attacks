@@ -73,12 +73,13 @@ def fgsm_attack(model, loss_func, x, y_true, eps):
 
 
 def deepfool_attack(model, loss_func, x, y_true, eps, e=0.00001):
+    seq_len = x.shape[1]
     y_pred = model(x, use_sigmoid=False, use_tanh=True)
     grad_ = torch.autograd.grad(torch.sum(y_pred), x, retain_graph=True)[0]
-    grad_norm =  torch.linalg.norm(grad_, dim=(1, 2)) ** 2
+    grad_norm = torch.linalg.norm(grad_, dim=(1, 2)) ** 2
     coef_ = eps * y_pred / (grad_norm.reshape(-1, 1) + e)
 
-    coef_ = coef_.unsqueeze(1).repeat(1, 50, 1)    
+    coef_ = coef_.unsqueeze(1).repeat(1, seq_len, 1)    
     perturb = - coef_ * grad_ 
 
     x_adv = x.data + perturb
