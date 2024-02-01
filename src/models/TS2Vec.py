@@ -45,13 +45,12 @@ class TS2VecClassifier(nn.Module):
         self.emd_model = self.ts2vec.net
         
     def forward(self, X, mask=None):
+        emb_out = self.emd_model(X, mask)
+        emb_out = F.max_pool1d(emb_out.transpose(1, 2), kernel_size = emb_out.size(1))
+        emb_out = emb_out.transpose(1, 2).squeeze(1)
+        out = self.classifier(emb_out)
         
-            emb_out = self.emd_model(X, mask)
-            emb_out = F.max_pool1d(emb_out.transpose(1, 2), kernel_size = emb_out.size(1))
-            emb_out = emb_out.transpose(1, 2).squeeze(1)
-            out = self.classifier(emb_out)
-            
-            return out
+        return out
         
     def load_old(self, path_emb, path_head):
         self.emd_model.load_state_dict(torch.load(path_emb))
