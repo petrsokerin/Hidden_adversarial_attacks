@@ -10,8 +10,17 @@ from .utils import (req_grad, calculate_metrics_class_and_hiddens, build_df_aa_m
 
 
 class IterGradAttack:
-    def __init__(self, model, loader, attack_func, attack_params,
-                 criterion, n_steps, train_mode=False, disc_model=None):
+    def __init__(
+        self,
+        model,
+        loader,
+        attack_func,
+        attack_params,
+        criterion,
+        n_steps,
+        train_mode=False,
+        disc_model=None
+    ):
         self.model = model
         self.loader = loader
         self.attack_func = attack_func
@@ -67,7 +76,7 @@ class IterGradAttack:
 
             # prediction for original input
             x = x.to(self.device, non_blocking=True)
-            y_true = y_true.to(self.device).reshape(-1, 1)
+            y_true = y_true.to(self.device)
 
             y_pred = self.model(x)
                 
@@ -96,7 +105,7 @@ class IterGradAttack:
             preds_flat_round = np.argmax(np.array(preds), axis=1).flatten()
             shape_diff = (1, 2)
         else:
-            preds_flat_round = np.round_(np.array(preds)).flatten()
+            preds_flat_round = np.round(np.array(preds)).flatten()
             shape_diff = (1)
 
         if iter_ == 0:

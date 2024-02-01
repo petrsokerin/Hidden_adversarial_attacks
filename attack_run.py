@@ -16,11 +16,7 @@ from src.attacks import attack_procedure
 from src.utils import save_experiment, load_disc_model
 from src.config import get_attack, load_disc_config
 
-<<<<<<< HEAD
 CONFIG_NAME = 'attack_run_config'
-=======
-CONFIG_NAME = 'attack_deepfool'
->>>>>>> 2589434df19e11dbea75d15f163cc084a87ff336
 
 @hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
