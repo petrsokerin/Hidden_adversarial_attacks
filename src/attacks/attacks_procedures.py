@@ -76,7 +76,7 @@ class IterGradAttack:
 
             # prediction for original input
             x = x.to(self.device, non_blocking=True)
-            y_true = y_true.to(self.device).reshape(-1, 1)
+            y_true = y_true.to(self.device)
 
             y_pred = self.model(x)
                 

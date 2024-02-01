@@ -123,7 +123,7 @@ class Trainer:
 
             self.optimizer.zero_grad()
             x = x.to(self.device)
-            labels = labels.reshape(-1, 1).to(self.device)
+            labels = labels.to(self.device)
 
             y_out = self.model(x)
             

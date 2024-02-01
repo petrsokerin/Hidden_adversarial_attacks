@@ -11,11 +11,8 @@ from torch.utils.data import Dataset, DataLoader
 from tsai.data.core import TSTensor
 
 
-def load_data(dataset:str = 'Ford_A_LSTM'):
-    if dataset == 'Ford_A_LSTM':
-        X_train, X_test, y_train, y_test = load_Ford_A()
-    else:
-        X_train, y_train, X_test, y_test = load_UCR(dataset)
+def load_data(dataset:str = 'FordA'):
+    X_train, y_train, X_test, y_test = load_UCR(dataset)
     return X_train, y_train, X_test, y_test
 
 
@@ -139,10 +136,14 @@ def transform_data(
         y_test,
         slice_data = True,
         window = 50,
-        transforms = None,
     ):
     X_train = X_train.reshape(X_train.shape[0], X_train.shape[1])
     X_test = X_test.reshape(X_test.shape[0], X_test.shape[1])
+
+    # transform from -1,1 labels to 0,1.
+    if len(np.unique(y_train)) == 2 and np.sum(y_train == -1) > 0:
+        y_train = (y_train + 1) // 2 
+        y_test = (y_test + 1) // 2 
 
     if slice_data:
         len_seq = X_train.shape[1]
@@ -151,21 +152,14 @@ def transform_data(
         X_train = np.vstack([X_train[:, i:i+window] for i in range(n_patches)])
         X_test = np.vstack([X_test[:, i:i+window] for i in range(n_patches)])
 
-        y_train = np.array([(int(y)+1) // 2 for y in y_train])
-        y_test = np.array([(int(y)+1) // 2 for y in y_test])
-
-        y_train = np.vstack([y_train.reshape(-1, 1) for i in range(n_patches)])
-        y_test = np.vstack([y_test.reshape(-1, 1) for i in range(n_patches)])
+        y_train = np.concatenate([y_train for _ in range(n_patches)])
+        y_test = np.concatenate([y_test for _ in range(n_patches)])
 
     X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
     X_test_tensor =torch.tensor(X_test, dtype=torch.float32)
 
-    y_train_tensor = torch.tensor(y_train, dtype=torch.int32)
-    y_test_tensor = torch.tensor(y_test, dtype=torch.int32)
-
-    if transforms:
-        augmentator = Augmentator(transforms)
-        X_train_tensor = augmentator(X_train_tensor)
+    y_train_tensor = torch.tensor(y_train, dtype=torch.int32).unsqueeze(dim=1)
+    y_test_tensor = torch.tensor(y_test, dtype=torch.int32).unsqueeze(dim=1)
 
     return X_train_tensor, X_test_tensor, y_train_tensor, y_test_tensor
 
