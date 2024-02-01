@@ -20,8 +20,7 @@ CONFIG_NAME = 'train_classifier_config'
 @hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
-    if cfg['transform_data']:
-        transforms = [instantiate(trans) for trans in cfg['transform_data']]    
+    transforms = [instantiate(trans) for trans in cfg['transform_data']]  if cfg['transform_data'] else None   
 
     # load data
     X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
@@ -31,11 +30,10 @@ def main(cfg: DictConfig):
         y_train, 
         y_test, 
         slice_data = cfg['slice'],
-        transforms = transforms,
     )
 
     train_loader = DataLoader(
-        MyDataset(X_train, y_train), 
+        MyDataset(X_train, y_train, transforms), 
         batch_size=cfg['batch_size'] , 
         shuffle=True
         )
@@ -43,7 +41,7 @@ def main(cfg: DictConfig):
     test_loader = DataLoader(
         MyDataset(X_test, y_test), 
         batch_size=cfg['batch_size'] , 
-        shuffle=False
+        shuffle=False,
         )
     
     print('N batches: ', len(train_loader))

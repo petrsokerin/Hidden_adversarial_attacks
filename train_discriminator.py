@@ -25,8 +25,7 @@ def main(cfg: DictConfig):
     if cfg['test_run']:
         print('ATTENTION!!!! Results will not be saved. Set param test_run=False')
 
-    if cfg['transform_data']:
-        transforms = [instantiate(trans) for trans in cfg['transform_data']]    
+    transforms = [instantiate(trans) for trans in cfg['transform_data']]  if cfg['transform_data'] else None 
 
     X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
     X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test, slice_data=cfg['slice'])
