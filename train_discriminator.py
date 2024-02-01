@@ -19,7 +19,7 @@ from src.config import get_attack, load_disc_config
 
 CONFIG_NAME = 'train_disc_config'
 
-@hydra.main(config_path='config', config_name=CONFIG_NAME, version_base=None)
+@hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
     if cfg['test_run']:
