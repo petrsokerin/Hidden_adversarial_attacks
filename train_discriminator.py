@@ -22,6 +22,9 @@ CONFIG_NAME = 'train_disc_config'
 @hydra.main(config_path='config', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
+    if cfg['test_run']:
+        print('ATTENTION!!!! Results will not be saved. Set param test_run=False')
+
     if cfg['transform_data']:
         transforms = [instantiate(trans) for trans in cfg['transform_data']]    
 

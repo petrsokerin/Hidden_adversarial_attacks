@@ -16,10 +16,13 @@ from src.attacks import attack_procedure
 from src.utils import save_experiment, load_disc_model
 from src.config import get_attack, load_disc_config
 
-CONFIG_NAME = 'attack_run_config copy'
+CONFIG_NAME = 'attack_deepfool'
 
 @hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
+
+    if cfg['test_run']:
+        print('ATTENTION!!!! Results will not be saved. Set param test_run=False')
     # load data
     X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
     X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test, slice_data=cfg['slice'])
