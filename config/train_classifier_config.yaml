@@ -14,7 +14,7 @@ transform_data:
 
 #TS2Vec: False
 defaults:
-  - model: LSTM
+ - model: LSTM
 
 cuda: 'cuda:2'
 
