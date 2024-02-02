@@ -7,7 +7,7 @@ exp_name: '_LSTM_NEW'
 
 model_name: LSTM
 model_folder: checkpoints/${dataset}/${model_name}/
-disc_path: results/${dataset}/${model_name}/discriminator/${attack_type}${exp_name}
+disc_path: results/${dataset}/${model_name}/discriminator/YOUR_DISCRIMINATOR_NAME/
 save_path: results/${dataset}/${model_name}/attack/${attack_type}${exp_name}
 
 model_id_attack: 0
