@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from tqdm.auto import tqdm
 from src.training.discrim_training import HideAttackExp
-from src.data import load_data, transform_data, build_dataloaders, MyDataset
+from src.data import load_data, transform_data, build_dataloaders, MyDataset, Augmentator
 from src.utils import save_train_disc
 from src.config import get_attack, load_disc_config
 
@@ -22,11 +22,15 @@ CONFIG_NAME = 'train_disc_config'
 @hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
+<<<<<<< HEAD
+    augmentator = Augmentator([instantiate(trans) for trans in cfg['transform_data']]) if cfg['transform_data'] else None
+=======
     if cfg['test_run']:
         print('ATTENTION!!!! Results will not be saved. Set param test_run=False')
 
     transforms = [instantiate(trans) for trans in cfg['transform_data']]  if cfg['transform_data'] else None 
 
+>>>>>>> 2589434df19e11dbea75d15f163cc084a87ff336
     X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
     X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test, slice_data=cfg['slice'])
 
@@ -46,7 +50,7 @@ def main(cfg: DictConfig):
 
         attack_func = get_attack(cfg['attack_type'])
 
-        discriminator_model = instantiate(cfg.disc_model).to(device)
+        discriminator_model = instantiate(cfg['disc_model']).to(device)
 
         if 'reg' in cfg['attack_type'] :
             attack_params['alpha'] = cfg['alpha']
@@ -66,7 +70,7 @@ def main(cfg: DictConfig):
             'attack_params': attack_params, 
             'criterion': torch.nn.BCELoss(), 
             'n_steps': cfg['n_iterations'],
-            'train_mode': True,
+            'train_mode': cfg['train_mode'],
         }
         attack_test_params = attack_train_params
 
@@ -83,7 +87,7 @@ def main(cfg: DictConfig):
             attack_model,
             train_loader,
             test_loader,
-            transforms,
+            augmentator,
             attack_train_params,
             attack_test_params,
             discriminator_model,

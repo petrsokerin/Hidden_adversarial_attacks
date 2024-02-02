@@ -167,3 +167,80 @@ def reg_disc(x, alpha: float, disc_models: List, use_sigmoid: bool = True):
 
     reg_value = alpha* reg_value / n_models
     return reg_value
+
+def reg_boltzmann(x, alpha: float, disc_models: List, use_sigmoid: bool = True):
+    reg_value = torch.empty(len(disc_models))
+    
+    for i, d_model in enumerate(disc_models):
+        req_grad(d_model, state=True)
+        if use_sigmoid:
+            model_output = torch.mean(torch.log(F.sigmoid(d_model(x))))
+        else:
+            model_output = torch.mean(torch.log(d_model(x)))
+        
+        reg_value[i] = model_output
+
+    # print('bolt: ', boltzmann(reg_value, alpha=10))
+    # print('max: ', reg_value.max())
+
+    reg_value = alpha * boltzmann(reg_value, alpha=30)
+    # reg_value = alpha* reg_value.max()
+    return reg_value
+
+def ascend_smax_disc_attack(
+    model, 
+    loss_func, 
+    x, 
+    y_true, 
+    eps: float, 
+    alpha: float, 
+    disc_models: List, 
+    use_sigmoid: bool
+):
+    y_pred = model(x)
+    loss_val = loss_func(y_pred, y_true)
+    grad_loss = torch.autograd.grad(loss_val, x, retain_graph=True)[0]
+    
+    reg_value = reg_boltzmann(x, alpha, disc_models, use_sigmoid)
+    grad_reg = torch.autograd.grad(reg_value, x, retain_graph=True)[0]
+
+    grad_ = grad_loss - grad_reg
+
+    # print('grad loss', grad_loss[:3, :3].flatten())
+    # print('grad reg', grad_reg[:3, :3].flatten())
+    # print(torch.norm(grad_loss), torch.norm(grad_reg), torch.norm(grad_))
+    x_adv = x.data + eps * grad_
+
+    return x_adv
+
+def fgsm_disc_smax_attack(
+    model, 
+    loss_func, 
+    x, 
+    y_true, 
+    eps: float, 
+    alpha: float, 
+    disc_models: List, 
+    use_sigmoid: bool
+):
+    y_pred = model(x)
+    loss_val = loss_func(y_pred, y_true)
+    grad_loss = torch.autograd.grad(loss_val, x, retain_graph=True)[0]
+    
+    reg_value = reg_boltzmann(x, alpha, disc_models, use_sigmoid)
+    grad_reg = torch.autograd.grad(reg_value, x, retain_graph=True)[0]
+
+    grad_ = grad_loss - grad_reg
+
+    # print('grad loss', grad_loss[:3, :3].flatten())
+    # print('grad reg', grad_reg[:3, :3].flatten())
+    # print(torch.norm(grad_loss), torch.norm(grad_reg), torch.norm(grad_))
+    x_adv = x.data + eps * torch.sign(grad_)
+
+    return x_adv
+
+def boltzmann(tensor, alpha, dim=None): # alpha = 85 ~ torch.max(dim=0)
+    exp = torch.exp(alpha * tensor)
+    maximum = (exp * tensor).sum(dim=dim) / exp.sum(dim=dim)
+    
+    return maximum
