@@ -19,11 +19,10 @@ transform_data:
 - _target_: tsai.data.transforms.TSRandomResizedCrop
   magnitude: 0.1
 
-
-attack_model: TS2Vec
-disc_model: TS2Vec
-disc_model_check: TS2Vec
-
+defaults:
+  - model@attack_model: TS2Vec
+  - model@disc_model: TS2Vec
+  - model@disc_model_check: TS2Vec
 
 attack_type: fgsm_reg_attack
 n_iterations: 30

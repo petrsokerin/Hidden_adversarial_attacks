@@ -13,9 +13,10 @@ save_path: results/${dataset}/IFGSM/${attack_type}${exp_name}
 
 model_id_attack: 0
 
-attack_model: LSTM
-disc_model: LSTM
-disc_model_check: LSTM
+defaults:
+  - model@attack_model: LSTM
+  - model@disc_model: LSTM
+  - model@disc_model_check: LSTM
 
 cuda: 'cuda:1'
 
