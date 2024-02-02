@@ -99,12 +99,12 @@ def save_train_classifier(model, save_path, model_name):
 
 
 def load_disc_model(
-        disc_model,
-        path='results/FordA/Regular/Discriminator_pickle', 
-        model_name='fgsm_attack_eps=0.03_nsteps=10',
-        device='cpu', 
-        model_id=0,
-        ):
+    disc_model,
+    path='results/FordA/Regular/Discriminator_pickle', 
+    model_name='fgsm_attack_eps=0.03_nsteps=10',
+    device='cpu', 
+    model_id=0,
+):
     path = fr'{path}/{model_name}/{model_id}.pt'
 
     disc_model = copy.deepcopy(disc_model)
