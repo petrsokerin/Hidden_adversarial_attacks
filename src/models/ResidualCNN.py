@@ -1,18 +1,12 @@
-import torch
 import torch.nn.functional as F
 from torch import nn
 
-from tsai.all import *
-
-def set_requires_grad(m, requires_grad, batch_size):
-    for param in m.parameters():
-        param.requires_grad_(requires_grad)
+from tsai.models.all import ResCNN
 
 class ResidualCNN(nn.Module):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__() 
-        self.model = ResCNN(1, 1).float()
-
+        self.model = ResCNN(c_in=1, c_out=1, **kwargs).float()
 
     def forward(self, x):
         x = x.transpose(1, 2)
