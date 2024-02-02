@@ -1,0 +1,4 @@
+_target_: src.models.TS2VecClassifier
+dropout: 0.0
+device: 2
+n_layers: 1

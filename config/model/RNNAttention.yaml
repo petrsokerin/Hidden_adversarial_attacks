@@ -1,0 +1,2 @@
+_target_: src.models.RNNAttention.RNNA
+seq_len: 500

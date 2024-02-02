@@ -13,7 +13,8 @@ transform_data:
   magnitude: 0.1
 
 #TS2Vec: False
-model: LSTM
+defaults:
+  - model: LSTM
 
 cuda: 'cuda:2'
 

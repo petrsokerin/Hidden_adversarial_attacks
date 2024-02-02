@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from src.data import load_data, transform_data, MyDataset, Augmentator
+from src.data import load_data, transform_data, MyDataset
 from src.training.train import Trainer
 from src.utils import fix_seed
 
