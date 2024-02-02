@@ -3,9 +3,9 @@ slice: False
 test_run: True # If true results will be not saved!!!!
 use_extra_sigmoid: True
 
-model_folder: checkpoints/${dataset}/TS2Vec/
-save_path: results/${dataset}/IFGSM/${attack_type}
-disc_path: results/${dataset}/IFGSM/Discriminator_pickle
+model_name: LSTM
+model_folder: checkpoints/${dataset}/${model_name}/
+save_path: results/${dataset}/${model_name}/discriminator/${attack_type}${exp_name}
 
 model_ids: [0, 1, 2]
 prefix: ''
