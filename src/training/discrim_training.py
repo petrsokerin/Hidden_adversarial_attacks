@@ -6,17 +6,29 @@ from src.training.train import Trainer
 
 
 class HideAttackExp:
-    def __init__(self, attack_model, train_loader, test_loader, attack_train_params,
-                 attack_test_params, discriminator_model, disc_train_params, multiclass=False,
-                 disc_print_every=1, logger=None):
-
-        self.attack_loaders = {'train': train_loader,
-                               'test': test_loader}
-        self.attack_train = {'train': IterGradAttack(attack_model, train_loader, **attack_train_params),
+    def __init__(
+        self,
+        attack_model,
+        train_loader,
+        test_loader,
+        augmentator,
+        attack_train_params,
+        attack_test_params,
+        discriminator_model,
+        disc_train_params,
+        multiclass = False,
+        disc_print_every = 1,
+        logger = None
+    ):
+        
+        self.attack_loaders = {'train': train_loader, 'test': test_loader}
+        self.attack_train = {'train':IterGradAttack(attack_model, train_loader, **attack_train_params),
                              'test': IterGradAttack(attack_model, test_loader, **attack_test_params)}
 
         self.disc_loaders = dict()
 
+        self.transforms = augmentator
+        
         self.attack_train_params = attack_train_params
         self.attack_test_params = attack_test_params
 
@@ -26,7 +38,6 @@ class HideAttackExp:
             self.alpha = attack_train_params['attack_params']['alpha']
         self.n_steps = attack_train_params['n_steps']
         self.multiclass = multiclass
-
         self.attack_model = attack_model
         self.disc_model = discriminator_model
 
@@ -54,7 +65,10 @@ class HideAttackExp:
         if TS2Vec:
             self.del_attack_model()
 
-    def _generate_adv_data(self, mode='train', TS2Vec=False, batch_size=64):
+    def _generate_adv_data(self, mode='train', batch_size=None):
+        
+        if not batch_size:
+            batch_size = self.attack_loaders['train'].batch_size
 
         self.disc_batch_size = batch_size
         dataset_class = self.attack_train[mode].dataset_class
@@ -73,8 +87,19 @@ class HideAttackExp:
         new_x = torch.concat([X_orig, X_adv], dim=0)
         new_y = torch.concat([disc_labels_zeros, disc_labels_ones], dim=0)
 
-        suffle_status = mode == 'train'
-        disc_loader = DataLoader(dataset_class(new_x, new_y), batch_size=batch_size, shuffle=suffle_status)
+        if mode == 'train':
+            disc_loader = DataLoader(
+                dataset_class(new_x, new_y, transform=self.transforms), 
+                batch_size=batch_size, 
+                shuffle=True
+            )
+        else:
+            disc_loader = DataLoader(
+                dataset_class(new_x, new_y), 
+                batch_size=batch_size, 
+                shuffle=False
+            )
+
         self.disc_loaders[mode] = disc_loader
         self.X_train_disc = new_x.unsqueeze(-1).cpu().detach().numpy()
         return disc_loader

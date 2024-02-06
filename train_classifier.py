@@ -15,16 +15,25 @@ from src.data import load_data, transform_data, MyDataset
 from src.training.train import Trainer
 from src.utils import fix_seed
 
+CONFIG_NAME = 'train_classifier_config'
 
-@hydra.main(config_path='config', config_name='train_classifier_config', version_base=None)
+@hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
+
+    augmentator = [instantiate(trans) for trans in cfg['transform_data']] if cfg['transform_data'] else None
 
     # load data
     X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
-    X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test, slice_data=cfg['slice'])
+    X_train, X_test, y_train, y_test = transform_data(
+        X_train, 
+        X_test, 
+        y_train, 
+        y_test, 
+        slice_data = cfg['slice'],
+    )
 
     train_loader = DataLoader(
-        MyDataset(X_train, y_train), 
+        MyDataset(X_train, y_train, augmentator), 
         batch_size=cfg['batch_size'] , 
         shuffle=True
         )
@@ -32,7 +41,7 @@ def main(cfg: DictConfig):
     test_loader = DataLoader(
         MyDataset(X_test, y_test), 
         batch_size=cfg['batch_size'] , 
-        shuffle=False
+        shuffle=False,
         )
     
     print('N batches: ', len(train_loader))

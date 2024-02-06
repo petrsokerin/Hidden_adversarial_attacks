@@ -1,25 +1,25 @@
-dataset: PowerCons
+dataset: FordA #GunPoint
 slice: True
-save_path: checkpoints/${dataset}/SeqS4
+save_path: checkpoints/${dataset}/LSTM/
 test_run: True # If true results will be not saved!!!!
 
-model_id_start: 2
-model_id_finish: 3
+model_id_start: 0
+model_id_finish: 5
 
 print_every: 1
 
-TS2Vec: False
-model:
-  _target_: src.models.SeqS4
-#  device: 'cuda'
-  hidden_dim: 128
-  dropout: 0.3
-  activ_type: 'sigmoid'
+transform_data: 
+- _target_: tsai.data.transforms.TSRandomResizedCrop
+  magnitude: 0.1
 
-cuda: 'cuda'
+#TS2Vec: False
+defaults:
+ - model: LSTM
+
+cuda: 'cuda:2'
 
 batch_size: 256
 lr: 0.001
-step_size: 100
-gamma: 0.3
-n_epochs: 500
+step_size: 10
+gamma: 0.5
+n_epochs: 10

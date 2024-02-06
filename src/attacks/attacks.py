@@ -73,13 +73,14 @@ def fgsm_attack(model, loss_func, x, y_true, eps):
 
 
 def deepfool_attack(model, loss_func, x, y_true, eps, e=0.00001):
+    seq_len = x.shape[1]
     y_pred = model(x, use_sigmoid=False, use_tanh=True)
     grad_ = torch.autograd.grad(torch.sum(y_pred), x, retain_graph=True)[0]
     grad_norm = torch.linalg.norm(grad_, dim=(1, 2)) ** 2
     coef_ = eps * y_pred / (grad_norm.reshape(-1, 1) + e)
 
-    coef_ = coef_.unsqueeze(1).repeat(1, 50, 1)
-    perturb = - coef_ * grad_
+    coef_ = coef_.unsqueeze(1).repeat(1, seq_len, 1)    
+    perturb = - coef_ * grad_ 
 
     x_adv = x.data + perturb
     return x_adv
@@ -97,30 +98,42 @@ def fgsm_reg_attack(model, loss_func, x, y_true, eps, alpha):
     return x_adv
 
 
+def only_disc_attack(
+    model,
+    loss_func,
+    x,
+    y_true,
+    eps: float,
+    alpha: float,
+    disc_models: List
+):
+    reg_value = reg_disc(x, alpha, disc_models)
+    grad_reg = torch.autograd.grad(reg_value, x, retain_graph=True)[0]
+
+    grad_ = - grad_reg
+
+    # print('grad loss', grad_loss[:3, :3].flatten())
+    # print('grad reg', grad_reg[:3, :3].flatten())
+    # print(torch.norm(grad_loss), torch.norm(grad_reg), torch.norm(grad_))
+    x_adv = x.data + eps * torch.sign(grad_)
+
+    return x_adv
+
+
 def fgsm_disc_attack(
-<<<<<<< HEAD
-    model, 
-    loss_func, 
-    x, 
-    y_true, 
-    eps: float, 
-    alpha: float, 
-    disc_models: List, 
-=======
-        model,
-        loss_func,
-        x,
-        y_true,
-        eps: float,
-        alpha: float,
-        disc_models: List,
-        train_mode=False
->>>>>>> e122ad3 (add s4 model and new regularizers)
+    model,
+    loss_func,
+    x,
+    y_true,
+    eps: float,
+    alpha: float,
+    disc_models: List,
+    use_sigmoid: bool,
 ):
     y_pred = model(x)
     loss_val = loss_func(y_pred, y_true)
     grad_loss = torch.autograd.grad(loss_val, x, retain_graph=True)[0]
-    reg_value = reg_disc(x, alpha, disc_models)
+    reg_value = reg_disc(x, alpha, disc_models, use_sigmoid)
     grad_reg = torch.autograd.grad(reg_value, x, retain_graph=True)[0]
 
     grad_ = grad_loss - grad_reg
@@ -143,13 +156,93 @@ def reg_neigh(x, alpha):
     return reg_value
 
 
-def reg_disc(x, alpha: float, disc_models: List):
+def reg_disc(x, alpha: float, disc_models: List, use_sigmoid: bool = True):
     n_models = len(disc_models)
     reg_value = 0
     for d_model in disc_models:
         req_grad(d_model, state=True)
-        model_output = torch.mean(torch.log(d_model(x)))
+        if use_sigmoid:
+            model_output = torch.mean(torch.log(F.sigmoid(d_model(x))))
+        else:
+            model_output = torch.mean(torch.log(d_model(x)))
         reg_value = reg_value + model_output
 
     reg_value = alpha * reg_value / n_models
     return reg_value
+
+def reg_boltzmann(x, alpha: float, disc_models: List, use_sigmoid: bool = True):
+    reg_value = torch.empty(len(disc_models))
+    
+    for i, d_model in enumerate(disc_models):
+        req_grad(d_model, state=True)
+        if use_sigmoid:
+            model_output = torch.mean(torch.log(F.sigmoid(d_model(x))))
+        else:
+            model_output = torch.mean(torch.log(d_model(x)))
+        
+        reg_value[i] = model_output
+
+    # print('bolt: ', boltzmann(reg_value, alpha=10))
+    # print('max: ', reg_value.max())
+
+    reg_value = alpha * boltzmann(reg_value, alpha=30)
+    # reg_value = alpha* reg_value.max()
+    return reg_value
+
+def ascend_smax_disc_attack(
+    model, 
+    loss_func, 
+    x, 
+    y_true, 
+    eps: float, 
+    alpha: float, 
+    disc_models: List, 
+    use_sigmoid: bool
+):
+    y_pred = model(x)
+    loss_val = loss_func(y_pred, y_true)
+    grad_loss = torch.autograd.grad(loss_val, x, retain_graph=True)[0]
+    
+    reg_value = reg_boltzmann(x, alpha, disc_models, use_sigmoid)
+    grad_reg = torch.autograd.grad(reg_value, x, retain_graph=True)[0]
+
+    grad_ = grad_loss - grad_reg
+
+    # print('grad loss', grad_loss[:3, :3].flatten())
+    # print('grad reg', grad_reg[:3, :3].flatten())
+    # print(torch.norm(grad_loss), torch.norm(grad_reg), torch.norm(grad_))
+    x_adv = x.data + eps * grad_
+
+    return x_adv
+
+def fgsm_disc_smax_attack(
+    model, 
+    loss_func, 
+    x, 
+    y_true, 
+    eps: float, 
+    alpha: float, 
+    disc_models: List, 
+    use_sigmoid: bool
+):
+    y_pred = model(x)
+    loss_val = loss_func(y_pred, y_true)
+    grad_loss = torch.autograd.grad(loss_val, x, retain_graph=True)[0]
+    
+    reg_value = reg_boltzmann(x, alpha, disc_models, use_sigmoid)
+    grad_reg = torch.autograd.grad(reg_value, x, retain_graph=True)[0]
+
+    grad_ = grad_loss - grad_reg
+
+    # print('grad loss', grad_loss[:3, :3].flatten())
+    # print('grad reg', grad_reg[:3, :3].flatten())
+    # print(torch.norm(grad_loss), torch.norm(grad_reg), torch.norm(grad_))
+    x_adv = x.data + eps * torch.sign(grad_)
+
+    return x_adv
+
+def boltzmann(tensor, alpha, dim=None): # alpha = 85 ~ torch.max(dim=0)
+    exp = torch.exp(alpha * tensor)
+    maximum = (exp * tensor).sum(dim=dim) / exp.sum(dim=dim)
+    
+    return maximum

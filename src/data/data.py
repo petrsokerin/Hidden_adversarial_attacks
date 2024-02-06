@@ -1,4 +1,5 @@
 import os
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -7,18 +8,18 @@ from sklearn.preprocessing import StandardScaler
 
 import torch
 from torch.utils.data import Dataset, DataLoader
+from tsai.data.core import TSTensor
 
 
-<<<<<<< HEAD
-def load_data(dataset:str = 'Ford_A_LSTM'):
-    if dataset == 'Ford_A':
-=======
 def load_data(dataset: str = 'Ford_A_LSTM'):
     if dataset == 'Ford_A_LSTM':
->>>>>>> e122ad3 (add s4 model and new regularizers)
         X_train, X_test, y_train, y_test = load_Ford_A()
     else:
         X_train, y_train, X_test, y_test = load_UCR(dataset)
+
+
+def load_data(dataset:str = 'FordA'):
+    X_train, y_train, X_test, y_test = load_UCR(dataset)
     return X_train, y_train, X_test, y_test
 
 
@@ -135,9 +136,21 @@ def readucr(filename):
     return x, y.astype(int)
 
 
-def transform_data(X_train, X_test, y_train, y_test, slice_data=True, window=50):
+def transform_data(
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        slice_data = True,
+        window = 50,
+    ):
     X_train = X_train.reshape(X_train.shape[0], X_train.shape[1])
     X_test = X_test.reshape(X_test.shape[0], X_test.shape[1])
+
+    # transform from -1,1 labels to 0,1.
+    if len(np.unique(y_train)) == 2 and np.sum(y_train == -1) > 0:
+        y_train = (y_train + 1) // 2 
+        y_test = (y_test + 1) // 2 
 
     if slice_data:
         len_seq = X_train.shape[1]
@@ -146,17 +159,14 @@ def transform_data(X_train, X_test, y_train, y_test, slice_data=True, window=50)
         X_train = np.vstack([X_train[:, i:i + window] for i in range(n_patches)])
         X_test = np.vstack([X_test[:, i:i + window] for i in range(n_patches)])
 
-        y_train = np.array([(int(y) + 1) // 2 for y in y_train])
-        y_test = np.array([(int(y) + 1) // 2 for y in y_test])
-
-        y_train = np.vstack([y_train.reshape(-1, 1) for i in range(n_patches)])
-        y_test = np.vstack([y_test.reshape(-1, 1) for i in range(n_patches)])
+        y_train = np.concatenate([y_train for _ in range(n_patches)])
+        y_test = np.concatenate([y_test for _ in range(n_patches)])
 
     X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
     X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
 
-    y_train_tensor = torch.tensor(y_train, dtype=torch.int32)
-    y_test_tensor = torch.tensor(y_test, dtype=torch.int32)
+    y_train_tensor = torch.tensor(y_train, dtype=torch.int32).unsqueeze(dim=1)
+    y_test_tensor = torch.tensor(y_test, dtype=torch.int32).unsqueeze(dim=1)
 
     return X_train_tensor, X_test_tensor, y_train_tensor, y_test_tensor
 
@@ -166,14 +176,27 @@ def build_dataloaders(X_train, X_test, y_train, y_test, batch_size=64):
     test_loader = DataLoader(MyDataset(X_test, y_test), batch_size=batch_size, shuffle=False)
     return train_loader, test_loader
 
+class Augmentator:
+    def __init__(self, methods):
+        if isinstance(methods, Iterable):
+            self.methods = methods
+        else:
+            self.methods = [methods]
+
+    def __call__(self, x):
+        for method in self.methods:
+            x = TSTensor(x.unsqueeze(0).transpose(1, 2))
+            x = method.encodes(x).data.transpose(1, 2).squeeze(0)
+        return x
 
 class MyDataset(Dataset):
-    def __init__(self, X, y, window=50):
+    def __init__(self, X, y, window=50, transform=None):
         super().__init__()
         self.X = X
         self.y = y
-        self.window = window
-
+        self.window=window
+        self.transform = transform
+        
     def __len__(self):
         return len(self.y)
 
@@ -182,4 +205,8 @@ class MyDataset(Dataset):
 
         X = X.reshape([-1, 1])
         y = torch.tensor(self.y[idx], dtype=torch.float32)
+
+        if self.transform:
+            X = self.transform(X)
+
         return X, y

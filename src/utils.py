@@ -13,6 +13,7 @@ import random
 def save_experiment(
         aa_res_df: pd.DataFrame,
         rej_curves_dict: Dict,
+        config_name: str,
         path: str,
         attack: str,
         dataset: str,
@@ -23,13 +24,13 @@ def save_experiment(
         os.makedirs(path)
 
     if 'disc' in attack or 'reg' in attack:
-        shutil.copyfile('config/attack_run_config.yaml', path + f'/config_{dataset}_{model_id}_alpha={alpha}.yaml')
+        shutil.copyfile(f'config/my_configs/{config_name}.yaml', path + f'/config_{dataset}_{model_id}_alpha={alpha}.yaml')
         aa_res_df.to_csv(path + f'/aa_res_{dataset}_{model_id}_alpha={alpha}.csv')
         with open(path + f'/rej_curves_dict_{dataset}_model_{model_id}_alpha={alpha}.pickle', 'wb') as file:
             pickle.dump(rej_curves_dict, file)
 
     else:
-        shutil.copyfile('config/attack_run_config.yaml', path + f'/config_{dataset}_{model_id}.yaml')
+        shutil.copyfile(f'config/my_configs/{config_name}.yaml', path + f'/config_{dataset}_{model_id}.yaml')
         aa_res_df.to_csv(path + f'/aa_res_{dataset}_{model_id}.csv')
         with open(path + f'/rej_curves_dict_{dataset}_model_{model_id}.pickle', 'wb') as file:
             pickle.dump(rej_curves_dict, file)
@@ -53,7 +54,7 @@ def build_dataframe_metrics(experiment):
     return df
 
 
-def save_train_disc(experiment, model_id, cfg, save_csv=True):
+def save_train_disc(experiment, config_name, model_id, cfg, save_csv=True):
     if 'prefix' not in cfg:
         cfg['prefix'] = ''
 
@@ -81,7 +82,7 @@ def save_train_disc(experiment, model_id, cfg, save_csv=True):
     with open(logs_name, 'wb') as f:
         pickle.dump(experiment.dict_logging, f)
 
-    shutil.copyfile('config/train_disc_config.yaml', full_path + '/' + f"{model_id}_config.yaml")
+    shutil.copyfile(f'config/my_configs/{config_name}.yaml', full_path+'/' + f"{model_id}_config.yaml")
 
 
 def save_train_classifier(model, save_path, model_name):
@@ -93,16 +94,16 @@ def save_train_classifier(model, save_path, model_name):
 
 
 def load_disc_model(
-        disc_model,
-        path='results/FordA/Regular/Discriminator_pickle',
-        model_name='fgsm_attack_eps=0.03_nsteps=10',
-        device='cpu',
-        model_id=0,
+    disc_model,
+    path='results/FordA/Regular/Discriminator_pickle', 
+    model_name='fgsm_attack_eps=0.03_nsteps=10',
+    device='cpu', 
+    model_id=0,
 ):
     path = fr'{path}/{model_name}/{model_id}.pt'
 
     disc_model = copy.deepcopy(disc_model)
-    disc_model.load_state_dict(torch.load(path))
+    disc_model.load_state_dict(torch.load(path, map_location=torch.device(device)))
     disc_model.to(device)
     disc_model.train(True)
 
