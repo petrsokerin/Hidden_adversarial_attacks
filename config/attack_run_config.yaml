@@ -1,6 +1,6 @@
 dataset: FordA
 slice: True
-use_extra_sigmoid: True
+use_extra_sigmoid: False
 use_disc_check: True
 test_run: False # If true results will be not saved!!!!
 exp_name: '_LSTM_NEW'
