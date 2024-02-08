@@ -27,9 +27,11 @@ def save_experiment(
     if not os.path.isdir(path):
         os.makedirs(path)
 
+    shutil.copy(f'config/my_configs', path + '/config_folder')
 
     if 'disc' in attack or 'reg' in attack:
         shutil.copyfile(f'config/my_configs/{config_name}.yaml', path + f'/config_{dataset}_{model_id}_alpha={alpha}.yaml')
+
         aa_res_df.to_csv(path + f'/aa_res_{dataset}_{model_id}_alpha={alpha}.csv')
         with open(path + f'/rej_curves_dict_{dataset}_model_{model_id}_alpha={alpha}.pickle', 'wb') as file:
             pickle.dump(rej_curves_dict, file)
@@ -80,12 +82,7 @@ def save_train_disc(experiment, config_name, model_id, cfg, save_csv=True):
     model_weights_name = full_path + '/' + f"{model_id}.pt"
     torch.save(experiment.disc_model.state_dict(), model_weights_name)
 
-    logs_name =  full_path+'/' + f"{model_id}_logs.pickle"
-
-    print(logs_name)
-    
-    with open(logs_name, 'wb') as f:
-        pickle.dump(experiment.dict_logging, f)
+    experiment.save_metrics_as_csv(full_path+'/' + f"{model_id}_logs.csv")
 
     shutil.copyfile(f'config/my_configs/{config_name}.yaml', full_path+'/' + f"{model_id}_config.yaml")
 

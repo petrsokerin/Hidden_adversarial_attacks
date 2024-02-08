@@ -146,5 +146,6 @@ class HideAttackExp:
         self.trainer.train_model(early_stop_patience)
 
         self.dict_logging = self.trainer.dict_logging
+        self.save_metrics_as_csv = self.trainer.save_metrics_as_csv
         self.disc_model = self.trainer.model
         del self.trainer
