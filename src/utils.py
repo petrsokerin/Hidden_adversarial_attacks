@@ -27,7 +27,7 @@ def save_experiment(
     if not os.path.isdir(path):
         os.makedirs(path)
 
-    shutil.copy(f'config/my_configs', path + '/config_folder')
+    shutil.copytree(f'config/my_configs', path + '/config_folder')
 
     if 'disc' in attack or 'reg' in attack:
         shutil.copyfile(f'config/my_configs/{config_name}.yaml', path + f'/config_{dataset}_{model_id}_alpha={alpha}.yaml')
@@ -84,6 +84,7 @@ def save_train_disc(experiment, config_name, model_id, cfg, save_csv=True):
 
     experiment.save_metrics_as_csv(full_path+'/' + f"{model_id}_logs.csv")
 
+    shutil.copytree(f'config/my_configs', full_path + '/config_folder')
     shutil.copyfile(f'config/my_configs/{config_name}.yaml', full_path+'/' + f"{model_id}_config.yaml")
 
 
