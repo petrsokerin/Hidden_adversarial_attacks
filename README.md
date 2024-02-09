@@ -1,4 +1,4 @@
-# stock_clustering
+# Hidden_adversarial attacks
 
 Repo for research project in My University '23.
 
