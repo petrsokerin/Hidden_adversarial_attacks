@@ -2,16 +2,18 @@ import torch
 from torch import nn
 
 
-class LSTM_net(nn.Module):
+class LSTM(nn.Module):
     def __init__(self, hidden_dim, n_layers, x_dim=1, output_dim=1, dropout=0.2):
         super().__init__()
         self.n_layers = n_layers
         self.hidden_dim = hidden_dim
-        self.rnn = nn.LSTM(x_dim, 
-                           hidden_dim, 
-                           num_layers=n_layers, 
-                           dropout=dropout,
-                           batch_first=True)
+        self.rnn = nn.LSTM(
+            x_dim, 
+            hidden_dim, 
+            num_layers=n_layers, 
+            dropout=dropout,
+            batch_first=True
+        )
         
         self.fc1 = nn.Linear(hidden_dim * n_layers, hidden_dim)
         self.relu = nn.ReLU()

@@ -1,2 +1,2 @@
-from .LSTM import LSTM_net
+from .LSTM import LSTM
 from .TS2Vec import TS2VecClassifier
