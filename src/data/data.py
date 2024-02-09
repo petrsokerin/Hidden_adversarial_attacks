@@ -11,13 +11,6 @@ from torch.utils.data import Dataset, DataLoader
 from tsai.data.core import TSTensor
 
 
-def load_data(dataset: str = 'Ford_A_LSTM'):
-    if dataset == 'Ford_A_LSTM':
-        X_train, X_test, y_train, y_test = load_Ford_A()
-    else:
-        X_train, y_train, X_test, y_test = load_UCR(dataset)
-
-
 def load_data(dataset:str = 'FordA'):
     X_train, y_train, X_test, y_test = load_UCR(dataset)
     return X_train, y_train, X_test, y_test
@@ -148,9 +141,13 @@ def transform_data(
     X_test = X_test.reshape(X_test.shape[0], X_test.shape[1])
 
     # transform from -1,1 labels to 0,1.
-    if len(np.unique(y_train)) == 2 and np.sum(y_train == -1) > 0:
-        y_train = (y_train + 1) // 2 
-        y_test = (y_test + 1) // 2 
+    if len(np.unique(y_train)) == 2:
+        if np.sum(y_train == -1) > 0:
+            y_train = (y_train + 1) // 2
+            y_test = (y_test + 1) // 2
+        elif np.sum(y_train == 2) > 0:
+            y_train -= 1
+            y_test -= 1
 
     if slice_data:
         len_seq = X_train.shape[1]

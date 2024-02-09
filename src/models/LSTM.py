@@ -10,7 +10,8 @@ class LSTM_net(nn.Module):
                            num_layers=n_layers, 
                            dropout=dropout,
                            batch_first=True)
-        
+
+        self.n_layers = n_layers
         self.fc1 = nn.Linear(hidden_dim, hidden_dim)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(hidden_dim, output_dim)
@@ -20,7 +21,8 @@ class LSTM_net(nn.Module):
     def forward(self, data, use_sigmoid=True, use_tanh=False):
         
         packed_output, (hidden, cell) = self.rnn(data)
-        hidden = hidden.reshape(hidden.shape[1], hidden.shape[2])
+
+        hidden = hidden[-1]
         
         hidden = self.dropout(hidden)
         output = self.relu(self.fc1(hidden))
