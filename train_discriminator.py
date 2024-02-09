@@ -34,6 +34,11 @@ def main(cfg: DictConfig):
 
     device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
 
+    model_name = instantiate(cfg.attack_model).__class__.__name__
+    cfg['model_folder'] = cfg['model_folder'] + f'{model_name}/'
+    cfg['disc_path'] = cfg['disc_path'].format(model_name)
+    cfg['save_path'] = cfg['save_path'].format(model_name) 
+
     print(cfg['alpha'], type(cfg['alpha']))
 
     for model_id in tqdm(cfg['model_ids']):

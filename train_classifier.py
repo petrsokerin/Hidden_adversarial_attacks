@@ -47,11 +47,12 @@ def main(cfg: DictConfig):
         shuffle=False,
     )
 
-    # print('N batches: ', len(train_loader))
     print('Size:', len(X_train), len(X_test))
+
+    cfg['save_path'] = cfg['save_path'] + f'{instantiate(cfg.model).__class__.__name__}/'
+
     criterion = torch.nn.BCELoss()
     device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
-    # print(device)
 
     for model_id in range(cfg['model_id_start'], cfg['model_id_finish']):
         print('trainig model', model_id)
