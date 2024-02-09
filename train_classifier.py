@@ -6,8 +6,6 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from tqdm.auto import tqdm
-
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -19,7 +17,7 @@ from src.utils import fix_seed, save_config
 CONFIG_NAME = 'train_classifier_config'
 
 
-@hydra.main(config_path='config', config_name=CONFIG_NAME, version_base=None)
+@hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
     augmentator = [instantiate(trans) for trans in cfg['transform_data']] if cfg['transform_data'] else None
 
