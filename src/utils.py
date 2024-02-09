@@ -24,13 +24,13 @@ def save_experiment(
         os.makedirs(path)
 
     if 'disc' in attack or 'reg' in attack:
-        shutil.copyfile(f'config/my_configs/{config_name}.yaml', path + f'/config_{dataset}_{model_id}_alpha={alpha}.yaml')
+        save_config(path, config_name, "config_{dataset}_{model_id}_alpha={alpha}.yaml")
         aa_res_df.to_csv(path + f'/aa_res_{dataset}_{model_id}_alpha={alpha}.csv')
         with open(path + f'/rej_curves_dict_{dataset}_model_{model_id}_alpha={alpha}.pickle', 'wb') as file:
             pickle.dump(rej_curves_dict, file)
 
     else:
-        shutil.copyfile(f'config/my_configs/{config_name}.yaml', path + f'/config_{dataset}_{model_id}.yaml')
+        save_config(path, config_name, f"config_{dataset}_{model_id}.yaml'")
         aa_res_df.to_csv(path + f'/aa_res_{dataset}_{model_id}.csv')
         with open(path + f'/rej_curves_dict_{dataset}_model_{model_id}.pickle', 'wb') as file:
             pickle.dump(rej_curves_dict, file)
@@ -54,6 +54,11 @@ def build_dataframe_metrics(experiment):
     return df
 
 
+def save_config(path, config_name, config_save_name) -> None:
+    shutil.copytree(f'config/my_configs', path + '/config_folder')
+    shutil.copyfile(f'config/my_configs/{config_name}.yaml', path + '/' + config_save_name)
+    
+
 def save_train_disc(experiment, config_name, model_id, cfg, save_csv=True):
     if 'prefix' not in cfg:
         cfg['prefix'] = ''
@@ -75,14 +80,8 @@ def save_train_disc(experiment, config_name, model_id, cfg, save_csv=True):
     model_weights_name = full_path + '/' + f"{model_id}.pt"
     torch.save(experiment.disc_model.state_dict(), model_weights_name)
 
-    logs_name = full_path + '/' + f"{model_id}_logs.pickle"
-
-    print(logs_name)
-
-    with open(logs_name, 'wb') as f:
-        pickle.dump(experiment.dict_logging, f)
-
-    shutil.copyfile(f'config/my_configs/{config_name}.yaml', full_path+'/' + f"{model_id}_config.yaml")
+    experiment.save_metrics_as_csv(full_path+'/' + f"{model_id}_logs.csv")
+    save_config(full_path, config_name, f"{model_id}_config.yaml")
 
 
 def save_train_classifier(model, save_path, model_name):

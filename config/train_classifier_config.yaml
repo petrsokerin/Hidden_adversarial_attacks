@@ -1,6 +1,7 @@
 dataset: FordA #GunPoint
 slice: True
-save_path: checkpoints/${dataset}/LSTM/
+model_name: LSTM
+save_path: checkpoints/${dataset}/${model_name}/
 test_run: True # If true results will be not saved!!!!
 
 model_id_start: 0
@@ -12,9 +13,8 @@ transform_data:
 - _target_: tsai.data.transforms.TSRandomResizedCrop
   magnitude: 0.1
 
-#TS2Vec: False
 defaults:
- - model: LSTM
+ - model: ${model_name}
 
 cuda: 'cuda:2'
 

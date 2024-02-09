@@ -104,7 +104,7 @@ def main(cfg: DictConfig):
                 attack = cfg["attack_type"],
                 dataset = cfg["dataset"],
                 model_id = cfg["model_id_attack"],
-                alpha = alpha
+                alpha = alpha,
             )
 
 if __name__=='__main__':

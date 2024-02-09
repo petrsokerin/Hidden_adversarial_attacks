@@ -1,6 +1,10 @@
 import os
 import pickle
 
+
+from tqdm.auto import tqdm
+import torch
+import pandas as pd
 import numpy as np
 import torch
 from sklearn.metrics import (accuracy_score, precision_score,
@@ -192,6 +196,16 @@ class Trainer:
         rec = recall_score(y_true, y_pred, average='macro')
         f1 = f1_score(y_true, y_pred, average='macro')
         return acc, pr, rec, f1
+    
+    def save_metrics_as_csv(self, path):
+        res = pd.DataFrame([])
+        for split, metrics in self.dict_logging.items():
+            df_metrics = pd.DataFrame(metrics)
+            df_metrics['epoch'] = np.arange(1, len(df_metrics) + 1)
+            df_metrics['split'] = split
+            res = pd.concat([res, df_metrics])
+
+        res.to_csv(path, index=False)
 
     def save_result(self, save_path, model_name):
         if not os.path.isdir(save_path):
@@ -200,5 +214,7 @@ class Trainer:
         full_path = save_path + '/' + model_name
         torch.save(self.model.state_dict(), full_path + '.pth')
 
-        with open(full_path + '_metrics.pickle', 'wb') as f:
-            pickle.dump(self.dict_logging, f)
+        self.save_metrics_as_csv(full_path+'_metrics.csv')
+
+        # with open(full_path+'_metrics.pickle', 'wb') as f:
+        #     pickle.dump(self.dict_logging, f) 

@@ -14,7 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from src.data import load_data, transform_data, MyDataset
 from src.training.train import Trainer
-from src.utils import fix_seed
+from src.utils import fix_seed, save_config
 
 CONFIG_NAME = 'train_classifier_config'
 
@@ -75,9 +75,8 @@ def main(cfg: DictConfig):
 
         if not cfg['test_run']:
             trainer.save_result(cfg['save_path'], model_name)
+            save_config(cfg['save_path'], CONFIG_NAME, CONFIG_NAME)
 
-        return trainer.dict_logging
-
-
-if __name__ == '__main__':
+            
+if __name__=='__main__':
     main()
