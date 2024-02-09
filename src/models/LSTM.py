@@ -3,15 +3,17 @@ from torch import nn
 
 
 class LSTM_net(nn.Module):
-    def __init__(self, hidden_dim, n_layers, output_dim=1, dropout=0.2):
+    def __init__(self, hidden_dim, n_layers, x_dim=1, output_dim=1, dropout=0.2):
         super().__init__()
-        self.rnn = nn.LSTM(1, 
+        self.n_layers = n_layers
+        self.hidden_dim = hidden_dim
+        self.rnn = nn.LSTM(x_dim, 
                            hidden_dim, 
                            num_layers=n_layers, 
                            dropout=dropout,
                            batch_first=True)
         
-        self.fc1 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc1 = nn.Linear(hidden_dim * n_layers, hidden_dim)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(hidden_dim, output_dim)
         self.dropout = nn.Dropout(dropout)
@@ -20,8 +22,17 @@ class LSTM_net(nn.Module):
         
     def forward(self, data, use_sigmoid=True, use_tanh=False):
         
-        packed_output, (hidden, cell) = self.rnn(data)
-        hidden = hidden.reshape(hidden.shape[1], hidden.shape[2])
+        output, (hidden, cell) = self.rnn(data)
+
+        # hidden have shape n_layers, n_onjects, hidden_dim
+        n_objects = hidden.shape[1]
+
+        hidden = hidden.transpose(1, 0)  # shape n_onjects, n_layers, hidden_dim
+
+        hidden = hidden.reshape(
+            n_objects, 
+            self.n_layers * self.hidden_dim,
+        )  # shape n_onjects, n_layers * hidden_dim
         
         hidden = self.dropout(hidden)
         output = self.relu(self.fc1(hidden))
