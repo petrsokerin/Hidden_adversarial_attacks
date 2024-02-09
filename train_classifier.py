@@ -46,6 +46,8 @@ def main(cfg: DictConfig):
     
     print('N batches: ', len(train_loader))
 
+    cfg['save_path'] = cfg['save_path'] + f'{instantiate(cfg.model).__class__.__name__}/'
+
     criterion = torch.nn.BCELoss()
     device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
     print(device)

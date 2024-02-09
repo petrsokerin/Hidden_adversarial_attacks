@@ -42,6 +42,12 @@ def main(cfg: DictConfig):
     model = instantiate(cfg.attack_model).to(device)
     
     disc_model = instantiate(cfg.disc_model).to(device)
+
+
+    model_name = model.__class__.__name__
+    cfg['model_folder'] = cfg['model_folder'] + f'{model_name}/'
+    cfg['disc_path'] = cfg['disc_path'].format(model_name)
+    cfg['save_path'] = cfg['save_path'].format(model_name) 
     
     if cfg['use_disc_check']:
         disc_model_check = instantiate(cfg.disc_model_check).to(device)
