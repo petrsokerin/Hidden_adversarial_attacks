@@ -16,6 +16,7 @@ defaults:
   - model@disc_model: LSTM
   - model@disc_model_check: LSTM
 
+
 cuda: 'cuda:1'
 
 attack_type: fgsm_disc_attack
@@ -42,11 +43,3 @@ list_reg_model_params:
  - model_id: 2
    model_name: 'fgsm_disc_attack2_eps=0.03_alpha=1_nsteps=10'
  - model_id: 2
-
-
-
-
-
-
-
-

@@ -37,8 +37,8 @@ def calculate_metrics_class(y_true: np.array,
     pr = average_precision_score(y_true, y_pred)
     return acc, roc, pr
 
-def calculate_hiddeness(model, X):
 
+def calculate_hiddeness(model, X):
     model_device = next(model.parameters()).device
     X = X.to(model_device)
     hid = torch.mean(model(X))
@@ -49,14 +49,14 @@ def calculate_metrics_class_and_hiddens(
         y_true: np.array,
         y_pred: np.array,
         X,
-        disc_model = None,
-    ):
-    
+        disc_model=None,
+):
     acc, roc, pr = calculate_metrics_class(y_true, y_pred)
-    
+
     hid = calculate_hiddeness(disc_model, X) if disc_model else None
-    
+
     return acc, roc, pr, hid
+
 
 def calc_accuracy(model, y_pred, y_pred_adv):
     acc_val = np.mean((y_pred == model))

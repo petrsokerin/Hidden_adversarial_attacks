@@ -7,23 +7,20 @@ class LSTM(nn.Module):
         super().__init__()
         self.n_layers = n_layers
         self.hidden_dim = hidden_dim
-        self.rnn = nn.LSTM(
-            x_dim, 
-            hidden_dim, 
-            num_layers=n_layers, 
-            dropout=dropout,
-            batch_first=True
-        )
-        
+        self.rnn = nn.LSTM(x_dim, 
+                           hidden_dim, 
+                           num_layers=n_layers, 
+                           dropout=dropout,
+                           batch_first=True)
+
+        self.n_layers = n_layers
         self.fc1 = nn.Linear(hidden_dim * n_layers, hidden_dim)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(hidden_dim, output_dim)
         self.dropout = nn.Dropout(dropout)
         self.tanh = nn.Tanh()
-        
-        
+
     def forward(self, data, use_sigmoid=True, use_tanh=False):
-        
         output, (hidden, cell) = self.rnn(data)
 
         # hidden have shape n_layers, n_onjects, hidden_dim

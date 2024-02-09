@@ -75,7 +75,7 @@ def load_UCR(dataset):
         'UMD'
     ]:
         return train[..., np.newaxis], train_labels, test[..., np.newaxis], test_labels
-    
+
     mean = np.nanmean(train)
     std = np.nanstd(train)
     train = (train - mean) / std
@@ -86,35 +86,35 @@ def load_UCR(dataset):
 def load_UEA(dataset):
     train_data = loadarff(f'data/TS2Vec/UEA/{dataset}/{dataset}_TRAIN.arff')[0]
     test_data = loadarff(f'data/TS2Vec/UEA/{dataset}/{dataset}_TEST.arff')[0]
-    
+
     def extract_data(data):
         res_data = []
         res_labels = []
         for t_data, t_label in data:
-            t_data = np.array([ d.tolist() for d in t_data ])
+            t_data = np.array([d.tolist() for d in t_data])
             t_label = t_label.decode("utf-8")
             res_data.append(t_data)
             res_labels.append(t_label)
         return np.array(res_data).swapaxes(1, 2), np.array(res_labels)
-    
+
     train_X, train_y = extract_data(train_data)
     test_X, test_y = extract_data(test_data)
-    
+
     scaler = StandardScaler()
     scaler.fit(train_X.reshape(-1, train_X.shape[-1]))
     train_X = scaler.transform(train_X.reshape(-1, train_X.shape[-1])).reshape(train_X.shape)
     test_X = scaler.transform(test_X.reshape(-1, test_X.shape[-1])).reshape(test_X.shape)
-    
+
     labels = np.unique(train_y)
-    transform = { k : i for i, k in enumerate(labels)}
+    transform = {k: i for i, k in enumerate(labels)}
     train_y = np.vectorize(transform.get)(train_y)
     test_y = np.vectorize(transform.get)(test_y)
     return train_X, train_y, test_X, test_y
 
 
 def load_Ford_A(
-    path_train: str ="data/Ford_A/FordA_TRAIN.ts", 
-    path_test: str ="data/Ford_A/FordA_TEST.ts"
+        path_train: str = "data/Ford_A/FordA_TRAIN.ts",
+        path_test: str = "data/Ford_A/FordA_TEST.ts"
 ):
     root_url = "https://raw.githubusercontent.com/hfawaz/cd-diagram/master/FordA/"
     X_train, y_train = readucr(root_url + "FordA_TRAIN.tsv")
@@ -141,22 +141,26 @@ def transform_data(
     X_test = X_test.reshape(X_test.shape[0], X_test.shape[1])
 
     # transform from -1,1 labels to 0,1.
-    if len(np.unique(y_train)) == 2 and np.sum(y_train == -1) > 0:
-        y_train = (y_train + 1) // 2 
-        y_test = (y_test + 1) // 2 
+    if len(np.unique(y_train)) == 2:
+        if np.sum(y_train == -1) > 0:
+            y_train = (y_train + 1) // 2
+            y_test = (y_test + 1) // 2
+        elif np.sum(y_train == 2) > 0:
+            y_train -= 1
+            y_test -= 1
 
     if slice_data:
         len_seq = X_train.shape[1]
-        n_patches = len_seq//window
+        n_patches = len_seq // window
 
-        X_train = np.vstack([X_train[:, i:i+window] for i in range(n_patches)])
-        X_test = np.vstack([X_test[:, i:i+window] for i in range(n_patches)])
+        X_train = np.vstack([X_train[:, i:i + window] for i in range(n_patches)])
+        X_test = np.vstack([X_test[:, i:i + window] for i in range(n_patches)])
 
         y_train = np.concatenate([y_train for _ in range(n_patches)])
         y_test = np.concatenate([y_test for _ in range(n_patches)])
 
     X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
-    X_test_tensor =torch.tensor(X_test, dtype=torch.float32)
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
 
     y_train_tensor = torch.tensor(y_train, dtype=torch.int32).unsqueeze(dim=1)
     y_test_tensor = torch.tensor(y_test, dtype=torch.int32).unsqueeze(dim=1)
@@ -192,7 +196,7 @@ class MyDataset(Dataset):
         
     def __len__(self):
         return len(self.y)
-    
+
     def __getitem__(self, idx):
         X = torch.tensor(self.X[idx], dtype=torch.float32)
 
