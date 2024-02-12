@@ -15,7 +15,7 @@ prefix: ''
 TS2Vec: False
 verbose_ts2vec: False
 
-cuda: 'cuda:2'
+cuda: 'cuda'
 
 transform_data: 
 - _target_: tsai.data.transforms.TSRandomResizedCrop
@@ -25,6 +25,7 @@ defaults:
   - model@attack_model: LSTM
   - model@disc_model: LSTM
   - model@disc_model_check: LSTM
+
 
 attack_type: fgsm_attack
 n_iterations: 2
@@ -43,7 +44,8 @@ early_stop_patience: 3
 
 disc_check_params:
   model_id : 0
-  model_name: fgsm_attack_eps=0.0056_nsteps=50
+  model_name: fgsm_reg_attack_eps=0.0316_nsteps=100_dropout=0.1
+
 
 list_reg_model_params:
  - model_id: 1

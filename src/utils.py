@@ -2,28 +2,24 @@ import copy
 import os
 import pickle
 from typing import Dict
-import shutil 
+import shutil
 
 import pandas as pd
 import numpy as np
 import torch
 import random
 
-from .training.discrim_training import HideAttackExp
-from src.data import MyDataset
-
 
 def save_experiment(
-        aa_res_df: pd.DataFrame, 
+        aa_res_df: pd.DataFrame,
         rej_curves_dict: Dict,
-        config_name: str, 
-        path: str, 
+        config_name: str,
+        path: str,
         attack: str,
-        dataset: str, 
-        model_id: int, 
+        dataset: str,
+        model_id: int,
         alpha: float
-    ) -> None:
-
+) -> None:
     if not os.path.isdir(path):
         os.makedirs(path)
 
@@ -45,17 +41,18 @@ def build_dataframe_metrics(experiment):
     metrics_dict = experiment.dict_logging
     for split in metrics_dict.keys():
         df_loc = pd.DataFrame([])
-        
+
         for key in metrics_dict[split].keys():
             df_loc[key] = metrics_dict[split][key]
 
         df_loc['split'] = split
         df_loc['iter'] = np.arange(1, len(df_loc) + 1)
 
-        df_loc = df_loc[['iter', 'split']+list(metrics_dict[split].keys())]
+        df_loc = df_loc[['iter', 'split'] + list(metrics_dict[split].keys())]
 
     df = pd.concat([df, df_loc])
     return df
+
 
 def save_config(path, config_name, config_save_name) -> None:
     shutil.copytree(f'config/my_configs', path + '/config_folder')
@@ -70,15 +67,15 @@ def save_train_disc(experiment, config_name, model_id, cfg, save_csv=True):
         exp_name = f"{cfg['attack_type']}{cfg['prefix']}_eps={cfg['eps']}_alpha={cfg['alpha']}_nsteps={cfg['n_iterations']}"
     else:
         exp_name = f"{cfg['attack_type']}{cfg['prefix']}_eps={cfg['eps']}_nsteps={cfg['n_iterations']}"
-        
+
     full_path = cfg['save_path'] + '/' + exp_name
 
     if not os.path.isdir(full_path):
         os.makedirs(full_path)
-            
+
     if save_csv:
         df_res = build_dataframe_metrics(experiment)
-        df_res.to_csv(full_path+'/' + f"{model_id}_logs.csv", index=None)
+        df_res.to_csv(full_path + '/' + f"{model_id}_logs.csv", index=None)
 
     model_weights_name = full_path + '/' + f"{model_id}.pt"
     torch.save(experiment.disc_model.state_dict(), model_weights_name)
@@ -92,7 +89,7 @@ def save_train_classifier(model, save_path, model_name):
         os.makedirs(save_path)
 
     full_path = save_path + '/' + model_name
-    torch.save(model.state_dict(), full_path) 
+    torch.save(model.state_dict(), full_path)
 
 
 def load_disc_model(
@@ -117,5 +114,5 @@ def fix_seed(seed: int) -> None:
     torch.cuda.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
-    torch.backends.cudnn.enabled=False
-    torch.backends.cudnn.deterministic=True
+    torch.backends.cudnn.enabled = False
+    torch.backends.cudnn.deterministic = True

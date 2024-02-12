@@ -13,15 +13,15 @@ def simba_binary(model, loss_func, x, y_true, eps):
 
     y_pred = model(x)
 
-    p_orig = torch.max(y_pred, 1-y_pred)
+    p_orig = torch.max(y_pred, 1 - y_pred)
 
     x_minus = x - mask * eps
     y_pred_minus = model(x_minus)
-    p_minus = torch.max(y_pred_minus, 1-y_pred_minus)
-    
+    p_minus = torch.max(y_pred_minus, 1 - y_pred_minus)
+
     x_plus = x + mask * eps
     y_pred_plus = model(x_plus)
-    p_plus = torch.max(y_pred_plus, 1-y_pred_plus)
+    p_plus = torch.max(y_pred_plus, 1 - y_pred_plus)
 
     x_all = torch.cat([x, x_minus, x_plus]).view(3, *x.shape)
 
@@ -44,13 +44,13 @@ def simba_binary_reg(model, loss_func, x, y_true, eps, alpha):
 
 
 def simba_binary_disc_reg(
-    model, 
-    loss_func, 
-    x, 
-    y_true, 
-    eps, 
-    alpha, 
-    disc_models
+        model,
+        loss_func,
+        x,
+        y_true,
+        eps,
+        alpha,
+        disc_models
 ):
     x_adv = simba_binary(model, loss_func, x, y_true, eps)
     reg_value = reg_disc(x_adv, alpha, disc_models)
@@ -97,14 +97,15 @@ def fgsm_reg_attack(model, loss_func, x, y_true, eps, alpha):
 
     return x_adv
 
+
 def only_disc_attack(
-    model, 
-    loss_func, 
-    x, 
-    y_true, 
-    eps: float, 
-    alpha: float, 
-    disc_models: List, 
+    model,
+    loss_func,
+    x,
+    y_true,
+    eps: float,
+    alpha: float,
+    disc_models: List
 ):
     reg_value = reg_disc(x, alpha, disc_models)
     grad_reg = torch.autograd.grad(reg_value, x, retain_graph=True)[0]
@@ -117,6 +118,7 @@ def only_disc_attack(
     x_adv = x.data + eps * torch.sign(grad_)
 
     return x_adv
+
 
 def fgsm_disc_attack(
     model,
@@ -165,7 +167,7 @@ def reg_disc(x, alpha: float, disc_models: List, use_sigmoid: bool = True):
             model_output = torch.mean(torch.log(d_model(x)))
         reg_value = reg_value + model_output
 
-    reg_value = alpha* reg_value / n_models
+    reg_value = alpha * reg_value / n_models
     return reg_value
 
 def reg_boltzmann(x, alpha: float, disc_models: List, use_sigmoid: bool = True):

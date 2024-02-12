@@ -32,7 +32,7 @@ def main(cfg: DictConfig):
 
     train_loader, test_loader = build_dataloaders(X_train, X_test, y_train, y_test)
 
-    device= torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
+    device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
 
     model_name = instantiate(cfg.attack_model).__class__.__name__
     cfg['model_folder'] = cfg['model_folder'] + f'{model_name}/'

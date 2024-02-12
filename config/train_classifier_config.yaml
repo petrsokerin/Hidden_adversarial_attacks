@@ -1,4 +1,4 @@
-dataset: FordA #GunPoint  
+dataset: FordA #GunPoint
 slice: True
 save_path: checkpoints/${dataset}/
 test_run: True # If true results will be not saved!!!!
