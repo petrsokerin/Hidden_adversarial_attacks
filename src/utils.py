@@ -24,7 +24,7 @@ def save_experiment(
         os.makedirs(path)
 
     if 'disc' in attack or 'reg' in attack:
-        save_config(path, config_name, "config_{dataset}_{model_id}_alpha={alpha}.yaml")
+        save_config(path, config_name, f"config_{dataset}_{model_id}_alpha={alpha}.yaml")
         aa_res_df.to_csv(path + f'/aa_res_{dataset}_{model_id}_alpha={alpha}.csv')
         with open(path + f'/rej_curves_dict_{dataset}_model_{model_id}_alpha={alpha}.pickle', 'wb') as file:
             pickle.dump(rej_curves_dict, file)
@@ -55,7 +55,7 @@ def build_dataframe_metrics(experiment):
 
 
 def save_config(path, config_name, config_save_name) -> None:
-    shutil.copytree(f'config/my_configs', path + '/config_folder')
+    shutil.copytree(f'config/my_configs', path + '/config_folder', dirs_exist_ok = True)
     shutil.copyfile(f'config/my_configs/{config_name}.yaml', path + '/' + config_save_name)
     
 
