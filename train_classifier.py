@@ -47,9 +47,7 @@ def main(cfg: DictConfig):
 
     print('Size:', len(X_train), len(X_test))
 
-    cfg['save_path'] = cfg['save_path'] + f'{instantiate(cfg.model).__class__.__name__}'
-
-    criterion = torch.nn.BCELoss()
+    cfg['save_path'] = cfg['save_path'] + f'{instantiate(cfg.model).__class__.__name__}' 
     device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
 
     for model_id in range(cfg['model_id_start'], cfg['model_id_finish']):
@@ -59,9 +57,6 @@ def main(cfg: DictConfig):
         model_name = f'model_{model_id}_{cfg["dataset"]}'
 
         model = instantiate(cfg.model).to(device)
-
-        optimizer = torch.optim.Adam(model.parameters(), lr=cfg['lr'])
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=cfg['step_size'], gamma=cfg['gamma'])
 
         logger = SummaryWriter(cfg['save_path'] + '/tensorboard')
 

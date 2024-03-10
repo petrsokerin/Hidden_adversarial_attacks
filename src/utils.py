@@ -3,11 +3,15 @@ import os
 import pickle
 from typing import Dict
 import shutil
+from typing import Any, Mapping
 
 import pandas as pd
 import numpy as np
 import torch
 import random
+
+from optuna.trial import Trial
+from omegaconf import DictConfig
 
 
 def save_experiment(
@@ -35,6 +39,39 @@ def save_experiment(
         with open(path + f'/rej_curves_dict_{dataset}_model_{model_id}.pickle', 'wb') as file:
             pickle.dump(rej_curves_dict, file)
 
+
+def get_optimization_lists(params_vary: DictConfig, trial: Trial) -> Mapping[str, Any]:
+    """Function for optuna optimization range lists generation.
+
+    Args:
+        params_vary (DictConfig): Dictionaries with the parameters to vary. Can be:
+            float
+            int
+            choice
+            const (parameters that are transfered to the original model as they are).
+        trial (Trial): Optuna trial.
+
+    Returns:
+        Mapping[str, Any]: Initial model parameters.
+    """
+    initial_model_parameters = {}
+    if "int" in params_vary:
+        for param_int in params_vary["int"]:
+            initial_model_parameters[param_int["name"]] = trial.suggest_int(**param_int)
+    if "float" in params_vary:
+        for param_float in params_vary["float"]:
+            initial_model_parameters[param_float["name"]] = trial.suggest_float(
+                **param_float
+            )
+    if "choice" in params_vary:
+        for param_choice in params_vary["choice"]:
+            initial_model_parameters[param_choice["name"]] = trial.suggest_categorical(
+                **param_choice
+            )
+    if "const" in params_vary:
+        initial_model_parameters.update(**params_vary["const"])
+
+    return initial_model_parameters
 
 def build_dataframe_metrics(experiment):
     df = pd.DataFrame()

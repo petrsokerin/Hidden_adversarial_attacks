@@ -1,14 +1,22 @@
 import os
 import pickle
+from functools import partial
 
 
 from tqdm.auto import tqdm
 import torch
+import optuna
+from optuna.trial import Trial
+from hydra.utils import instantiate
+from omegaconf import DictConfig
+
 import pandas as pd
 import numpy as np
 import torch
 from sklearn.metrics import (accuracy_score, precision_score,
                              recall_score, f1_score)
+
+from src.utils import get_optimization_lists
 
 
 def req_grad(model, state: bool = True) -> None:
@@ -41,24 +49,59 @@ class EarlyStopper:
             if self.counter >= self.patience:
                 return True
         return False
+    
+def get_criterion(criterion_name, criterion_params={}):
+    if criterion_name == 'BCE':
+        return torch.nn.BCELoss(**criterion_params)
+    elif criterion_name == 'CrossEntropy':
+        return torch.nn.CrossEntropyLossLoss(**criterion_params)
+    else:
+        raise ValueError("Only BCE and CrossEntropy losses are implemented")
+    
+def get_optimizer(optimizer_name, model_params, optimizer_params={}):
+    if optimizer_name == 'Adam':
+        return torch.optim.Adam(model_params, **optimizer_params)
+    elif optimizer_name == 'SGD':
+        return torch.optim.SGD(model_params, **optimizer_params)
+    else:
+        raise ValueError("Only Adam and SGD optimizers are implemented")
+    
+def get_scheduler(scheduler_name, optimizer, scheduler_params):
+    if scheduler_name == 'None':
+        return None
+    elif scheduler_name == 'StepLR':
+        return torch.optim.lr_scheduler.StepLR(optimizer, **scheduler_params)
+    else:
+        raise ValueError("Only None and StepLR optimizers are implemented")
 
 
 class Trainer:
-    def __init__(self, model, train_loader, test_loader, criterion, optimizer, scheduler=None,
-                 logger=None, n_epochs=30, print_every=5, device='cpu', multiclass=False):
+    def __init__(
+            self, 
+            model, 
+            train_loader, 
+            test_loader, 
+            criterion_name='BCE', 
+            criterioin_params={},
+            optimizer_name='Adam', 
+            optimizer_params={'lr': 1e-3}, 
+            scheduler_name='None',
+            scheduler_params={},
+            logger=None, 
+            n_epochs=30, 
+            print_every=5, 
+            device='cpu', 
+            multiclass=False):
 
         self.model = model
         self.train_loader = train_loader
         self.test_loader = test_loader
 
-        self.criterion = criterion
+        self.criterion = get_criterion(criterion_name, criterioin_params)
+        self.optimizer = get_optimizer(optimizer_name, model.parameters, optimizer_params)
+        self.scheduler = get_scheduler(scheduler_name, self.optimizer, scheduler_params)
 
         self.n_epoch = n_epochs
-        self.optimizer = optimizer
-        if scheduler:
-            self.scheduler = scheduler
-        else:
-            self.scheduler = None
 
         self.device = device
         self.multiclass = multiclass
@@ -67,6 +110,90 @@ class Trainer:
         self.logger = logger
         self.dict_logging = {}
 
+    @staticmethod
+    def init_with_params(
+        train_loader, 
+        test_loader,
+        model_params,
+    ):
+        
+        pass
+
+    @staticmethod
+    def initialize_with_optimization(
+            self,
+            optuna_params,
+            train_loader,
+            valid_loader,
+    ):
+
+        study = optuna.create_study(
+            direction="maximize",
+            sampler=instantiate(optuna_params["sampler"]),
+            pruner=instantiate(optuna_params["pruner"]),
+        )
+        study.optimize(
+            partial(
+                Trainer.objective,
+                params_vary=optuna_params["hyperparameters_vary"],
+                k_opt=optuna_params["k_optimization"],
+                train_loader=train_loader,
+                valid_loader=valid_loader,
+            ),
+            n_trials=optuna_params["n_trials"],
+        )
+        best_params = study.best_params.copy()
+        if "const" in optuna_params["hyperparameters_vary"]:
+            best_params.update(optuna_params["hyperparameters_vary"]["const"])
+
+        self.logger.info("Best parameters are - %s", best_params)
+        return Trainer.initialize_with_params(train_loader, valid_loader, best_params)
+
+    @staticmethod
+    def objective(
+        trial: Trial,
+        params_vary: DictConfig,
+        train_loader,
+        valid_loader,
+    ) -> float:
+        """
+        Objective function for hyperparameter optimization using Optuna.
+
+        Args:
+            trial (Trial): Optuna trial object.
+            params_vary (DictConfig): Hyperparameters to optimize.
+            k_opt (int): Number of top-k items to evaluate.
+            train_loader (TrainDataLoader): train dataloader from recbole package.
+            valid_loader (FullSortEvalDataLoader): valid dataloader from recbole package.
+
+        Returns:
+            float: Mean rank of the model evaluated on the validation set.
+        """
+
+        initial_model_parameters = get_optimization_lists(params_vary, trial)
+        model = Trainer.initialize_with_params(
+            train_loader, valid_loader, initial_model_parameters
+        )
+        model.fit(train_loader, valid_loader)
+        top_100_items = model.recommend_k(valid_loader, k=100)
+        recbole_val_lists = np.array(
+            [
+                tensor.tolist()
+                for tensor in valid_loader.uid2positive_item
+                if tensor is not None
+            ],
+            dtype=object,
+        )
+        metrics = []
+        for k in k_opt:
+            metrics.append(
+                normalized_discounted_cumulative_gain(
+                    top_100_items, recbole_val_lists, k
+                )
+            )
+        return np.mean(metrics)
+
+    
     def _logging(self, data, epoch, mode='train', ):
 
         for metric in self.dict_logging[mode].keys():
