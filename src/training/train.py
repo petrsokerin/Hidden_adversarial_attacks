@@ -1,7 +1,6 @@
 import os
-import pickle
 from functools import partial
-
+from typing import Dict
 
 from tqdm.auto import tqdm
 import torch
@@ -16,7 +15,9 @@ import torch
 from sklearn.metrics import (accuracy_score, precision_score,
                              recall_score, f1_score)
 
-from src.utils import get_optimization_lists
+from src.utils import (get_optimization_dict, update_trainer_params, 
+collect_default_params, fix_seed)
+from src.models import *
 
 
 def req_grad(model, state: bool = True) -> None:
@@ -50,7 +51,29 @@ class EarlyStopper:
                 return True
         return False
     
-def get_criterion(criterion_name, criterion_params={}):
+def get_model(model_name, model_params):
+    
+    if model_params is None:
+        model_params = dict()
+
+    if model_name == 'LSTM':
+        return LSTM(**model_params)
+    elif model_name == 'TS2VecClassifier':
+        return TS2VecClassifier(**model_params)
+    elif model_name == 'SeqS4':
+        return SeqS4(**model_params)
+    elif model_name == 'RNNA':
+        return RNNA(**model_params)
+    elif model_name == 'ResidualCNN':
+        return ResidualCNN(**model_params)
+    else:
+        raise ValueError(f"Model with name {model_name} is not implemented")
+
+    
+def get_criterion(criterion_name, criterion_params=None):
+    if criterion_params is None:
+        criterion_params = dict()
+
     if criterion_name == 'BCE':
         return torch.nn.BCELoss(**criterion_params)
     elif criterion_name == 'CrossEntropy':
@@ -58,7 +81,9 @@ def get_criterion(criterion_name, criterion_params={}):
     else:
         raise ValueError("Only BCE and CrossEntropy losses are implemented")
     
-def get_optimizer(optimizer_name, model_params, optimizer_params={}):
+def get_optimizer(optimizer_name, model_params, optimizer_params=None):
+    if optimizer_params is None:
+        optimizer_params = dict()
     if optimizer_name == 'Adam':
         return torch.optim.Adam(model_params, **optimizer_params)
     elif optimizer_name == 'SGD':
@@ -66,7 +91,10 @@ def get_optimizer(optimizer_name, model_params, optimizer_params={}):
     else:
         raise ValueError("Only Adam and SGD optimizers are implemented")
     
-def get_scheduler(scheduler_name, optimizer, scheduler_params):
+def get_scheduler(scheduler_name, optimizer, scheduler_params=None):
+    if scheduler_params is None:
+        scheduler_params = dict()
+
     if scheduler_name == 'None':
         return None
     elif scheduler_name == 'StepLR':
@@ -77,31 +105,41 @@ def get_scheduler(scheduler_name, optimizer, scheduler_params):
 
 class Trainer:
     def __init__(
-            self, 
-            model, 
-            train_loader, 
-            test_loader, 
+            self,
+            model_name='LSTM',
+            model_params=None, 
             criterion_name='BCE', 
-            criterioin_params={},
+            criterioin_params=None,
             optimizer_name='Adam', 
-            optimizer_params={'lr': 1e-3}, 
+            optimizer_params=None, 
             scheduler_name='None',
-            scheduler_params={},
-            logger=None, 
-            n_epochs=30, 
-            print_every=5, 
-            device='cpu', 
-            multiclass=False):
+            scheduler_params=None,
+            n_epochs=30,
+            early_stop_patience=None,
+            logger=None,
+            print_every=5,
+            device='cpu',
+            seed = 0,
+            multiclass=False
+        ):
 
-        self.model = model
-        self.train_loader = train_loader
-        self.test_loader = test_loader
-
+        fix_seed(seed)
+        if model_params == 'None' or not model_params:
+            model_params = {}
+        if criterioin_params == 'None' or not criterioin_params:
+            criterioin_params = {}
+        if optimizer_params == 'None' or not optimizer_params:
+            optimizer_params = {}
+        if scheduler_params == 'None' or not scheduler_params:
+            scheduler_params = {}
+        
+        self.model = get_model(model_name, model_params).to(device)
         self.criterion = get_criterion(criterion_name, criterioin_params)
-        self.optimizer = get_optimizer(optimizer_name, model.parameters, optimizer_params)
+        self.optimizer = get_optimizer(optimizer_name, self.model.parameters(), optimizer_params)
         self.scheduler = get_scheduler(scheduler_name, self.optimizer, scheduler_params)
-
-        self.n_epoch = n_epochs
+        
+        self.n_epochs = n_epochs
+        self.early_stop_patience = early_stop_patience
 
         self.device = device
         self.multiclass = multiclass
@@ -110,21 +148,19 @@ class Trainer:
         self.logger = logger
         self.dict_logging = {}
 
+
     @staticmethod
-    def init_with_params(
-        train_loader, 
-        test_loader,
-        model_params,
-    ):
-        
-        pass
+    def initialize_with_params(
+        trainer_params,
+    ):        
+        return Trainer(**trainer_params)
 
     @staticmethod
     def initialize_with_optimization(
-            self,
-            optuna_params,
             train_loader,
             valid_loader,
+            optuna_params,
+            const_params,
     ):
 
         study = optuna.create_study(
@@ -136,75 +172,54 @@ class Trainer:
             partial(
                 Trainer.objective,
                 params_vary=optuna_params["hyperparameters_vary"],
-                k_opt=optuna_params["k_optimization"],
+                const_params = const_params,
                 train_loader=train_loader,
                 valid_loader=valid_loader,
             ),
             n_trials=optuna_params["n_trials"],
         )
+        
+        default_params = collect_default_params(optuna_params["hyperparameters_vary"])
         best_params = study.best_params.copy()
-        if "const" in optuna_params["hyperparameters_vary"]:
-            best_params.update(optuna_params["hyperparameters_vary"]["const"])
+        best_params = update_trainer_params(best_params, default_params)
 
-        self.logger.info("Best parameters are - %s", best_params)
-        return Trainer.initialize_with_params(train_loader, valid_loader, best_params)
+        best_params.update(const_params)
+        print("Best parameters are - %s", best_params)
+        return Trainer.initialize_with_params(best_params)
 
     @staticmethod
     def objective(
         trial: Trial,
         params_vary: DictConfig,
+        const_params: Dict,
         train_loader,
         valid_loader,
+        optim_metric='f1'
     ) -> float:
-        """
-        Objective function for hyperparameter optimization using Optuna.
 
-        Args:
-            trial (Trial): Optuna trial object.
-            params_vary (DictConfig): Hyperparameters to optimize.
-            k_opt (int): Number of top-k items to evaluate.
-            train_loader (TrainDataLoader): train dataloader from recbole package.
-            valid_loader (FullSortEvalDataLoader): valid dataloader from recbole package.
+        initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
+        initial_model_parameters = dict(initial_model_parameters)
+        initial_model_parameters.update(const_params)
 
-        Returns:
-            float: Mean rank of the model evaluated on the validation set.
-        """
-
-        initial_model_parameters = get_optimization_lists(params_vary, trial)
+        print(initial_model_parameters)
         model = Trainer.initialize_with_params(
-            train_loader, valid_loader, initial_model_parameters
+            initial_model_parameters
         )
-        model.fit(train_loader, valid_loader)
-        top_100_items = model.recommend_k(valid_loader, k=100)
-        recbole_val_lists = np.array(
-            [
-                tensor.tolist()
-                for tensor in valid_loader.uid2positive_item
-                if tensor is not None
-            ],
-            dtype=object,
-        )
-        metrics = []
-        for k in k_opt:
-            metrics.append(
-                normalized_discounted_cumulative_gain(
-                    top_100_items, recbole_val_lists, k
-                )
-            )
-        return np.mean(metrics)
+        last_epoch_metrics = model.train_model(train_loader, valid_loader)
+        return last_epoch_metrics[optim_metric]
 
     
-    def _logging(self, data, epoch, mode='train', ):
+    def _logging(self, data, epoch, mode='train'):
 
         for metric in self.dict_logging[mode].keys():
             self.dict_logging[mode][metric].append(data[metric])
 
             self.logger.add_scalar(metric + '/' + mode, data[metric], epoch)
 
-    def train_model(self, early_stop_patience=None):
+    def train_model(self, train_loader, valid_loader):
 
-        if early_stop_patience and early_stop_patience != 'None':
-            earl_stopper = EarlyStopper(early_stop_patience)
+        if self.early_stop_patience and self.early_stop_patience != 'None':
+            earl_stopper = EarlyStopper(self.early_stop_patience)
 
         metric_names = ['loss', 'accuracy', 'precision', 'recall', 'f1', 'balance']
         self.dict_logging = {'train': {metric: [] for metric in metric_names},
@@ -212,43 +227,48 @@ class Trainer:
 
         fill_line = 'Epoch {} train loss: {}; acc_train {}; test loss: {}; acc_test {}; f1_test {}; balance {}'
 
-        for epoch in range(self.n_epoch):
-            train_metrics_epoch = self._train_step()
+        for epoch in range(self.n_epochs):
+            train_metrics_epoch = self._train_step(train_loader)
             train_metrics_epoch = {met_name: met_val for met_name, met_val
                                    in zip(metric_names, train_metrics_epoch)}
 
             self._logging(train_metrics_epoch, epoch, mode='train')
 
-            test_metrics_epoch = self._valid_step()
+            test_metrics_epoch = self._valid_step(valid_loader)
             test_metrics_epoch = {met_name: met_val for met_name, met_val
                                   in zip(metric_names, test_metrics_epoch)}
             self._logging(test_metrics_epoch, epoch, mode='test')
 
             if epoch % self.print_every == 0:
-                print_line = fill_line.format(epoch + 1,
-                                              round(train_metrics_epoch['loss'], 3),
-                                              round(train_metrics_epoch['accuracy'], 3),
-                                              round(test_metrics_epoch['loss'], 3),
-                                              round(test_metrics_epoch['accuracy'], 3),
-                                              round(test_metrics_epoch['f1'], 3),
-                                              round(test_metrics_epoch['balance'], 3),
-                                              )
+                print_line = fill_line.format(
+                    epoch + 1,
+                    round(train_metrics_epoch['loss'], 3),
+                    round(train_metrics_epoch['accuracy'], 3),
+                    round(test_metrics_epoch['loss'], 3),
+                    round(test_metrics_epoch['accuracy'], 3),
+                    round(test_metrics_epoch['f1'], 3),
+                    round(test_metrics_epoch['balance'], 3),
+                )
                 print(print_line)
 
-            if early_stop_patience and early_stop_patience != 'None':
+            if self.scheduler:
+                self.scheduler.step()
+
+            if self.early_stop_patience and self.early_stop_patience != 'None':
                 res_early_stop = earl_stopper.early_stop(test_metrics_epoch['loss'])
                 if res_early_stop:
                     break
+        return test_metrics_epoch
 
-    def _train_step(self):
+    def _train_step(self, loader):
         # req_grad(self.model)
-        losses, n_batches = 0, 0
+        losses = 0
 
         y_all_pred = torch.tensor([])
         y_all_true = torch.tensor([])
 
         self.model.train(True)
-        for x, labels in self.train_loader:
+        for x, labels in loader:
 
             self.optimizer.zero_grad()
             x = x.to(self.device)
@@ -261,7 +281,6 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
             losses += loss
-            n_batches += 1
 
             if self.multiclass:
                 y_pred = torch.argmax(y_out, axis=1)
@@ -271,23 +290,22 @@ class Trainer:
             y_all_true = torch.cat((y_all_true, labels.cpu().detach()), dim=0)
             y_all_pred = torch.cat((y_all_pred, y_pred.cpu().detach()), dim=0)
 
-        mean_loss = float((losses / n_batches).cpu().detach().numpy())
+        mean_loss = losses.cpu().detach().numpy() / len(loader)
 
         y_all_pred = y_all_pred.numpy().reshape([-1, 1])
         y_all_true = y_all_true.numpy().reshape([-1, 1])
 
-        acc, pr, rec, f1 = self.calculate_metrics(y_all_true, y_all_pred)
-        balance = np.sum(y_all_pred) / len(y_all_pred)
+        acc, pr, rec, f1, balance = self.calculate_metrics(y_all_true, y_all_pred)
         return mean_loss, acc, pr, rec, f1, balance
 
-    def _valid_step(self):
+    def _valid_step(self, loader):
 
         y_all_pred = torch.tensor([])
         y_all_true = torch.tensor([])
 
-        losses, n_batches = 0, 0
+        losses = 0
         self.model.eval()
-        for i, (x, labels) in enumerate(self.test_loader):
+        for x, labels in loader:
             with torch.no_grad():
                 x = x.to(self.device)
                 labels = labels.reshape(-1, 1).to(self.device)
@@ -296,7 +314,6 @@ class Trainer:
 
                 loss = self.criterion(y_out, labels)
                 losses += loss
-                n_batches += 1
 
                 if self.multiclass:
                     y_pred = torch.argmax(y_out, axis=1)
@@ -306,15 +323,12 @@ class Trainer:
             y_all_true = torch.cat((y_all_true, labels.cpu().detach()), dim=0)
             y_all_pred = torch.cat((y_all_pred, y_pred.cpu().detach()), dim=0)
 
-        mean_loss = float((losses / n_batches).cpu().detach().numpy())
-        if self.scheduler:
-            self.scheduler.step()
+        mean_loss = losses.cpu().detach().numpy() / len(loader)
 
         y_all_pred = y_all_pred.numpy().reshape([-1, 1])
         y_all_true = y_all_true.numpy().reshape([-1, 1])
 
-        acc, pr, rec, f1 = self.calculate_metrics(y_all_true, y_all_pred)
-        balance = np.sum(y_all_pred) / len(y_all_pred)
+        acc, pr, rec, f1, balance = self.calculate_metrics(y_all_true, y_all_pred)
         return mean_loss, acc, pr, rec, f1, balance
 
     def calculate_metrics(self, y_true, y_pred):
@@ -322,7 +336,8 @@ class Trainer:
         pr = precision_score(y_true, y_pred, average='macro')
         rec = recall_score(y_true, y_pred, average='macro')
         f1 = f1_score(y_true, y_pred, average='macro')
-        return acc, pr, rec, f1
+        balance = np.sum(y_pred) / len(y_pred)
+        return acc, pr, rec, f1, balance
     
     def save_metrics_as_csv(self, path):
         res = pd.DataFrame([])

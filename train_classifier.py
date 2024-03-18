@@ -54,21 +54,25 @@ def main(cfg: DictConfig):
         print('trainig model', model_id)
         fix_seed(model_id)
 
-        model_name = f'model_{model_id}_{cfg["dataset"]}'
-
-        model = instantiate(cfg.model).to(device)
-
         logger = SummaryWriter(cfg['save_path'] + '/tensorboard')
+        
+        const_params = {'logger': logger, 'print_every': cfg['print_every'], 'device': device, 'seed': model_id}
+        if cfg['enable_optimization']:
+            trainer = Trainer.initialize_with_optimization(
+                train_loader, test_loader, cfg['optuna_optimizer'], const_params
+            )
 
-        trainer = Trainer(model, train_loader, test_loader, criterion, optimizer, scheduler, logger,
-                          n_epochs=cfg['n_epochs'], print_every=cfg['print_every'], device=device)
+        else:
+            trainer_params = dict(cfg['training_params'])
+            trainer_params.update(const_params)
+            trainer = Trainer.initialize_with_params(trainer_params)
 
-        trainer.train_model()
-
+        trainer.train_model(train_loader, test_loader)
         logger.close()
 
         if not cfg['test_run']:
-            trainer.save_result(cfg['save_path'], model_name)
+            model_save_name = f'model_{model_id}_{cfg["dataset"]}'
+            trainer.save_result(cfg['save_path'], model_save_name)
             save_config(cfg['save_path'], CONFIG_NAME, CONFIG_NAME)
 
             
