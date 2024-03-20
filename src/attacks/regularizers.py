@@ -29,7 +29,7 @@ def reg_disc(x, alpha: float, disc_models: List, use_sigmoid: bool = True):
 
 
 def reg_boltzmann(x, alpha: float, disc_models: List, use_sigmoid: bool = True):
-    def boltzmann(tensor, alpha, dim=None):  # alpha = 85 ~ torch.max(dim=0)
+    def boltzmann(tensor, alpha, dim=None):
         exp = torch.exp(alpha * tensor)
         maximum = (exp * tensor).sum(dim=dim) / exp.sum(dim=dim)
 
@@ -46,9 +46,5 @@ def reg_boltzmann(x, alpha: float, disc_models: List, use_sigmoid: bool = True):
 
         reg_value[i] = model_output
 
-    # print('bolt: ', boltzmann(reg_value, alpha=10))
-    # print('max: ', reg_value.max())
-
     reg_value = alpha * boltzmann(reg_value, alpha=30)
-    # reg_value = alpha* reg_value.max()
     return reg_value

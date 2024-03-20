@@ -1,29 +1,47 @@
-from base_attacks import IterativeBaseAttack, BaseAttack
+from base_attacks import IterativeAttack, BaseAttack
 from regularizers import reg_neigh, reg_disc
 import torch
 
 
-class FGSMRegAttack(BaseAttack):
-    def __init__(self, model, criterion, eps, alpha, device='cpu'):
-        super().__init__(model, criterion, eps, device=device)
-        self.alpha = alpha
+class FGSMAttack(IterativeAttack):
+    def __init__(self, model, criterion, eps, device='cpu'):
+        super().__init__(model, device=device)
+        self.criterion = criterion
+        self.eps = eps
 
-    def forward(self, x, y_true):
+    def get_loss(self, x, y_true):
         x.requires_grad = True
-        y_pred = self.model(x)
-        loss_val = self.criterion(y_pred, y_true)
-        reg_value = reg_neigh(x, self.alpha)
-        loss = loss_val - reg_value
         self.model.zero_grad()
+        y_pred = self.model(x)
+        loss = self.criterion(y_pred, y_true)
+        return loss
+    
+    def apply_attack(self, x, loss):
         loss.backward()
         grad_sign = x.grad.sign()
         x_adv = x.data + self.eps * grad_sign
         return x_adv
 
+    def step(self, x, y_true):
+        loss = self.get_loss(x, y_true)
+        x_adv = self.apply_attack(x, loss)
+        return x_adv
+    
 
-class FGSMAttack(FGSMRegAttack):
-    def __init__(self, model, criterion, eps, device='cpu'):
-        super().__init__(model, criterion, eps, alpha=0, device=device)
+class FGSMRegNeighAttack(FGSMAttack):
+    def __init__(self, model, criterion, eps, alpha=0.0, device='cpu'):
+        super().__init__(model, criterion, eps, device=device)
+        self.reg_function = reg_neigh
+        self.alpha = alpha
+
+    def step(self, x, y_true):
+        loss = self.attack_run(x, y_true)
+
+        reg_value = self.reg_function(x, self.alpha)
+        loss = loss - reg_value
+
+        x_adv = self.apply_attack(x, loss)
+        return x_adv
 
 
 class FGSMDiscAttack(BaseAttack):

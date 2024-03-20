@@ -1,27 +1,26 @@
-import torch
+from abc import ABC
 
+from abc import ABC, abstractmethod
 
-class BaseAttack:
-    def __init__(self, model, criterion, eps, alpha=None, device='cpu'):
-        self.model = model
-        self.criterion = criterion
-        self.eps = eps
-        self.alpha = alpha
-        self.device = device
+class BaseAttack(ABC):
+    def __init__(self, model, device='cpu'):
+        self.model = model.to(device)
 
+    @abstractmethod
     def step(self, x, y_true):
         raise NotImplementedError("This method should be implemented by subclasses.")
-
+    
+    @abstractmethod
     def forward(self, x, y_true):
         # The forward method might not be necessary if it just calls step.
         # This implementation assumes that step and forward might have different behaviors in subclasses.
         return self.step(x.to(self.device), y_true.to(self.device))
 
 
-class IterativeBaseAttack(BaseAttack):
-    def __init__(self, model, criterion, eps, alpha=None, n_steps=1, device='cpu'):
-        super().__init__(model, criterion, eps, alpha, device)
-        self.n_steps = n_steps
+class IterativeAttack(BaseAttack):
+    def __init__(self, parameter):
+        super().__init__()
+        self.parameter = parameter
 
     def step(self, x, y_true):
         # Default step behavior for iterative attacks. This might be overridden.
