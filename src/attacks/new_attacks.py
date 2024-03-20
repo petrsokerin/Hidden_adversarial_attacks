@@ -1,9 +1,5 @@
-from typing import List
 import torch
-import torch.nn.functional as F
 import numpy as np
-
-from .utils import req_grad
 
 
 def fgsm_clip_attack(
