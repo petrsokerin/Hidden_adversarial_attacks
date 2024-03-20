@@ -21,6 +21,7 @@ class IterGradAttack:
         train_mode=False,
         disc_model=None
     ):
+        
         self.model = model
         self.loader = loader
         self.attack_func = attack_func

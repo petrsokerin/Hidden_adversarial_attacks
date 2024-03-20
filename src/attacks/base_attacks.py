@@ -1,6 +1,11 @@
-from abc import ABC
-
 from abc import ABC, abstractmethod
+
+import pandas as pd
+import numpy as np
+import torch
+from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
+
 
 class BaseAttack(ABC):
     def __init__(self, model, device='cpu'):
@@ -9,26 +14,111 @@ class BaseAttack(ABC):
     @abstractmethod
     def step(self, x, y_true):
         raise NotImplementedError("This method should be implemented by subclasses.")
+
+
+class BatchIterativeAttack:
+    def __init__(self, attack, estimator=None):
+        self.attack = attack
+        
+        self.logging = bool(not estimator)
+        self.estimator = estimator
+
+        self.model = self.attack.model
+        self.device = self.model.device
+
+        if self.logging:
+            self.metrics_names = estimator.get_metrics_name()
+            self.metrics = pd.DataFrame(columns= self.metrics_names)
+
+    def log_step(self, y_true, y_pred, step_id):
+        metrics_line = self.estimator.estimate(y_true, y_pred)
+        metrics_line = [step_id] + list(metrics_line)
+        df_line = pd.DataFrame(metrics_line, columns=self.metrics_names)
+        self.metrics = pd.concat([self.metrics, df_line])
+
+
+    def get_model_predictions(self, loader):
+        y_pred_all_objects = torch.tensor([])  # logging predictions adversarial if realize_attack or original
+
+        for X, y_true in loader:
+            X, y_true = self.prepare_data_to_attack(X, y_true)
+            y_pred = self.model(X)
+            y_pred_all_objects = torch.cat((y_pred_all_objects, y_pred.cpu().detach()), dim=0)
+
+        return y_pred_all_objects
+
+
+    def prepare_data_to_attack(self, X, y):
+        X.grad = None
+        X.requires_grad = True
+
+        X = X.to(self.device, non_blocking=True)
+        y_true = y_true.to(self.device)
+        return X, y
+
+        
+    def run_iteration_log(self):
+        
+        X_adv_all_objects = torch.FloatTensor([])  # logging x_adv for rebuilding dataloader
+        y_true_all_objects = torch.tensor([])  # logging model for rebuilding dataloader and calculation difference with preds
+        y_pred_all_objects = torch.tensor([])  # logging predictions adversarial if realize_attack or original
+
+        for X, y_true in self.loader:
+            X, y_true = self.prepare_data_to_attack(X, y_true)
+            X_adv = self.attack.step(X, y_true)
+            y_pred_adv = self.model(X_adv)
+
+            X_adv_all_objects = torch.cat((X_adv_all_objects, X_adv.cpu().detach()), dim=0)
+            y_true_all_objects = torch.cat((y_true_all_objects, y_true.cpu().detach()), dim=0)
+            y_pred_all_objects = torch.cat((y_pred_all_objects, y_pred_adv.cpu().detach()), dim=0)
+
+        return X_adv_all_objects, y_true_all_objects, y_pred_all_objects
     
-    @abstractmethod
-    def forward(self, x, y_true):
-        # The forward method might not be necessary if it just calls step.
-        # This implementation assumes that step and forward might have different behaviors in subclasses.
-        return self.step(x.to(self.device), y_true.to(self.device))
+    def run_iteration(self):
+        
+        X_adv_all_objects = torch.FloatTensor([])  # logging x_adv for rebuilding dataloader
+        y_true_all_objects = torch.tensor([])  # logging model for rebuilding dataloader and calculation difference with preds
+
+        for X, y_true in self.loader:
+            X, y_true = self.prepare_data_to_attack(X, y_true)
+            X_adv = self.attack.step(X, y_true)
+
+            X_adv_all_objects = torch.cat((X_adv_all_objects, X_adv.cpu().detach()), dim=0)
+            y_true_all_objects = torch.cat((y_true_all_objects, y_true.cpu().detach()), dim=0)
+            
+        return X_adv_all_objects, y_true_all_objects
+    
+    @staticmethod
+    def rebuild_loader(loader, X_adv, y_true):
+        dataset_class = loader.dataset.__class__
+        batch_size = loader.batch_size
+        dataset = dataset_class(X_adv, y_true)
+        loader = DataLoader(dataset, batch_size=batch_size)
+        return loader
+        
+
+    def forward(self, loader, n_steps=50):
+
+        y_true = loader.dataset.y
+
+        if self.logging:
+            y_pred = self.get_model_predictions(loader)
+            y_pred = y_pred.cpu().detach()
+            self.log_step(y_true, y_pred, step_id=0)
+
+        for step_id in tqdm(range(1, n_steps + 1)):
+
+            if self.logging:
+                X_adv, y_true, y_pred = self.run_iteration_log()
+                self.log_step(y_true, y_pred, step_id=step_id)
+            else:
+                X_adv, y_true = self.run_one_iter()
+
+            loader = self.rebuild_loader(loader, X_adv, y_true)
+
+    def get_metrics(self):
+        return self.metrics
 
 
-class IterativeAttack(BaseAttack):
-    def __init__(self, parameter):
-        super().__init__()
-        self.parameter = parameter
-
-    def step(self, x, y_true):
-        # Default step behavior for iterative attacks. This might be overridden.
-        # Assuming step logic for iterative attacks is defined here.
-        super().step(x, y_true)
-
-    def forward(self, x, y_true):
-        x_adv = x.clone().detach().to(self.device)
-        for _ in range(self.n_steps):
-            x_adv = self.step(x_adv, y_true)
-        return x_adv
+            
+    
