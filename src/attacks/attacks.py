@@ -170,6 +170,7 @@ def reg_disc(x, alpha: float, disc_models: List, use_sigmoid: bool = True):
     reg_value = alpha * reg_value / n_models
     return reg_value
 
+
 def reg_boltzmann(x, alpha: float, disc_models: List, use_sigmoid: bool = True):
     reg_value = torch.empty(len(disc_models))
     
