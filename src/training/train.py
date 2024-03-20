@@ -86,6 +86,8 @@ def get_optimizer(optimizer_name, model_params, optimizer_params=None):
         optimizer_params = dict()
     if optimizer_name == 'Adam':
         return torch.optim.Adam(model_params, **optimizer_params)
+    elif optimizer_name == 'AdamW':
+        return torch.optim.AdamW(model_params, **optimizer_params)
     elif optimizer_name == 'SGD':
         return torch.optim.SGD(model_params, **optimizer_params)
     else:
@@ -201,7 +203,6 @@ class Trainer:
         initial_model_parameters = dict(initial_model_parameters)
         initial_model_parameters.update(const_params)
 
-        print(initial_model_parameters)
         model = Trainer.initialize_with_params(
             initial_model_parameters
         )
