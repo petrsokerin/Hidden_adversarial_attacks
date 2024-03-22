@@ -3,10 +3,10 @@ slice: True
 use_extra_sigmoid: False
 use_disc_check: True
 test_run: False # If true results will be not saved!!!!
-exp_name: '_LSTM_NEW'
+exp_name: '_Experiment'
 
 model_folder: checkpoints/${dataset}/
-disc_path: results/${dataset}/{}/discriminator/YOUR_DISCRIMINATOR_NAME/
+disc_path: results/FordA/LSTM/discriminator/fgsm_attack
 save_path: results/${dataset}/{}/attack/${attack_type}${exp_name}
 
 model_id_attack: 0
@@ -16,30 +16,27 @@ defaults:
   - model@disc_model: LSTM
   - model@disc_model_check: LSTM
 
-
 cuda: 'cuda:1'
 
 attack_type: fgsm_disc_attack
 n_iterations: 50
-all_eps: [0.005, 0.001, 0.03, 0.07, 0.1, 0.13] #[0.03, 0.07, 0.1, 0.13, 0.17] #[0.001, 0.005, 0.0316, 0.1778, 1.0 ]  #  #[0.001, 0.01, 0.05, 0.2, 1.]
+all_eps: [0.01, 0.03] #[0.005, 0.001, 0.03, 0.07, 0.1, 0.13] #[0.03, 0.07, 0.1, 0.13, 0.17] #[0.001, 0.005, 0.0316, 0.1778, 1.0 ]  #  #[0.001, 0.01, 0.05, 0.2, 1.]
 train_mode: True
-batch_size: 64
+batch_size: 256
 
-alphas: [10] #[0.01, 0.03, 0.05, 0.07, 0.1] #[ 10, 1, 100, 0.01, 0.0001, 0.001, 0.1]
+alphas: [0.01, 0.05, 0.1, 0.001,  0.0001] # [0.01, 0.1, 0.001,  0.0001] #[0.01, 0.03, 0.05, 0.07, 0.1] #[ 10, 1, 100, 0.01, 0.0001, 0.001, 0.1]
 
 disc_check_params:
   model_id : 0
   model_name: fgsm_attack_eps=0.03_nsteps=10
 
 list_reg_model_params:
- - model_id: 0
-   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=1_nsteps=10'
- - model_id: 0
-   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=10_nsteps=10'  
- - model_id: 1
-   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=1_nsteps=10'
- - model_id: 1
-   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=10_nsteps=10'  
- - model_id: 2
-   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=1_nsteps=10'
- - model_id: 2
+ - model_id : 0
+   model_name: fgsm_attack_eps=0.03_nsteps=10
+
+
+
+
+
+
+

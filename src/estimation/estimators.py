@@ -39,7 +39,7 @@ class ClassifierEstimator(BaseEstimator):
 
 
 class AttackEstimator(BaseEstimator):
-    def __init__(self, disc_model=None, metric_effect='F1'):
+    def __init__(self, disc_models=None, metric_effect='F1'):
         self.metrics = {
             'ACC': accuracy_score,
             'ROC': roc_auc_score,
@@ -50,9 +50,9 @@ class AttackEstimator(BaseEstimator):
         
         self.metrics_name = list(self.metrics.keys()) + ['EFF']
         
-        self.calculate_hid = bool(disc_model)
-        if disc_model:
-            self.disc_model = disc_model
+        self.calculate_hid = bool(disc_models)
+        if disc_models:
+            self.disc_model = disc_models
             self.metrics_name += ['HID', 'CONC']
 
     def calculate_effectiveness(self, y_true, y_pred):
@@ -66,7 +66,7 @@ class AttackEstimator(BaseEstimator):
 
 
     def calculate_hiddeness(self, X):
-        model_device = next(self.disc_model.parameters()).device
+        model_device = next(self.disc_models[0].parameters()).device
         X = X.to(model_device)
         hid = torch.mean(self.disc_model(X)).detach().cpu().numpy()
         conc = 1 - hid

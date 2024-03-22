@@ -84,7 +84,7 @@ class Trainer:
         if scheduler_params == 'None' or not scheduler_params:
             scheduler_params = {}
         
-        self.model = get_model(model_name, model_params).to(device)
+        self.model = get_model(model_name, model_params, device=device)
         self.criterion = get_criterion(criterion_name, criterioin_params)
         self.optimizer = get_optimizer(optimizer_name, self.model.parameters(), optimizer_params)
         self.scheduler = get_scheduler(scheduler_name, self.optimizer, scheduler_params)

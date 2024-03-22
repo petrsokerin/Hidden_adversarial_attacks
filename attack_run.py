@@ -8,13 +8,15 @@ from omegaconf import DictConfig
 
 from tqdm.auto import tqdm
 
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
 from src.data import load_data, transform_data, MyDataset
-from src.attacks import attack_procedure
-from src.utils import save_experiment, load_disc_model
-from src.config import get_attack, load_disc_config
+from src.estimation.estimators import AttackEstimator
+from src.attacks import BatchIterativeAttack
+from src.utils import save_experiment
+from src.config import *
 
 CONFIG_NAME = 'attack_run_config'
 
@@ -23,8 +25,9 @@ def main(cfg: DictConfig):
 
     if cfg['test_run']:
         print('ATTENTION!!!! Results will not be saved. Set param test_run=False')
+    
     # load data  
-    print(cfg['dataset'])
+    print("Dataset", cfg['dataset'])
     X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
     X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test, slice_data=cfg['slice'])
   
@@ -32,86 +35,82 @@ def main(cfg: DictConfig):
         MyDataset(X_test, y_test), 
         batch_size=cfg['batch_size'] , 
         shuffle=False
-        )
+    )
 
-    criterion = torch.nn.BCELoss()
-    n_objects = y_test.shape[0]
-    device= torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
-    attack_func = get_attack(cfg['attack_type'])
 
-    model = instantiate(cfg.attack_model).to(device)
+    device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
+
+    attack_model_path = os.path.join(
+        cfg['model_folder'], 
+        cfg['attack_model']['name'],
+        f"model_{cfg['model_id_attack']}_{cfg['dataset']}.pth"
+    )
     
-    disc_model = instantiate(cfg.disc_model).to(device)
+    attack_model = get_model(
+        cfg['attack_model']['name'], 
+        cfg['attack_model']['params'], 
+        path=attack_model_path, 
+        device=device,
+        train_mode=cfg['attack_model']['attack_train_mode']
+    )
 
-
-    model_name = model.__class__.__name__
-    cfg['model_folder'] = cfg['model_folder'] + f'{model_name}/'
-    cfg['disc_path'] = cfg['disc_path'].format(model_name)
-    cfg['save_path'] = cfg['save_path'].format(model_name) 
+    criterion = get_criterion(cfg['criterion_name'], cfg['criterion_params'])
     
-    if cfg['use_disc_check']:
-        disc_model_check = instantiate(cfg.disc_model_check).to(device)
-        disc_model_check = load_disc_model(
-            copy.deepcopy(disc_model_check),
-            model_id=cfg['disc_check_params']['model_id'], 
+    disc_check_list = get_disc_list(
+            model_name=cfg['disc_model_check']['name'], 
+            model_params=cfg['disc_model_check']['params'],
+            list_disc_params=cfg['list_check_model_params'], 
+            device=device, 
             path=cfg['disc_path'], 
-            model_name=cfg['disc_check_params']['model_name'], 
-            device=device,
-            )
-        disc_model_check.train(cfg['train_mode'])
-    else: 
-        disc_model_check = None
+            train_mode=False
+    ) if cfg['use_disc_check'] else None
+    estimator = AttackEstimator(disc_check_list, cfg['metric_effect'])
 
-    alphas = [0]
-    if 'reg' in cfg['attack_type'] or 'disc' in cfg['attack_type']:
-        alphas = cfg['alphas']
+    if cfg['enable_optimization']:
+        pass
 
-    for alpha in tqdm(alphas):
+    else:
+        alphas = [0]
+        if 'alpha' in cfg['attack']['attacks_params']:
+            alphas = cfg['attack']['attacks_params']['alpha']
 
-        attack_params = dict()
+        for alpha in alphas: # tqdm(alphas):
+            attack_metrics = pd.DataFrame()
+            for eps in cfg['attack']['attacks_params']['eps']:  #tqdm(cfg['attack']['attacks_params']['eps']):
 
-        if 'reg' in cfg['attack_type'] :
-            attack_params['alpha'] = alpha
+                attack_params = dict(cfg['attack']['attacks_params'])
+                attack_params['model'] = attack_model
+                attack_params['criterion'] = criterion
+                attack_params['alpha'] = alpha
+                attack_params['eps'] = eps
 
-        elif 'disc' in cfg['attack_type']:
-            attack_params['alpha'] = alpha
-            attack_params['disc_models'] = load_disc_config(
-                copy.deepcopy(disc_model),
-                cfg['disc_path'], 
-                device, 
-                cfg['list_reg_model_params'],
-                train_mode=cfg['train_mode']
-            )  
-            attack_params['use_sigmoid'] = cfg['use_extra_sigmoid']
-        
-        model_path = cfg['model_folder'] + f'model_{cfg["model_id_attack"]}_{cfg["dataset"]}.pth'
-        model.load_state_dict(copy.deepcopy(torch.load(model_path)))
+                if 'list_reg_model_params' in cfg['attack']:
+                    attack_params['disc_models'] = get_disc_list(
+                        model_name=cfg['disc_model_reg']['name'], 
+                        model_params=cfg['disc_model_reg']['params'],
+                        list_disc_params=cfg['attack']['list_reg_model_params'], 
+                        device=device, 
+                        path=cfg['disc_path'], 
+                        train_mode=cfg['disc_model_reg']['attack_train_mode']
+                    )
 
-        aa_res_df, rej_curves_dict = attack_procedure(
-            model = model, 
-            loader = test_loader, 
-            criterion = criterion,
-            attack_func = attack_func,
-            attack_params = attack_params,
-            all_eps = cfg['all_eps'],
-            n_steps = cfg['n_iterations'],
-            n_objects = n_objects,
-            train_mode = cfg['train_mode'],
-            disc_model = disc_model_check,
-        )
+                attack = BatchIterativeAttack.initialize_with_params(cfg['attack']['name'], attack_params, estimator)
+                attack.forward(test_loader) 
+                results = attack.get_metrics()
+                results['eps'] = eps
+                attack_metrics = pd.concat([attack_metrics, results])
 
-        if not cfg['test_run']:
-            print('Saving')
-            save_experiment(
-                aa_res_df,
-                rej_curves_dict,
-                config_name = CONFIG_NAME,
-                path = cfg['save_path'],
-                attack = cfg["attack_type"],
-                dataset = cfg["dataset"],
-                model_id = cfg["model_id_attack"],
-                alpha = alpha,
-            )
+            if not cfg['test_run']:
+                print('Saving')
+                save_experiment(
+                    attack_metrics,
+                    config_name = CONFIG_NAME,
+                    path = cfg['save_path'],
+                    is_regularized = attack.is_regularized,
+                    dataset = cfg["dataset"],
+                    model_id = cfg["model_id_attack"],
+                    alpha = alpha,
+                )
 
 if __name__=='__main__':
     main()
