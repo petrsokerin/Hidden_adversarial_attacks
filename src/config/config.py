@@ -8,26 +8,26 @@ from src.attacks import (fgsm_disc_attack, fgsm_attack, fgsm_reg_attack,
 simba_binary, simba_binary_reg, simba_binary_disc_reg, deepfool_attack, fgsm_clip_attack, only_disc_attack, ascend_smax_disc_attack, fgsm_disc_smax_attack)
 from src.utils import load_disc_model
 from src import models
-from src.attacks import *
+from src import attacks
 
-def get_attack(attack_name, attack_params):
-    dict_attack = {
-        'fgsm_attack': fgsm_attack, 
-        'fgsm_reg_attack': fgsm_reg_attack, 
-        'fgsm_disc_attack': fgsm_disc_attack, 
-        'simba_binary': simba_binary, 
-        'simba_binary_reg': simba_binary_reg, 
-        'simba_binary_disc_reg': simba_binary_disc_reg, 
-        'deepfool_attack': deepfool_attack,
-        'only_disc_attack': only_disc_attack,
-        'ascend_smax_disc_attack': ascend_smax_disc_attack,
-        'fgsm_disc_smax_attack': fgsm_disc_smax_attack,
-    }
+# def get_attack(attack_name, attack_params):
+#     dict_attack = {
+#         'fgsm_attack': fgsm_attack, 
+#         'fgsm_reg_attack': fgsm_reg_attack, 
+#         'fgsm_disc_attack': fgsm_disc_attack, 
+#         'simba_binary': simba_binary, 
+#         'simba_binary_reg': simba_binary_reg, 
+#         'simba_binary_disc_reg': simba_binary_disc_reg, 
+#         'deepfool_attack': deepfool_attack,
+#         'only_disc_attack': only_disc_attack,
+#         'ascend_smax_disc_attack': ascend_smax_disc_attack,
+#         'fgsm_disc_smax_attack': fgsm_disc_smax_attack,
+#     }
 
-    if attack_name in dict_attack:
-        return dict_attack[attack_name]
-    else:
-        raise ValueError(f"Model with name {attack_name} is not implemented")
+#     if attack_name in dict_attack:
+#         return dict_attack[attack_name]
+#     else:
+#         raise ValueError(f"Model with name {attack_name} is not implemented")
 
 
 def get_attack(attack_name, attack_params):
