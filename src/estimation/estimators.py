@@ -21,7 +21,6 @@ class BaseEstimator(ABC):
 
 class ClassifierEstimator(BaseEstimator):
     def __init__(self):
-
         self.metrics = {
             'accuracy': accuracy_score,
             'precision': roc_auc_score,
@@ -31,15 +30,12 @@ class ClassifierEstimator(BaseEstimator):
             'balance_pred': lambda y_true, y_pred: np.mean(y_pred),
         }
         self.metrics_name = list(self.metrics.keys())
-        
 
     def estimate(self, y_true, y_pred):
         metrics_res = []
-        for metric_name, metric_func in self.metrics.items():
+        for _, metric_func in self.metrics.items():
             metrics_res.append(metric_func(y_true, y_pred))
         return metrics_res
-
-
 
 
 class AttackEstimator(BaseEstimator):
