@@ -1,5 +1,5 @@
 _target_: src.models.RNNAttention.RNNA
-seq_len: 500
+seq_len: 50
 # c_in: 1 # по умолчанию
 # c_out: 1 # по умолчанию
 # hidden_size: 128

@@ -5,7 +5,7 @@ use_disc_check: True
 test_run: False # If true results will be not saved!!!!
 exp_name: '_LSTM_NEW'
 
-model_folder: checkpoints/${dataset}/${model_name}/
+model_folder: checkpoints/${dataset}/
 disc_path: results/${dataset}/{}/discriminator/YOUR_DISCRIMINATOR_NAME/
 save_path: results/${dataset}/{}/attack/${attack_type}${exp_name}
 

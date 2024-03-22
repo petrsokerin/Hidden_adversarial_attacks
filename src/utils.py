@@ -207,4 +207,4 @@ def fix_seed(seed: int) -> None:
 
     # Set deterministic behavior for cudnn
     torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+
