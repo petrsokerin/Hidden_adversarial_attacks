@@ -52,7 +52,7 @@ class AttackEstimator(BaseEstimator):
         
         self.calculate_hid = bool(disc_models)
         if disc_models:
-            self.disc_model = disc_models
+            self.disc_models = disc_models
             self.metrics_name += ['HID', 'CONC']
 
     def calculate_effectiveness(self, y_true, y_pred):
