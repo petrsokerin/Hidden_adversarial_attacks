@@ -59,7 +59,7 @@ class Trainer:
             self,
             model_name='LSTM',
             model_params=None, 
-            criterion_name='BCE', 
+            criterion_name='BCELoss', 
             criterioin_params=None,
             optimizer_name='Adam', 
             optimizer_params=None, 
