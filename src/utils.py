@@ -116,3 +116,4 @@ def fix_seed(seed: int) -> None:
     random.seed(seed)
     torch.backends.cudnn.enabled = False
     torch.backends.cudnn.deterministic = True
+
