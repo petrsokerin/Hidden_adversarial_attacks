@@ -30,13 +30,13 @@ def get_attack(attack_name, attack_params):
         raise ValueError(f"Model with name {attack_name} is not implemented")
 
 
-def get_attack(model_name, model_params):
+def get_attack(attack_name, attack_params):
     if model_params is None:
         model_params = dict()
     try: 
-        getattr(models, model_name)(**model_params)
+        getattr(attacks, attack_name)(**attack_params)
     except AttributeError:
-        raise ValueError(f"Model with name {model_name} is not implemented")
+        raise ValueError(f"Model with name {attack_name} is not implemented")
 
 def get_model(model_name, model_params):
     if model_params is None:
