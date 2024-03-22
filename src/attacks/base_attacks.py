@@ -191,5 +191,5 @@ class BatchIterativeAttack:
                 X_adv, _ = self.run_iteration()
 
             loader = self.rebuild_loader(loader, X_adv, y_true)
-            
-    
+
+            return X_adv

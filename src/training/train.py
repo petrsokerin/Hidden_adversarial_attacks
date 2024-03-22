@@ -328,7 +328,8 @@ class DiscTrainer(Trainer):
         device='cpu',
         seed=0,
         multiclass=False,
-        attack = None # str - attack name,
+        attack_name = None, # str - attack name,
+        attack_params = None, 
     ):
 
         super().__init__(
@@ -349,25 +350,18 @@ class DiscTrainer(Trainer):
             multiclass=multiclass
         )
 
-        self.attack = get_attack(attack)
+        self.attack_model = get_attack(attack_name, **attack_params)
 
 
-    @staticmethod
-    def initialize_with_params(self, attack_params):
-        return self.attack(**attack_params)
-    
+    def _generate_adversarial_data(self, loader):
 
-    def _generate_training_data(self, X, y, attack_params):
-        
-        attack_model = self.initialize_with_params(**attack_params)
+        X_orig = torch.tensor(loader.dataset.X)
+        X_adv = self.attack_model(loader)
 
-        disc_labels_zeros = torch.zeros_like(y)  
-        disc_labels_ones = torch.ones_like(y)  
+        disc_labels_zeros = torch.zeros_like(loader.dataset.y)  
+        disc_labels_ones = torch.ones_like(loader.dataset.y)  
 
-        for step_id in tqdm(range(1, attack_model.n_steps + 1)):
-            X_adv, _ = attack_model.run_one_iter()
-
-        new_x = torch.concat([X, X_adv], dim=0)
+        new_x = torch.concat([X_orig, X_adv], dim=0)
         new_y = torch.concat([disc_labels_zeros, disc_labels_ones], dim=0)
 
         dataset_class = loader.dataset.__class__
@@ -376,5 +370,13 @@ class DiscTrainer(Trainer):
         loader = DataLoader(dataset, batch_size=loader.batch_size)
 
         return loader
+    
+
+    def train_model(self, train_loader, valid_loader, attack_params):
+        train_loader = self._generate_adversarial_data(train_loader, attack_params)
+        valid_loader = self._generate_adversarial_data(valid_loader, attack_params)
+
+        super().train_model(train_loader, valid_loader)
+
 
        
