@@ -68,8 +68,15 @@ class AttackEstimator(BaseEstimator):
     def calculate_hiddeness(self, X):
         model_device = next(self.disc_models[0].parameters()).device
         X = X.to(model_device)
-        hid = torch.mean(self.disc_model(X)).detach().cpu().numpy()
+
+        hid_list = list()
+        for disc_model in self.disc_models:
+            hid = torch.mean(disc_model(X)).detach().cpu().numpy()
+            hid_list.append(hid)
+        
+        hid = max(hid_list)
         conc = 1 - hid
+        
         return list(hid, conc)
 
     

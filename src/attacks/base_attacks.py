@@ -200,3 +200,4 @@ class BatchIterativeAttack:
 
             loader = self.rebuild_loader(loader, X_adv, y_true)
 
+            return X_adv
