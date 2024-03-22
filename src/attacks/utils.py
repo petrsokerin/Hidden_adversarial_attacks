@@ -17,11 +17,11 @@ def build_df_aa_metrics(metric_dict: dict, eps: float):
     """
 
     results_df = pd.DataFrame.from_dict(metric_dict, orient="index")
-    results_df.set_axis(
-        pd.Index(["ACC", "ROC AUC", "PR AUC", "HID"], name="metric"), axis=1, inplace=True
+    results_df = results_df.set_axis(
+        pd.Index(["ACC", "ROC AUC", "PR AUC", "HID"], name="metric"), axis=1,
     )
-    results_df.set_axis(
-        pd.Index(results_df.index, name="n steps", ), axis=0, inplace=True,
+    results_df = results_df.set_axis(
+        pd.Index(results_df.index, name="n steps", ), axis=0,
     )
 
     results_df = results_df.reset_index()
