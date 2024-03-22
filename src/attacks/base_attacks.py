@@ -1,27 +1,36 @@
 from abc import ABC, abstractmethod
+from functools import partial
+from typing import Dict
 
 import pandas as pd
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
+import optuna
+from optuna.trial import Trial
+from hydra.utils import instantiate
+from omegaconf import DictConfig
 
-from src.config import get_attack
-from src.estimation import AttackEstimator
+from src.config import get_attack, get_estimator
+from src.utils import (get_optimization_dict, update_trainer_params, 
+collect_default_params)
 
 
 class BaseAttack(ABC):
-    def __init__(self, model, device='cpu'):
-        self.model = model.to(device)
+    def __init__(self, model, n_steps=50):
+        self.model = model
+        self.device= next(model.params).device
+        self.n_steps = n_steps
 
     @abstractmethod
-    def step(self, x, y_true):
+    def step(self, X, y_true):
         raise NotImplementedError("This method should be implemented by subclasses.")
 
 
 class BatchIterativeAttack:
-    def __init__(self, attack_name, attack_params, estimator=None):
-        self.attack = get_attack(attack_name, attack_params)
+    def __init__(self, attack, estimator=None):
+        self.attack = attack
         
         self.logging = bool(not estimator)
         self.estimator = estimator
@@ -30,13 +39,72 @@ class BatchIterativeAttack:
         self.device = self.model.device
 
         if self.logging:
-            self.metrics_names = AttackEstimator.get_metrics_name()
+            self.metrics_names = self.estimator.get_metrics_name()
             self.metrics = pd.DataFrame(columns= self.metrics_names)
 
     @staticmethod
-    def initialize_with_params():
-        pass
+    def initialize_with_params(
+        attack_name, 
+        attack_params, 
+        estimator=None,
+    ):
+        if not estimator_params:
+            estimator_params = {}
+        attack = get_attack(attack_name, attack_params)
+        return BatchIterativeAttack(attack, estimator)
+
+    @staticmethod
+    def initialize_with_optimization(
+            train_loader,
+            valid_loader,
+            optuna_params,
+            const_params,
+    ):
+
+        study = optuna.create_study(
+            direction="maximize",
+            sampler=instantiate(optuna_params["sampler"]),
+            pruner=instantiate(optuna_params["pruner"]),
+        )
+        study.optimize(
+            partial(
+                BatchIterativeAttack.objective,
+                params_vary=optuna_params["hyperparameters_vary"],
+                const_params = const_params,
+                train_loader=train_loader,
+                valid_loader=valid_loader,
+            ),
+            n_trials=optuna_params["n_trials"],
+        )
         
+        default_params = collect_default_params(optuna_params["hyperparameters_vary"])
+        best_params = study.best_params.copy()
+        best_params = update_trainer_params(best_params, default_params)
+
+        best_params.update(const_params)
+        print("Best parameters are - %s", best_params)
+        return BatchIterativeAttack.initialize_with_params(best_params)
+
+    @staticmethod
+    def objective(
+        trial: Trial,
+        params_vary: DictConfig,
+        const_params: Dict,
+        train_loader,
+        valid_loader,
+        optim_metric='f1'
+    ) -> float:
+
+        initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
+        initial_model_parameters = dict(initial_model_parameters)
+        initial_model_parameters.update(const_params)
+
+        model = BatchIterativeAttack.initialize_with_params(
+            initial_model_parameters
+        )
+        last_epoch_metrics = model.train_model(train_loader, valid_loader)
+        return last_epoch_metrics[optim_metric]
+
 
     def log_step(self, y_true, y_pred, step_id):
         metrics_line = self.estimator.estimate(y_true, y_pred)
@@ -105,7 +173,7 @@ class BatchIterativeAttack:
         return loader
         
 
-    def forward(self, loader, n_steps=50):
+    def forward(self, loader):
 
         y_true = loader.dataset.y
 
@@ -114,13 +182,13 @@ class BatchIterativeAttack:
             y_pred = y_pred.cpu().detach()
             self.log_step(y_true, y_pred, step_id=0)
 
-        for step_id in tqdm(range(1, n_steps + 1)):
+        for step_id in tqdm(range(1, self.n_steps + 1)):
 
             if self.logging:
                 X_adv, _, y_pred = self.run_iteration_log()
                 self.log_step(y_true, y_pred, step_id=step_id)
             else:
-                X_adv, _ = self.run_one_iter()
+                X_adv, _ = self.run_iteration()
 
             loader = self.rebuild_loader(loader, X_adv, y_true)
             

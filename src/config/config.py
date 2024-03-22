@@ -7,8 +7,7 @@ import torch
 from src.attacks import (fgsm_disc_attack, fgsm_attack, fgsm_reg_attack,
 simba_binary, simba_binary_reg, simba_binary_disc_reg, deepfool_attack, fgsm_clip_attack, only_disc_attack, ascend_smax_disc_attack, fgsm_disc_smax_attack)
 from src.utils import load_disc_model
-from src import models
-from src import attacks
+from src import models, attacks, estimation
 
 # def get_attack(attack_name, attack_params):
 #     dict_attack = {
@@ -28,6 +27,15 @@ from src import attacks
 #         return dict_attack[attack_name]
 #     else:
 #         raise ValueError(f"Model with name {attack_name} is not implemented")
+
+def get_estimator(estimator_name, estimator_params):
+    if estimator_params is None:
+        estimator_params = dict()
+    try: 
+        getattr(estimation, estimator_name)(**estimator_params)
+    except AttributeError:
+        raise ValueError(f"Model with name {estimator_name} is not implemented")
+
 
 
 def get_attack(attack_name, attack_params):
