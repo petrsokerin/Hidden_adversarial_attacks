@@ -17,7 +17,9 @@ from sklearn.metrics import (accuracy_score, precision_score,
 
 from src.utils import (get_optimization_dict, update_trainer_params, 
 collect_default_params, fix_seed)
-from src.models import *
+from src.estimation import ClassifierEstimator
+from src.config import get_model, get_criterion, get_optimizer, get_scheduler
+
 
 
 def req_grad(model, state: bool = True) -> None:
@@ -51,59 +53,6 @@ class EarlyStopper:
                 return True
         return False
     
-def get_model(model_name, model_params):
-    
-    if model_params is None:
-        model_params = dict()
-
-    if model_name == 'LSTM':
-        return LSTM(**model_params)
-    elif model_name == 'TS2VecClassifier':
-        return TS2VecClassifier(**model_params)
-    elif model_name == 'SeqS4':
-        return SeqS4(**model_params)
-    elif model_name == 'RNNA':
-        return RNNA(**model_params)
-    elif model_name == 'ResidualCNN':
-        return ResidualCNN(**model_params)
-    else:
-        raise ValueError(f"Model with name {model_name} is not implemented")
-
-    
-def get_criterion(criterion_name, criterion_params=None):
-    if criterion_params is None:
-        criterion_params = dict()
-
-    if criterion_name == 'BCE':
-        return torch.nn.BCELoss(**criterion_params)
-    elif criterion_name == 'CrossEntropy':
-        return torch.nn.CrossEntropyLossLoss(**criterion_params)
-    else:
-        raise ValueError("Only BCE and CrossEntropy losses are implemented")
-    
-def get_optimizer(optimizer_name, model_params, optimizer_params=None):
-    if optimizer_params is None:
-        optimizer_params = dict()
-    if optimizer_name == 'Adam':
-        return torch.optim.Adam(model_params, **optimizer_params)
-    elif optimizer_name == 'AdamW':
-        return torch.optim.AdamW(model_params, **optimizer_params)
-    elif optimizer_name == 'SGD':
-        return torch.optim.SGD(model_params, **optimizer_params)
-    else:
-        raise ValueError("Only Adam and SGD optimizers are implemented")
-    
-def get_scheduler(scheduler_name, optimizer, scheduler_params=None):
-    if scheduler_params is None:
-        scheduler_params = dict()
-
-    if scheduler_name == 'None':
-        return None
-    elif scheduler_name == 'StepLR':
-        return torch.optim.lr_scheduler.StepLR(optimizer, **scheduler_params)
-    else:
-        raise ValueError("Only None and StepLR optimizers are implemented")
-
 
 class Trainer:
     def __init__(
@@ -139,7 +88,8 @@ class Trainer:
         self.criterion = get_criterion(criterion_name, criterioin_params)
         self.optimizer = get_optimizer(optimizer_name, self.model.parameters(), optimizer_params)
         self.scheduler = get_scheduler(scheduler_name, self.optimizer, scheduler_params)
-        
+
+        self.estimator = ClassifierEstimator()
         self.n_epochs = n_epochs
         self.early_stop_patience = early_stop_patience
 
@@ -222,7 +172,7 @@ class Trainer:
         if self.early_stop_patience and self.early_stop_patience != 'None':
             earl_stopper = EarlyStopper(self.early_stop_patience)
 
-        metric_names = ['loss', 'accuracy', 'precision', 'recall', 'f1', 'balance']
+        metric_names = ['loss'] + self.estimator.get_metrics_name()
         self.dict_logging = {'train': {metric: [] for metric in metric_names},
                              'test': {metric: [] for metric in metric_names}}
 
@@ -238,6 +188,7 @@ class Trainer:
             test_metrics_epoch = self._valid_step(valid_loader)
             test_metrics_epoch = {met_name: met_val for met_name, met_val
                                   in zip(metric_names, test_metrics_epoch)}
+            
             self._logging(test_metrics_epoch, epoch, mode='test')
 
             if epoch % self.print_every == 0:
@@ -248,7 +199,7 @@ class Trainer:
                     round(test_metrics_epoch['loss'], 3),
                     round(test_metrics_epoch['accuracy'], 3),
                     round(test_metrics_epoch['f1'], 3),
-                    round(test_metrics_epoch['balance'], 3),
+                    round(test_metrics_epoch['balance_pred'], 3),
                 )
                 print(print_line)
 
@@ -296,7 +247,7 @@ class Trainer:
         y_all_pred = y_all_pred.numpy().reshape([-1, 1])
         y_all_true = y_all_true.numpy().reshape([-1, 1])
 
-        acc, pr, rec, f1, balance = self.calculate_metrics(y_all_true, y_all_pred)
+        acc, pr, rec, f1, balance = self.estimator.estimate(y_all_true, y_all_pred)
         return mean_loss, acc, pr, rec, f1, balance
 
     def _valid_step(self, loader):
@@ -329,16 +280,10 @@ class Trainer:
         y_all_pred = y_all_pred.numpy().reshape([-1, 1])
         y_all_true = y_all_true.numpy().reshape([-1, 1])
 
-        acc, pr, rec, f1, balance = self.calculate_metrics(y_all_true, y_all_pred)
+        acc, pr, rec, f1, balance = self.estimator.estimate(y_all_true, y_all_pred)
         return mean_loss, acc, pr, rec, f1, balance
 
-    def calculate_metrics(self, y_true, y_pred):
-        acc = accuracy_score(y_true, y_pred)
-        pr = precision_score(y_true, y_pred, average='macro')
-        rec = recall_score(y_true, y_pred, average='macro')
-        f1 = f1_score(y_true, y_pred, average='macro')
-        balance = np.sum(y_pred) / len(y_pred)
-        return acc, pr, rec, f1, balance
+
     
     def save_metrics_as_csv(self, path):
         res = pd.DataFrame([])

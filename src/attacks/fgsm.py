@@ -32,7 +32,7 @@ class FGSMRegNeighAttack(FGSMAttack):
         self.alpha = alpha
 
     def step(self, x, y_true):
-        loss = self.attack_run(x, y_true)
+        loss = self.get_loss(x, y_true)
 
         reg_value = reg_neigh(x, self.alpha)
         loss = loss - reg_value
@@ -48,8 +48,10 @@ class FGSMRegDiscAttack(FGSMAttack):
         self.disc_models = disc_models
         self.use_sigmoid = use_sigmoid
 
-    def forward(self, x, y_true):
-        reg_value = reg_disc(x, self.alpha)
+    def step(self, x, y_true):
+        loss = self.get_loss(x, y_true)
+
+        reg_value = reg_disc(x, self.alpha, self.disc_models, self.use_sigmoid)
         loss = loss - reg_value
 
         x_adv = self.apply_attack(x, loss)

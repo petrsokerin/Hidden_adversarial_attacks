@@ -6,6 +6,9 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
+from src.config import get_attack
+from src.estimation import AttackEstimator
+
 
 class BaseAttack(ABC):
     def __init__(self, model, device='cpu'):
@@ -17,8 +20,8 @@ class BaseAttack(ABC):
 
 
 class BatchIterativeAttack:
-    def __init__(self, attack, estimator=None):
-        self.attack = attack
+    def __init__(self, attack_name, attack_params, estimator=None):
+        self.attack = get_attack(attack_name, attack_params)
         
         self.logging = bool(not estimator)
         self.estimator = estimator
@@ -27,8 +30,13 @@ class BatchIterativeAttack:
         self.device = self.model.device
 
         if self.logging:
-            self.metrics_names = estimator.get_metrics_name()
+            self.metrics_names = AttackEstimator.get_metrics_name()
             self.metrics = pd.DataFrame(columns= self.metrics_names)
+
+    @staticmethod
+    def initialize_with_params():
+        pass
+        
 
     def log_step(self, y_true, y_pred, step_id):
         metrics_line = self.estimator.estimate(y_true, y_pred)
@@ -47,13 +55,13 @@ class BatchIterativeAttack:
 
         return y_pred_all_objects
 
-
-    def prepare_data_to_attack(self, X, y):
+    @staticmethod
+    def prepare_data_to_attack(X, y, device):
         X.grad = None
         X.requires_grad = True
 
-        X = X.to(self.device, non_blocking=True)
-        y_true = y_true.to(self.device)
+        X = X.to(device, non_blocking=True)
+        y_true = y_true.to(device)
         return X, y
 
         
@@ -64,7 +72,7 @@ class BatchIterativeAttack:
         y_pred_all_objects = torch.tensor([])  # logging predictions adversarial if realize_attack or original
 
         for X, y_true in self.loader:
-            X, y_true = self.prepare_data_to_attack(X, y_true)
+            X, y_true = self.prepare_data_to_attack(X, y_true, self.device)
             X_adv = self.attack.step(X, y_true)
             y_pred_adv = self.model(X_adv)
 
@@ -80,7 +88,7 @@ class BatchIterativeAttack:
         y_true_all_objects = torch.tensor([])  # logging model for rebuilding dataloader and calculation difference with preds
 
         for X, y_true in self.loader:
-            X, y_true = self.prepare_data_to_attack(X, y_true)
+            X, y_true = self.prepare_data_to_attack(X, y_true, self.device)
             X_adv = self.attack.step(X, y_true)
 
             X_adv_all_objects = torch.cat((X_adv_all_objects, X_adv.cpu().detach()), dim=0)
@@ -109,16 +117,12 @@ class BatchIterativeAttack:
         for step_id in tqdm(range(1, n_steps + 1)):
 
             if self.logging:
-                X_adv, y_true, y_pred = self.run_iteration_log()
+                X_adv, _, y_pred = self.run_iteration_log()
                 self.log_step(y_true, y_pred, step_id=step_id)
             else:
-                X_adv, y_true = self.run_one_iter()
+                X_adv, _ = self.run_one_iter()
 
             loader = self.rebuild_loader(loader, X_adv, y_true)
-
-    def get_metrics(self):
-        return self.metrics
-
 
             
     
