@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 
 from src.data import load_data, transform_data, MyDataset
 from src.estimation.estimators import AttackEstimator
-from src.attacks import BatchIterativeAttack
+from src.attacks.attacks_procedures import BatchIterativeAttack
 from src.utils import save_experiment
 from src.config import *
 
