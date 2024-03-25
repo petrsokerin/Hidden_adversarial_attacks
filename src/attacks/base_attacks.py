@@ -20,20 +20,20 @@ class BaseIterativeAttack(ABC):
     def step(self, X, y_true):
         raise NotImplementedError("This method should be implemented by subclasses.")
     
-    @classmethod
     def initialize_with_params(
-            cls,
+            self,
             params
     ):
-        return cls(**params)
+        return self.__class__(**dict(params))
 
-    @classmethod
     def initialize_with_optimization(
-            cls,
+            self,
             loader,
             optuna_params,
             const_params,
     ):
+        attack_class = self.__class__
+        print(attack_class)
 
         study = optuna.create_study(
             direction="maximize",
@@ -46,6 +46,8 @@ class BaseIterativeAttack(ABC):
                 params_vary=optuna_params["hyperparameters_vary"],
                 const_params=const_params,
                 loader=loader,
+                optim_metric=optuna_params['optim_metric'],
+                attack_class=attack_class
             ),
             n_trials=optuna_params["n_trials"],
         )
@@ -55,29 +57,31 @@ class BaseIterativeAttack(ABC):
         best_params = update_trainer_params(best_params, default_params)
 
         best_params.update(const_params)
+
         print("Best parameters are - %s", best_params)
-        return cls(best_params)
+        return attack_class(**dict(best_params))
     
-    @classmethod
+    @staticmethod
     def objective(
-        cls,
         trial: Trial,
         params_vary: DictConfig,
         const_params: Dict,
         loader,
-        optim_metric='F_EFF_CONC'
+        attack_class,
+        optim_metric: str = 'F_EFF_CONC',
     ) -> float:
+
+        params = const_params
 
         initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
         initial_model_parameters = dict(initial_model_parameters)
-        initial_model_parameters.update(const_params)
+        params.update(initial_model_parameters)
 
-        attack_procedure = cls(
-            initial_model_parameters
+        attack = attack_class(
+            **dict(params)
         )
-        attack_procedure.apply_attack(loader) 
-        results = attack_procedure.get_metrics()
+        attack.apply_attack(loader) 
+        results = attack.get_metrics()
         last_step_metrics = results.iloc[-1]
 
         return last_step_metrics[optim_metric]
-

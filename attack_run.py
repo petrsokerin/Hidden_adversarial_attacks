@@ -65,15 +65,13 @@ def main(cfg: DictConfig):
     estimator = AttackEstimator(disc_check_list, cfg['metric_effect'])
 
     if cfg['enable_optimization']:
-        attack_params = dict(cfg['attack']['attacks_params'])
-        attack_params['model'] = attack_model
-        attack_params['criterion'] = criterion
-        attack_params['estimator'] = estimator
-        attack_params['alpha'] = alpha
-        attack_params['eps'] = eps
+        const_params = dict(cfg['attack']['attacks_params'])
+        const_params['model'] = attack_model
+        const_params['criterion'] = criterion
+        const_params['estimator'] = estimator
 
         if 'list_reg_model_params' in cfg['attack']:
-            attack_params['disc_models'] = get_disc_list(
+            const_params['disc_models'] = get_disc_list(
                 model_name=cfg['disc_model_reg']['name'], 
                 model_params=cfg['disc_model_reg']['params'],
                 list_disc_params=cfg['attack']['list_reg_model_params'], 
@@ -82,8 +80,26 @@ def main(cfg: DictConfig):
                 train_mode=cfg['disc_model_reg']['attack_train_mode']
             )
 
-        attack = get_attack(cfg['attack']['name'], attack_params)
-        #attack_procedure = attack.initialize_with_optimization(attack_params,)
+        attack = get_attack(cfg['attack']['name'], const_params)
+        attack = attack.initialize_with_optimization(test_loader, cfg['optuna_optimizer'], const_params)
+        attack.apply_attack(test_loader) 
+
+        attack_metrics = attack.get_metrics()
+        attack_metrics['eps'] = attack.eps
+
+        alpha = attack.alpha if attack.alpha else 0
+
+        if not cfg['test_run']:
+            print('Saving')
+            save_experiment(
+                attack_metrics,
+                config_name = CONFIG_NAME,
+                path = cfg['save_path'],
+                is_regularized = attack.is_regularized,
+                dataset = cfg["dataset"],
+                model_id = cfg["model_id_attack"],
+                alpha = alpha,
+            )
 
     else:
         alphas = [0]
