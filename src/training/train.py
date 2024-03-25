@@ -13,8 +13,6 @@ from omegaconf import DictConfig
 import pandas as pd
 import numpy as np
 import torch
-from sklearn.metrics import (accuracy_score, precision_score,
-                             recall_score, f1_score)
 
 from src.utils import (get_optimization_dict, update_trainer_params,
                        collect_default_params, fix_seed)
@@ -73,7 +71,6 @@ class Trainer:
         seed=0,
         multiclass=False
     ):
-
         fix_seed(seed)
         if model_params == 'None' or not model_params:
             model_params = {}
@@ -249,10 +246,12 @@ class Trainer:
         y_all_pred = y_all_pred.numpy().reshape([-1, 1])
         y_all_true = y_all_true.numpy().reshape([-1, 1])
 
-        acc, pr, rec, f1, balance = self.estimator.estimate(
+        metrics = self.estimator.estimate(
             y_all_true, y_all_pred)
-        return mean_loss, acc, pr, rec, f1, balance
-
+        
+        metrics = [mean_loss] + metrics
+        return metrics
+    
     def _valid_step(self, loader):
 
         y_all_pred = torch.tensor([])
@@ -283,9 +282,10 @@ class Trainer:
         y_all_pred = y_all_pred.numpy().reshape([-1, 1])
         y_all_true = y_all_true.numpy().reshape([-1, 1])
 
-        acc, pr, rec, f1, balance = self.estimator.estimate(
+        metrics = self.estimator.estimate(
             y_all_true, y_all_pred)
-        return mean_loss, acc, pr, rec, f1, balance
+        metrics = [mean_loss] + metrics
+        return metrics
 
     def save_metrics_as_csv(self, path):
         res = pd.DataFrame([])
