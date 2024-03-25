@@ -94,9 +94,9 @@ def main(cfg: DictConfig):
                         train_mode=cfg['disc_model_reg']['attack_train_mode']
                     )
 
-                attack = BatchIterativeAttack.initialize_with_params(cfg['attack']['name'], attack_params, estimator)
-                attack.forward(test_loader) 
-                results = attack.get_metrics()
+                attack_procedure = BatchIterativeAttack.initialize_with_params(cfg['attack']['name'], attack_params, estimator)
+                attack_procedure.forward(test_loader) 
+                results = attack_procedure.get_metrics()
                 results['eps'] = eps
                 attack_metrics = pd.concat([attack_metrics, results])
 
@@ -106,7 +106,7 @@ def main(cfg: DictConfig):
                     attack_metrics,
                     config_name = CONFIG_NAME,
                     path = cfg['save_path'],
-                    is_regularized = attack.is_regularized,
+                    is_regularized = attack_procedure.attack.is_regularized,
                     dataset = cfg["dataset"],
                     model_id = cfg["model_id_attack"],
                     alpha = alpha,
