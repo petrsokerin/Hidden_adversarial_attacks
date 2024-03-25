@@ -147,6 +147,7 @@ class Trainer:
             partial(
                 Trainer.objective,
                 params_vary=optuna_params["hyperparameters_vary"],
+                optim_metric=optuna_params['optim_metric'],
                 const_params=const_params,
                 train_loader=train_loader,
                 valid_loader=valid_loader,
@@ -167,10 +168,10 @@ class Trainer:
     def objective(
         trial: Trial,
         params_vary: DictConfig,
+        optim_metric: str,
         const_params: Dict,
         train_loader,
         valid_loader,
-        optim_metric='f1'
     ) -> float:
 
         initial_model_parameters, _ = get_optimization_dict(params_vary, trial)

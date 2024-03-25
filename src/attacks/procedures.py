@@ -12,89 +12,17 @@ from optuna.trial import Trial
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from src.config import get_attack
-from src.utils import (get_optimization_dict, update_trainer_params, 
-collect_default_params)
-
-# from .utils import (req_grad, calculate_metrics_class_and_hiddens, build_df_aa_metrics)
 
 class BatchIterativeAttack:
-    def __init__(self, attack, estimator=None):
-        self.attack = attack
-        self.n_steps = self.attack.n_steps
+    def __init__(self, estimator=None, *args, **kwargs):
         
         self.logging = bool(estimator)
         self.estimator = estimator
 
-        self.model = self.attack.model
-        self.device = self.attack.device
-
         if self.logging:
             print('logging')
-            self.metrics_names = self.estimator.get_metrics_name()
+            self.metrics_names = self.estimator.get_metrics_names()
             self.metrics = pd.DataFrame(columns= self.metrics_names)
-
-    @staticmethod
-    def initialize_with_params(
-        attack_name, 
-        attack_params, 
-        estimator=None,
-    ):
-
-        attack = get_attack(attack_name, attack_params)
-        return BatchIterativeAttack(attack, estimator)
-
-    @staticmethod
-    def initialize_with_optimization(
-            train_loader,
-            valid_loader,
-            optuna_params,
-            const_params,
-    ):
-
-        study = optuna.create_study(
-            direction="maximize",
-            sampler=instantiate(optuna_params["sampler"]),
-            pruner=instantiate(optuna_params["pruner"]),
-        )
-        study.optimize(
-            partial(
-                BatchIterativeAttack.objective,
-                params_vary=optuna_params["hyperparameters_vary"],
-                const_params = const_params,
-                train_loader=train_loader,
-                valid_loader=valid_loader,
-            ),
-            n_trials=optuna_params["n_trials"],
-        )
-        
-        default_params = collect_default_params(optuna_params["hyperparameters_vary"])
-        best_params = study.best_params.copy()
-        best_params = update_trainer_params(best_params, default_params)
-
-        best_params.update(const_params)
-        print("Best parameters are - %s", best_params)
-        return BatchIterativeAttack.initialize_with_params(best_params)
-
-    @staticmethod
-    def objective(
-        trial: Trial,
-        params_vary: DictConfig,
-        const_params: Dict,
-        train_loader,
-        valid_loader,
-        optim_metric='F1'
-    ) -> float:
-
-        initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
-        initial_model_parameters = dict(initial_model_parameters)
-        initial_model_parameters.update(const_params)
-
-        model = BatchIterativeAttack.initialize_with_params(
-            initial_model_parameters
-        )
-        last_epoch_metrics = model.train_model(train_loader, valid_loader)
-        return last_epoch_metrics[optim_metric]
 
 
     def log_step(self, y_true, y_pred, X=None, step_id=0):
@@ -137,7 +65,7 @@ class BatchIterativeAttack:
 
         for X, y_true in loader:
             X, y_true = self.prepare_data_to_attack(X, y_true)
-            X_adv = self.attack.step(X, y_true)
+            X_adv = self.step(X, y_true)
             y_pred_adv = self.model(X_adv)
 
             X_adv_all_objects = torch.cat((X_adv_all_objects, X_adv.cpu().detach()), dim=0)
@@ -153,7 +81,7 @@ class BatchIterativeAttack:
 
         for X, y_true in loader:
             X, y_true = self.prepare_data_to_attack(X, y_true)
-            X_adv = self.attack.step(X, y_true)
+            X_adv = self.step(X, y_true)
 
             X_adv_all_objects = torch.cat((X_adv_all_objects, X_adv.cpu().detach()), dim=0)
             y_true_all_objects = torch.cat((y_true_all_objects, y_true.cpu().detach()), dim=0)
@@ -171,7 +99,7 @@ class BatchIterativeAttack:
     def get_metrics(self):
         return self.metrics
         
-    def forward(self, loader):
+    def apply_attack(self, loader):
 
         y_true = loader.dataset.y 
 
