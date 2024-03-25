@@ -1,7 +1,7 @@
 import torch
 
-from base_attacks import BaseAttack
-from regularizers import reg_neigh, reg_disc
+from .base_attacks import BaseAttack
+from .regularizers import reg_neigh, reg_disc
 
 class FGSMAttack(BaseAttack):
     def __init__(
@@ -16,9 +16,9 @@ class FGSMAttack(BaseAttack):
         super().__init__(model, n_steps=n_steps)
         self.criterion = criterion
         self.eps = eps
+        self.is_regularized = False
 
     def get_loss(self, X, y_true):
-        X.requires_grad = True
         self.model.zero_grad()
         y_pred = self.model(X)
         loss = self.criterion(y_pred, y_true)
@@ -49,6 +49,7 @@ class FGSMRegNeighAttack(FGSMAttack):
         ):
         super().__init__(model, criterion, eps, n_steps=n_steps)
         self.alpha = alpha
+        self.is_regularized = True
 
     def step(self, X, y_true):
         loss = self.get_loss(X, y_true)
@@ -77,6 +78,7 @@ class FGSMRegDiscAttack(FGSMAttack):
         self.alpha = alpha
         self.disc_models = disc_models
         self.use_sigmoid = use_sigmoid
+        self.is_regularized = True
 
     def step(self, X, y_true):
         loss = self.get_loss(X, y_true)

@@ -3,7 +3,7 @@ from torch import nn
 
 from tsai.models.all import RNNAttention
 
-class RNNA(nn.Module):
+class RNNAttention(nn.Module):
     def __init__(self, **kwargs):
         super().__init__() 
         self.model = RNNAttention(c_in = 1, c_out = 1, **kwargs).float() # bs x length x channels

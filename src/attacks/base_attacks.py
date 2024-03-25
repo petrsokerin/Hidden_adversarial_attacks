@@ -20,7 +20,7 @@ collect_default_params)
 class BaseAttack(ABC):
     def __init__(self, model, n_steps=50):
         self.model = model
-        self.device= next(model.params).device
+        self.device= next(model.parameters()).device
         self.n_steps = n_steps
 
     @abstractmethod
@@ -31,14 +31,16 @@ class BaseAttack(ABC):
 class BatchIterativeAttack:
     def __init__(self, attack, estimator=None):
         self.attack = attack
+        self.n_steps = self.attack.n_steps
         
-        self.logging = bool(not estimator)
+        self.logging = bool(estimator)
         self.estimator = estimator
 
         self.model = self.attack.model
-        self.device = self.model.device
+        self.device = self.attack.device
 
         if self.logging:
+            print('logging')
             self.metrics_names = self.estimator.get_metrics_name()
             self.metrics = pd.DataFrame(columns= self.metrics_names)
 
@@ -48,8 +50,7 @@ class BatchIterativeAttack:
         attack_params, 
         estimator=None,
     ):
-        if not estimator_params:
-            estimator_params = {}
+
         attack = get_attack(attack_name, attack_params)
         return BatchIterativeAttack(attack, estimator)
 
@@ -92,7 +93,7 @@ class BatchIterativeAttack:
         const_params: Dict,
         train_loader,
         valid_loader,
-        optim_metric='f1'
+        optim_metric='F1'
     ) -> float:
 
         initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
@@ -107,7 +108,11 @@ class BatchIterativeAttack:
 
 
     def log_step(self, y_true, y_pred, step_id):
-        metrics_line = self.estimator.estimate(y_true, y_pred)
+        y_true = y_true.flatten().numpy()
+        y_pred = y_pred.flatten().numpy()
+        y_pred_classes = np.round(y_pred)
+
+        metrics_line = self.estimator.estimate(y_true, y_pred_classes)
         metrics_line = [step_id] + list(metrics_line)
         df_line = pd.DataFrame(metrics_line, columns=self.metrics_names)
         self.metrics = pd.concat([self.metrics, df_line])
@@ -123,23 +128,23 @@ class BatchIterativeAttack:
 
         return y_pred_all_objects
 
-    @staticmethod
-    def prepare_data_to_attack(X, y, device):
+
+    def prepare_data_to_attack(self, X, y):
         X.grad = None
         X.requires_grad = True
 
-        X = X.to(device, non_blocking=True)
-        y_true = y_true.to(device)
+        X = X.to(self.device, non_blocking=True)
+        y = y.to(self.device)
         return X, y
 
         
-    def run_iteration_log(self):
+    def run_iteration_log(self, loader):
         
         X_adv_all_objects = torch.FloatTensor([])  # logging x_adv for rebuilding dataloader
         y_true_all_objects = torch.tensor([])  # logging model for rebuilding dataloader and calculation difference with preds
         y_pred_all_objects = torch.tensor([])  # logging predictions adversarial if realize_attack or original
 
-        for X, y_true in self.loader:
+        for X, y_true in loader:
             X, y_true = self.prepare_data_to_attack(X, y_true, self.device)
             X_adv = self.attack.step(X, y_true)
             y_pred_adv = self.model(X_adv)
@@ -150,12 +155,12 @@ class BatchIterativeAttack:
 
         return X_adv_all_objects, y_true_all_objects, y_pred_all_objects
     
-    def run_iteration(self):
+    def run_iteration(self, loader):
         
         X_adv_all_objects = torch.FloatTensor([])  # logging x_adv for rebuilding dataloader
         y_true_all_objects = torch.tensor([])  # logging model for rebuilding dataloader and calculation difference with preds
 
-        for X, y_true in self.loader:
+        for X, y_true in loader:
             X, y_true = self.prepare_data_to_attack(X, y_true, self.device)
             X_adv = self.attack.step(X, y_true)
 
@@ -171,6 +176,9 @@ class BatchIterativeAttack:
         dataset = dataset_class(X_adv, y_true)
         loader = DataLoader(dataset, batch_size=batch_size)
         return loader
+    
+    def get_metrics(self):
+        return self.metrics
         
 
     def forward(self, loader):
@@ -185,10 +193,10 @@ class BatchIterativeAttack:
         for step_id in tqdm(range(1, self.n_steps + 1)):
 
             if self.logging:
-                X_adv, _, y_pred = self.run_iteration_log()
+                X_adv, _, y_pred = self.run_iteration_log(loader)
                 self.log_step(y_true, y_pred, step_id=step_id)
             else:
-                X_adv, _ = self.run_iteration()
+                X_adv, _ = self.run_iteration(loader)
 
             loader = self.rebuild_loader(loader, X_adv, y_true)
 

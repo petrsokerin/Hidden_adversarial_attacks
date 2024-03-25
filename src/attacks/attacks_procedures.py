@@ -149,7 +149,7 @@ def attack_procedure(
     attack_params,
     all_eps,
     n_steps: int,
-    metric_func=calculate_metrics_class_and_hiddens,
+    metric_func=None,
     n_objects=100,
     train_mode=False,
     disc_model=None,

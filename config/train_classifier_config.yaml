@@ -1,24 +1,81 @@
-dataset: FordA #GunPoint
+dataset: FordA #GunPoint  
 slice: True
 save_path: checkpoints/${dataset}/
-test_run: True # If true results will be not saved!!!!
+test_run: False # If true results will be not saved!!!!
 
 model_id_start: 0
-model_id_finish: 5
-
+model_id_finish: 1
+batch_size: 256
+cuda: 'cuda:2'
 print_every: 1
-
-transform_data: 
-- _target_: tsai.data.transforms.TSRandomResizedCrop
-  magnitude: 0.1
 
 defaults:
  - model: LSTM
 
-cuda: 'cuda:2'
+transform_data: []
+# - _target_: tsai.data.transforms.TSRandomResizedCrop
+#   magnitude: 0.1
 
-batch_size: 256
-lr: 0.001
-step_size: 10
-gamma: 0.5
-n_epochs: 10
+training_params:
+  model_name: ${model.name}
+  model_params: ${model.params}
+  criterion_name: BCE
+  criterioin_params: None
+  optimizer_name: Adam
+  optimizer_params:
+    lr: 0.001
+  scheduler_name: StepLR
+  scheduler_params: 
+    step_size: 10
+    gamma: 0.5
+  n_epochs: 10
+  early_stop_patience: None
+
+enable_optimization: True
+optuna_optimizer:
+  n_trials: 5
+  sampler:
+    _target_: optuna.samplers.TPESampler
+    seed: 0
+  pruner:
+    _target_: optuna.pruners.MedianPruner
+  hyperparameters_vary:
+    model_name: 
+      optuna_type: const
+      value: ${model.name}
+    model_params: ${model.hyperparameters_vary}
+    criterion_name: 
+      optuna_type: const
+      value: BCE
+    criterioin_params:
+      optuna_type: const
+      value: None
+    optimizer_name: 
+      optuna_type: choice
+      choices: 
+        - Adam
+        - AdamW
+    optimizer_params:
+      lr: 
+        optuna_type: float
+        low: 0.0001
+        high: 0.01 
+        log: True
+    scheduler_name: 
+      optuna_type: const
+      value: StepLR
+    scheduler_params: 
+      optuna_type: const
+      value: 
+        step_size: 10
+        gamma: 0.5
+    n_epochs:
+      optuna_type: int
+      low: 5
+      high: 15
+    early_stop_patience:
+      optuna_type: const
+      value: None
+      
+
+

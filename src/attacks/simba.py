@@ -1,9 +1,9 @@
-from base_attacks import IterativeBaseAttack
-from regularizers import reg_neigh, reg_disc
+from .base_attacks import BaseAttack
+from .regularizers import reg_neigh, reg_disc
 import torch
 
 
-class SimBABinary(IterativeBaseAttack):
+class SimBABinary(BaseAttack):
     def __init__(self, model, criterion, eps, n_steps, device='cpu'):
         super().__init__(model, criterion, eps, n_steps, device=device)
 

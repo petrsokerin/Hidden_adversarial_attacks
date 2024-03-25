@@ -16,10 +16,9 @@ from omegaconf import DictConfig
 
 def save_experiment(
         aa_res_df: pd.DataFrame,
-        rej_curves_dict: Dict,
         config_name: str,
         path: str,
-        attack: str,
+        is_regularized: bool,
         dataset: str,
         model_id: int,
         alpha: float
@@ -27,17 +26,13 @@ def save_experiment(
     if not os.path.isdir(path):
         os.makedirs(path)
 
-    if 'disc' in attack or 'reg' in attack:
+    if is_regularized:
         save_config(path, config_name, f"config_{dataset}_{model_id}_alpha={alpha}.yaml")
         aa_res_df.to_csv(path + f'/aa_res_{dataset}_{model_id}_alpha={alpha}.csv')
-        with open(path + f'/rej_curves_dict_{dataset}_model_{model_id}_alpha={alpha}.pickle', 'wb') as file:
-            pickle.dump(rej_curves_dict, file)
 
     else:
         save_config(path, config_name, f"config_{dataset}_{model_id}.yaml'")
         aa_res_df.to_csv(path + f'/aa_res_{dataset}_{model_id}.csv')
-        with open(path + f'/rej_curves_dict_{dataset}_model_{model_id}.pickle', 'wb') as file:
-            pickle.dump(rej_curves_dict, file)
 
 def get_optuna_param_for_type(
         param_name: str, 
@@ -173,23 +168,6 @@ def save_train_classifier(model, save_path, model_name):
 
     full_path = save_path + '/' + model_name
     torch.save(model.state_dict(), full_path)
-
-
-def load_disc_model(
-    disc_model,
-    path='results/FordA/Regular/Discriminator_pickle', 
-    model_name='fgsm_attack_eps=0.03_nsteps=10',
-    device='cpu', 
-    model_id=0,
-):
-    path = fr'{path}/{model_name}/{model_id}.pt'
-
-    disc_model = copy.deepcopy(disc_model)
-    disc_model.load_state_dict(torch.load(path, map_location=torch.device(device)))
-    disc_model.to(device)
-    disc_model.train(True)
-
-    return disc_model
 
 
 def fix_seed(seed: int) -> None:
