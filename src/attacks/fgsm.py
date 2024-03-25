@@ -1,19 +1,22 @@
 import torch
 
-from .base_attacks import BaseAttack
+from .base_attacks import BaseIterativeAttack
 from .regularizers import reg_neigh, reg_disc
+from .procedures import BatchIterativeAttack
 
-class FGSMAttack(BaseAttack):
+class FGSMAttack(BaseIterativeAttack, BatchIterativeAttack):
     def __init__(
             self, 
             model, 
             criterion, 
+            estimator,
             eps=0.03, 
             n_steps=10, 
             *args,
             **kwargs,
         ):
-        super().__init__(model, n_steps=n_steps)
+        BaseIterativeAttack.__init__(self, model=model, n_steps=n_steps)
+        BatchIterativeAttack.__init__(self, estimator=estimator)
         self.criterion = criterion
         self.eps = eps
         self.is_regularized = False
@@ -24,7 +27,7 @@ class FGSMAttack(BaseAttack):
         loss = self.criterion(y_pred, y_true)
         return loss
     
-    def apply_attack(self, X, loss):
+    def get_adv_data(self, X, loss):
         grad = torch.autograd.grad(loss, X, retain_graph=True)[0]
         grad_sign = torch.sign(grad)
         X_adv = X.data + self.eps * grad_sign
@@ -32,7 +35,7 @@ class FGSMAttack(BaseAttack):
 
     def step(self, X, y_true):
         loss = self.get_loss(X, y_true)
-        X_adv = self.apply_attack(X, loss)
+        X_adv = self.get_adv_data(X, loss)
         return X_adv
     
 
@@ -41,13 +44,14 @@ class FGSMRegNeighAttack(FGSMAttack):
             self,
             model,
             criterion,
+            estimator,
             eps=0.03,
             alpha=0.0,
             n_steps=10,
             *args,
             **kwargs
         ):
-        super().__init__(model, criterion, eps, n_steps=n_steps)
+        super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
         self.alpha = alpha
         self.is_regularized = True
 
@@ -57,7 +61,7 @@ class FGSMRegNeighAttack(FGSMAttack):
         reg_value = reg_neigh(X, self.alpha)
         loss = loss - reg_value
 
-        X_adv = self.apply_attack(X, loss)
+        X_adv = self.get_adv_data(X, loss)
         return X_adv
 
 
@@ -67,6 +71,7 @@ class FGSMRegDiscAttack(FGSMAttack):
             model, 
             criterion, 
             disc_models, 
+            estimator,
             eps=0.03, 
             alpha=0.0, 
             n_steps=10, 
@@ -74,7 +79,7 @@ class FGSMRegDiscAttack(FGSMAttack):
             *args,
             **kwargs,
         ):
-        super().__init__(model, criterion, eps, n_steps=n_steps)
+        super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
         self.alpha = alpha
         self.disc_models = disc_models
         self.use_sigmoid = use_sigmoid
@@ -86,6 +91,6 @@ class FGSMRegDiscAttack(FGSMAttack):
         reg_value = reg_disc(X, self.alpha, self.disc_models, self.use_sigmoid)
         loss = loss - reg_value
 
-        X_adv = self.apply_attack(X, loss)
+        X_adv = self.get_adv_data(X, loss)
         return X_adv
 

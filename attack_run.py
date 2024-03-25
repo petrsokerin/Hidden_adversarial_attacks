@@ -14,7 +14,6 @@ from torch.utils.data import DataLoader
 
 from src.data import load_data, transform_data, MyDataset
 from src.estimation.estimators import AttackEstimator
-from src.attacks.attacks_procedures import BatchIterativeAttack
 from src.utils import save_experiment
 from src.config import *
 
@@ -36,7 +35,6 @@ def main(cfg: DictConfig):
         batch_size=cfg['batch_size'] , 
         shuffle=False
     )
-
 
     device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
 
@@ -67,7 +65,41 @@ def main(cfg: DictConfig):
     estimator = AttackEstimator(disc_check_list, cfg['metric_effect'])
 
     if cfg['enable_optimization']:
-        pass
+        const_params = dict(cfg['attack']['attacks_params'])
+        const_params['model'] = attack_model
+        const_params['criterion'] = criterion
+        const_params['estimator'] = estimator
+
+        if 'list_reg_model_params' in cfg['attack']:
+            const_params['disc_models'] = get_disc_list(
+                model_name=cfg['disc_model_reg']['name'], 
+                model_params=cfg['disc_model_reg']['params'],
+                list_disc_params=cfg['attack']['list_reg_model_params'], 
+                device=device, 
+                path=cfg['disc_path'], 
+                train_mode=cfg['disc_model_reg']['attack_train_mode']
+            )
+
+        attack = get_attack(cfg['attack']['name'], const_params)
+        attack = attack.initialize_with_optimization(test_loader, cfg['optuna_optimizer'], const_params)
+        attack.apply_attack(test_loader) 
+
+        attack_metrics = attack.get_metrics()
+        attack_metrics['eps'] = attack.eps
+
+        alpha = attack.alpha if attack.alpha else 0
+
+        if not cfg['test_run']:
+            print('Saving')
+            save_experiment(
+                attack_metrics,
+                config_name = CONFIG_NAME,
+                path = cfg['save_path'],
+                is_regularized = attack.is_regularized,
+                dataset = cfg["dataset"],
+                model_id = cfg["model_id_attack"],
+                alpha = alpha,
+            )
 
     else:
         alphas = [0]
@@ -81,6 +113,7 @@ def main(cfg: DictConfig):
                 attack_params = dict(cfg['attack']['attacks_params'])
                 attack_params['model'] = attack_model
                 attack_params['criterion'] = criterion
+                attack_params['estimator'] = estimator
                 attack_params['alpha'] = alpha
                 attack_params['eps'] = eps
 
@@ -94,9 +127,9 @@ def main(cfg: DictConfig):
                         train_mode=cfg['disc_model_reg']['attack_train_mode']
                     )
 
-                attack_procedure = BatchIterativeAttack.initialize_with_params(cfg['attack']['name'], attack_params, estimator)
-                attack_procedure.forward(test_loader) 
-                results = attack_procedure.get_metrics()
+                attack = get_attack(cfg['attack']['name'], attack_params)
+                attack.apply_attack(test_loader) 
+                results = attack.get_metrics()
                 results['eps'] = eps
                 attack_metrics = pd.concat([attack_metrics, results])
 
@@ -106,7 +139,7 @@ def main(cfg: DictConfig):
                     attack_metrics,
                     config_name = CONFIG_NAME,
                     path = cfg['save_path'],
-                    is_regularized = attack_procedure.attack.is_regularized,
+                    is_regularized = attack.is_regularized,
                     dataset = cfg["dataset"],
                     model_id = cfg["model_id_attack"],
                     alpha = alpha,
