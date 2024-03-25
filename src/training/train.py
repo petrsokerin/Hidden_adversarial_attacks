@@ -196,7 +196,7 @@ class Trainer:
         if self.early_stop_patience and self.early_stop_patience != 'None':
             earl_stopper = EarlyStopper(self.early_stop_patience)
 
-        metric_names = ['loss'] + self.estimator.get_metrics_name()
+        metric_names = ['loss'] + self.estimator.get_metrics_names()
         self.dict_logging = {'train': {metric: [] for metric in metric_names},
                              'test': {metric: [] for metric in metric_names}}
 
