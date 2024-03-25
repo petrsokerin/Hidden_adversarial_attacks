@@ -12,7 +12,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 from src.data import load_data, transform_data, MyDataset
 from src.training.train import DiscTrainer
-from src.utils import fix_seed, save_config
+import os
+from src.config import get_criterion, get_model, get_disc_list
 
 CONFIG_NAME = 'train_disc_config_2'
 
@@ -45,37 +46,102 @@ def main(cfg: DictConfig):
         shuffle=False,
     )
 
-    print('Size:', len(X_train), len(X_test))
+    trainer_params = dict(cfg['training_params'])
+    trainer_params['attacks_params'] = dict(cfg['attack']['attacks_params'])
+    trainer_params['attack_name'] = cfg['attack']['name']
 
-    cfg['save_path'] = cfg['save_path'] + f'{instantiate(cfg.model).__class__.__name__}' 
     device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
 
-    for model_id in range(cfg['model_id_start'], cfg['model_id_finish']):
-        print('trainig model', model_id)
-        fix_seed(model_id)
+    attack_model_path = os.path.join(
+        cfg['model_folder'], 
+        cfg['attack_model']['name'],
+        f"model_{cfg['model_id_attack']}_{cfg['dataset']}.pth"
+    )
+    
+    attack_model = get_model(
+        cfg['attack_model']['name'], 
+        cfg['attack_model']['params'], 
+        path=attack_model_path, 
+        device=device,
+        train_mode=cfg['attack_model']['attack_train_mode']
+    )
 
-        logger = SummaryWriter(cfg['save_path'] + '/tensorboard')
-        
-        const_params = {'logger': logger, 'print_every': cfg['print_every'], 'device': device, 'seed': model_id}
-        if cfg['enable_optimization']:
-            trainer = DiscTrainer.initialize_with_optimization(
-                train_loader, test_loader, cfg['optuna_optimizer'], const_params
-            )
+    if 'list_reg_model_params' in cfg['attack']:
+        trainer_params['attacks_params']['disc_models'] = get_disc_list(
+        model_name=cfg['disc_model_reg']['name'], 
+        model_params=cfg['disc_model_reg']['params'],
+        list_disc_params=cfg['attack']['list_reg_model_params'], 
+        device=device, 
+        path=cfg['disc_path'], 
+        train_mode=cfg['disc_model_reg']['attack_train_mode']
+                    )
 
-        else:
-            trainer_params = dict(cfg['training_params'])
-            attack_params = dict(cfg['attck']['attack_params'])
-            trainer_params.update(const_params)
-            trainer = DiscTrainer.initialize_with_params(trainer_params, attack_params=attack_params)
+    criterion = get_criterion(cfg['criterion_name'], cfg['criterion_params'])
 
-        trainer.train_model(train_loader, test_loader)
-        logger.close()
+    trainer_params['attacks_params']['model'] = attack_model
+    trainer_params['attacks_params']['criterion'] = criterion
+    
+    disc_trainer = DiscTrainer.initialize_with_params(trainer_params)
 
-        if not cfg['test_run']:
-            model_save_name = f'model_{model_id}_{cfg["dataset"]}'
-            trainer.save_result(cfg['save_path'], model_save_name)
-            save_config(cfg['save_path'], CONFIG_NAME, CONFIG_NAME)
+    disc_trainer.train_model(train_loader, test_loader)
 
             
 if __name__=='__main__':
     main()
+# device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
+    
+#     disc_check_list = get_disc_list(
+#             model_name=cfg['disc_model_check']['name'], 
+#             model_params=cfg['disc_model_check']['params'],
+#             list_disc_params=cfg['list_check_model_params'], 
+#             device=device, 
+#             path=cfg['disc_path'], 
+#             train_mode=False
+#     ) if cfg['use_disc_check'] else None
+#     estimator = AttackEstimator(disc_check_list, cfg['metric_effect'])
+
+    # if cfg['enable_optimization']:
+    #     pass
+
+    # else:
+#         alphas = [0]
+#         if 'alpha' in cfg['attack']['attacks_params']:
+#             alphas = cfg['attack']['attacks_params']['alpha']
+
+#         for alpha in alphas: # tqdm(alphas):
+#             attack_metrics = pd.DataFrame()
+#             for eps in cfg['attack']['attacks_params']['eps']:  #tqdm(cfg['attack']['attacks_params']['eps']):
+
+#                 attack_params = dict(cfg['attack']['attacks_params'])
+#                 attack_params['model'] = attack_model
+#                 attack_params['criterion'] = criterion
+#                 attack_params['alpha'] = alpha
+#                 attack_params['eps'] = eps
+
+#                 if 'list_reg_model_params' in cfg['attack']:
+#                     attack_params['disc_models'] = get_disc_list(
+#                         model_name=cfg['disc_model_reg']['name'], 
+#                         model_params=cfg['disc_model_reg']['params'],
+#                         list_disc_params=cfg['attack']['list_reg_model_params'], 
+#                         device=device, 
+#                         path=cfg['disc_path'], 
+#                         train_mode=cfg['disc_model_reg']['attack_train_mode']
+#                     )
+
+#                 attack_procedure = BatchIterativeAttack.initialize_with_params(cfg['attack']['name'], attack_params, estimator)
+#                 attack_procedure.forward(test_loader) 
+#                 results = attack_procedure.get_metrics()
+#                 results['eps'] = eps
+#                 attack_metrics = pd.concat([attack_metrics, results])
+
+#             if not cfg['test_run']:
+#                 print('Saving')
+#                 save_experiment(
+#                     attack_metrics,
+#                     config_name = CONFIG_NAME,
+#                     path = cfg['save_path'],
+#                     is_regularized = attack_procedure.attack.is_regularized,
+#                     dataset = cfg["dataset"],
+#                     model_id = cfg["model_id_attack"],
+#                     alpha = alpha,
+#                 )

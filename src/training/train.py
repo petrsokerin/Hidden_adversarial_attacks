@@ -328,8 +328,8 @@ class DiscTrainer(Trainer):
         device='cpu',
         seed=0,
         multiclass=False,
-        attack_name = None, # str - attack name,
-        attack_params = None, 
+        attack_name = None,
+        attacks_params = None, 
     ):
 
         super().__init__(
@@ -350,18 +350,18 @@ class DiscTrainer(Trainer):
             multiclass=multiclass
         )
 
-        self.attack_model = get_attack(attack_name, attack_params)
+        self.attack_model = get_attack(attack_name, attacks_params)
 
     @staticmethod
     def initialize_with_params(
         trainer_params,
     ):
-        return Trainer(**trainer_params)
+        return DiscTrainer(**trainer_params)
 
     def _generate_adversarial_data(self, loader):
 
         X_orig = torch.tensor(loader.dataset.X)
-        X_adv = self.attack_model(loader)
+        X_adv = self.attack_model.forward(loader)
 
         disc_labels_zeros = torch.zeros_like(loader.dataset.y)  
         disc_labels_ones = torch.ones_like(loader.dataset.y)  
@@ -377,8 +377,8 @@ class DiscTrainer(Trainer):
         return loader
     
 
-    def train_model(self, train_loader, valid_loader, attack_params):
-        train_loader = self._generate_adversarial_data(train_loader, attack_params)
-        valid_loader = self._generate_adversarial_data(valid_loader, attack_params)
+    def train_model(self, train_loader, valid_loader):
+        train_loader = self._generate_adversarial_data(train_loader)
+        valid_loader = self._generate_adversarial_data(valid_loader)
 
         super().train_model(train_loader, valid_loader)
