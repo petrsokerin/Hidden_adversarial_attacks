@@ -55,6 +55,36 @@ class EarlyStopper:
 class Trainer:
     def __init__(
         self,
+        model,
+        criterion,
+        optimizer,
+        scheduler,
+        n_epochs=30,
+        early_stop_patience=None,
+        logger=None,
+        print_every=5,
+        device='cpu',
+        multiclass=False
+    ):
+        self.model = model
+        self.criterion = criterion
+        self.optimizer = optimizer
+        self.scheduler = scheduler
+        
+
+        self.estimator = ClassifierEstimator()
+        self.n_epochs = n_epochs
+        self.early_stop_patience = early_stop_patience
+
+        self.device = device
+        self.multiclass = multiclass
+        self.print_every = print_every
+
+        self.logger = logger
+        self.dict_logging = {}
+
+    @staticmethod
+    def initialize_with_params(
         model_name='LSTM',
         model_params=None,
         criterion_name='BCELoss',
@@ -81,29 +111,24 @@ class Trainer:
         if scheduler_params == 'None' or not scheduler_params:
             scheduler_params = {}
         
-        self.model = get_model(model_name, model_params, device=device)
-        self.criterion = get_criterion(criterion_name, criterioin_params)
-        self.optimizer = get_optimizer(
-            optimizer_name, self.model.parameters(), optimizer_params)
-        self.scheduler = get_scheduler(
-            scheduler_name, self.optimizer, scheduler_params)
-
-        self.estimator = ClassifierEstimator()
-        self.n_epochs = n_epochs
-        self.early_stop_patience = early_stop_patience
-
-        self.device = device
-        self.multiclass = multiclass
-        self.print_every = print_every
-
-        self.logger = logger
-        self.dict_logging = {}
-
-    @staticmethod
-    def initialize_with_params(
-        trainer_params,
-    ):
-        return Trainer(**trainer_params)
+        model = get_model(model_name, model_params, device=device)
+        criterion = get_criterion(criterion_name, criterioin_params)
+        optimizer = get_optimizer(
+            optimizer_name, model.parameters(), optimizer_params)
+        scheduler = get_scheduler(
+            scheduler_name, optimizer, scheduler_params)
+        return Trainer(
+            model,
+            criterion,
+            optimizer,
+            scheduler,
+            n_epochs=n_epochs,
+            early_stop_patience=early_stop_patience,
+            logger=logger,
+            print_every=print_every,
+            device=device,
+            multiclass=multiclass
+        )
 
     @staticmethod
     def initialize_with_optimization(
@@ -136,7 +161,7 @@ class Trainer:
 
         best_params.update(const_params)
         print("Best parameters are - %s", best_params)
-        return Trainer.initialize_with_params(best_params)
+        return Trainer.initialize_with_params(**best_params)
 
     @staticmethod
     def objective(
@@ -153,7 +178,7 @@ class Trainer:
         initial_model_parameters.update(const_params)
 
         model = Trainer.initialize_with_params(
-            initial_model_parameters
+            **initial_model_parameters
         )
         last_epoch_metrics = model.train_model(train_loader, valid_loader)
         return last_epoch_metrics[optim_metric]
