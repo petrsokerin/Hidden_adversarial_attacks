@@ -350,8 +350,13 @@ class DiscTrainer(Trainer):
             multiclass=multiclass
         )
 
-        self.attack_model = get_attack(attack_name, **attack_params)
+        self.attack_model = get_attack(attack_name, attack_params)
 
+    @staticmethod
+    def initialize_with_params(
+        trainer_params,
+    ):
+        return Trainer(**trainer_params)
 
     def _generate_adversarial_data(self, loader):
 
@@ -377,6 +382,3 @@ class DiscTrainer(Trainer):
         valid_loader = self._generate_adversarial_data(valid_loader, attack_params)
 
         super().train_model(train_loader, valid_loader)
-
-
-       

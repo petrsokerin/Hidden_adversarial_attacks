@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch import nn
 
-from .utils import (req_grad, calculate_metrics_class_and_hiddens, build_df_aa_metrics)
+# from .utils import req_grad #calculate_metrics_class_and_hiddens, build_df_aa_metrics)
 
 
 class IterGradAttack:
