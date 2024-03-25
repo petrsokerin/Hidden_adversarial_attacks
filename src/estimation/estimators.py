@@ -76,8 +76,7 @@ class AttackEstimator(BaseEstimator):
         
         hid = max(hid_list)
         conc = 1 - hid
-        
-        return list(hid, conc)
+        return [hid, conc]
 
     
     def estimate(self, y_true, y_pred, X=None):

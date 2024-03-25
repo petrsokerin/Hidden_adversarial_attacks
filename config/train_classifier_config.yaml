@@ -19,7 +19,7 @@ transform_data: []
 training_params:
   model_name: ${model.name}
   model_params: ${model.params}
-  criterion_name: BCE
+  criterion_name: BCELoss
   criterioin_params: None
   optimizer_name: Adam
   optimizer_params:
@@ -46,7 +46,7 @@ optuna_optimizer:
     model_params: ${model.hyperparameters_vary}
     criterion_name: 
       optuna_type: const
-      value: BCE
+      value: BCELoss
     criterioin_params:
       optuna_type: const
       value: None
