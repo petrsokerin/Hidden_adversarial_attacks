@@ -28,8 +28,10 @@ def main(cfg: DictConfig):
 
     # load data
     X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
+    
     if len(set(y_test)) > 2:
         return None
+    
     X_train, X_test, y_train, y_test = transform_data(
         X_train,
         X_test,
@@ -97,9 +99,10 @@ def main(cfg: DictConfig):
     attack = get_attack(cfg['attack']['name'], attack_params)
 
     trainer_params = dict(cfg['training_params'])
+    trainer_params['logger'] = SummaryWriter(cfg['save_path'] + '/tensorboard')
     trainer_params['attack'] = attack
 
-    disc_trainer = DiscTrainer.initialize_with_params(trainer_params)
+    disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
     disc_trainer.train_model(train_loader, test_loader)
             
 if __name__=='__main__':

@@ -353,7 +353,6 @@ class DiscTrainer(Trainer):
     ):
 
         super().__init__(
-        self,
         model = model,
         criterion = criterion,
         optimizer = optimizer,
@@ -405,10 +404,10 @@ class DiscTrainer(Trainer):
             scheduler_name, optimizer, scheduler_params)
         
         return DiscTrainer(
-            model,
-            criterion,
-            optimizer,
-            scheduler,
+            model = model,
+            criterion = criterion,
+            optimizer = optimizer,
+            scheduler = scheduler,
             n_epochs=n_epochs,
             early_stop_patience=early_stop_patience,
             logger=logger,
@@ -420,7 +419,7 @@ class DiscTrainer(Trainer):
     def _generate_adversarial_data(self, loader):
 
         X_orig = torch.tensor(loader.dataset.X)
-        X_adv = self.attack.apply_attack(loader)
+        X_adv = self.attack.apply_attack(loader).squeeze(-1)
 
         disc_labels_zeros = torch.zeros_like(loader.dataset.y)  
         disc_labels_ones = torch.ones_like(loader.dataset.y)  
@@ -428,10 +427,12 @@ class DiscTrainer(Trainer):
         new_x = torch.concat([X_orig, X_adv], dim=0)
         new_y = torch.concat([disc_labels_zeros, disc_labels_ones], dim=0)
 
+        print('dataset size: ', new_y.shape, new_x.shape)
+
         dataset_class = loader.dataset.__class__
         dataset = dataset_class(new_x, new_y)
 
-        loader = DataLoader(dataset, batch_size=loader.batch_size)
+        loader = DataLoader(dataset, batch_size=loader.batch_size, shuffle=True)
 
         return loader
     

@@ -46,7 +46,7 @@ def get_attack(attack_name, attack_params):
 def get_model(model_name, model_params, device='cpu', path=None, train_mode=False):
     if model_params is None:
         model_params = dict()
-    try: 
+    try:
         model = getattr(models, model_name)(**model_params)
         model = model.to(device)
         if path:
