@@ -339,6 +339,37 @@ class Trainer:
 class DiscTrainer(Trainer):
     def __init__(
         self,
+        model,
+        criterion,
+        optimizer,
+        scheduler,
+        n_epochs=30,
+        early_stop_patience=None,
+        logger=None,
+        print_every=5,
+        device='cpu',
+        multiclass=False,
+        attack = None,
+    ):
+
+        super().__init__(
+        self,
+        model = model,
+        criterion = criterion,
+        optimizer = optimizer,
+        scheduler = scheduler,
+        n_epochs = n_epochs,
+        early_stop_patience = early_stop_patience,
+        logger = logger,
+        print_every = print_every,
+        device = device,
+        multiclass = multiclass
+        )
+
+        self.attack = attack
+
+    @staticmethod
+    def initialize_with_params(
         model_name='LSTM',
         model_params=None,
         criterion_name='BCELoss',
@@ -354,40 +385,42 @@ class DiscTrainer(Trainer):
         device='cpu',
         seed=0,
         multiclass=False,
-        attack_name = None,
-        attacks_params = None, 
+        attack = None
     ):
-
-        super().__init__(
-            model_name=model_name,
-            model_params=model_params,
-            criterion_name=criterion_name,
-            criterioin_params=criterioin_params,
-            optimizer_name=optimizer_name,
-            optimizer_params=optimizer_params,
-            scheduler_name=scheduler_name,
-            scheduler_params=scheduler_params,
+        fix_seed(seed)
+        if model_params == 'None' or not model_params:
+            model_params = {}
+        if criterioin_params == 'None' or not criterioin_params:
+            criterioin_params = {}
+        if optimizer_params == 'None' or not optimizer_params:
+            optimizer_params = {}
+        if scheduler_params == 'None' or not scheduler_params:
+            scheduler_params = {}
+        
+        model = get_model(model_name, model_params, device=device)
+        criterion = get_criterion(criterion_name, criterioin_params)
+        optimizer = get_optimizer(
+            optimizer_name, model.parameters(), optimizer_params)
+        scheduler = get_scheduler(
+            scheduler_name, optimizer, scheduler_params)
+        
+        return DiscTrainer(
+            model,
+            criterion,
+            optimizer,
+            scheduler,
             n_epochs=n_epochs,
             early_stop_patience=early_stop_patience,
             logger=logger,
             print_every=print_every,
             device=device,
-            seed=seed,
-            multiclass=multiclass
-        )
-
-        self.attack_model = get_attack(attack_name, attacks_params)
-
-    @staticmethod
-    def initialize_with_params(
-        trainer_params,
-    ):
-        return DiscTrainer(**trainer_params)
+            multiclass=multiclass,
+            attack=attack)
 
     def _generate_adversarial_data(self, loader):
 
         X_orig = torch.tensor(loader.dataset.X)
-        X_adv = self.attack_model.forward(loader)
+        X_adv = self.attack.apply_attack(loader)
 
         disc_labels_zeros = torch.zeros_like(loader.dataset.y)  
         disc_labels_ones = torch.ones_like(loader.dataset.y)  
