@@ -116,8 +116,8 @@ def main(cfg: DictConfig):
             disc_trainer.train_model(train_loader, test_loader)
 
             if not cfg['test_run']:
-                model_save_name = f'model_{cfg["model_id_attack"]}_{cfg["dataset"]}'
-                new_save_path = cfg['save_path'] + '/' + f'eps={eps}_n_steps={cfg["attack"]["attacks_params"]["n_steps"]}'
+                model_save_name = f'{cfg["model_id_attack"]}_{cfg["dataset"]}'
+                new_save_path = cfg['save_path'] + '/' + f'{cfg["attack"]["short_name"]}_eps={eps}_nsteps={cfg["attack"]["attacks_params"]["n_steps"]}'
                 
                 disc_trainer.save_result(new_save_path, model_save_name)
                 save_config(new_save_path, CONFIG_NAME, CONFIG_NAME)
