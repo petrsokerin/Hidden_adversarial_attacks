@@ -1,5 +1,5 @@
+import os
 import warnings
-
 warnings.filterwarnings('ignore')
 
 import hydra
@@ -12,13 +12,12 @@ from torch.utils.tensorboard import SummaryWriter
 
 from src.data import load_data, transform_data, MyDataset
 from src.training.train import DiscTrainer
-import os
 
-import pandas as pd
 from src.estimation.estimators import AttackEstimator
 
 from src.config import get_criterion, get_model, get_disc_list, get_attack
 from src.utils import save_config
+
 CONFIG_NAME = 'train_disc_config_2'
 
 
