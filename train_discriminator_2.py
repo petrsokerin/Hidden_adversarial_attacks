@@ -86,7 +86,6 @@ def main(cfg: DictConfig):
             alphas = cfg['attack']['attacks_params']['alpha']
 
     for alpha in alphas:
-        attack_metrics = pd.DataFrame()
         for eps in cfg['attack']['attacks_params']['eps']:
             print('----- Current epsilon:', eps, 
                   '\n----- Current alpha:', alpha)
