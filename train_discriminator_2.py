@@ -18,7 +18,7 @@ import pandas as pd
 from src.estimation.estimators import AttackEstimator
 
 from src.config import get_criterion, get_model, get_disc_list, get_attack
-
+from src.utils import save_config
 CONFIG_NAME = 'train_disc_config_2'
 
 
@@ -81,29 +81,48 @@ def main(cfg: DictConfig):
 
     estimator = AttackEstimator(disc_check_list, cfg['metric_effect'])
 
-    attack_params = dict(cfg['attack']['attacks_params'])
-    attack_params['model'] = attack_model
-    attack_params['criterion'] = criterion
-    attack_params['estimator'] = estimator
+    alphas = [0]
+    if 'alpha' in cfg['attack']['attacks_params']:
+            alphas = cfg['attack']['attacks_params']['alpha']
 
-    if 'list_reg_model_params' in cfg['attack']:
-        attack_params['disc_models'] = get_disc_list(
-            model_name=cfg['disc_model_reg']['name'], 
-            model_params=cfg['disc_model_reg']['params'],
-            list_disc_params=cfg['attack']['list_reg_model_params'], 
-            device=device, 
-            path=cfg['disc_path'], 
-            train_mode=cfg['disc_model_reg']['attack_train_mode']
-        )
+    for alpha in alphas:
+        attack_metrics = pd.DataFrame()
+        for eps in cfg['attack']['attacks_params']['eps']:
+            print('----- Current epsilon:', eps, 
+                  '\n----- Current alpha:', alpha)
+            
+            attack_params = dict(cfg['attack']['attacks_params'])
+            attack_params['model'] = attack_model
+            attack_params['criterion'] = criterion
+            attack_params['estimator'] = estimator
+            attack_params['alpha'] = alpha
+            attack_params['eps'] = eps
 
-    attack = get_attack(cfg['attack']['name'], attack_params)
+            if 'list_reg_model_params' in cfg['attack']:
+                attack_params['disc_models'] = get_disc_list(
+                    model_name=cfg['disc_model_reg']['name'], 
+                    model_params=cfg['disc_model_reg']['params'],
+                    list_disc_params=cfg['attack']['list_reg_model_params'], 
+                    device=device, 
+                    path=cfg['disc_path'], 
+                    train_mode=cfg['disc_model_reg']['attack_train_mode']
+                )
 
-    trainer_params = dict(cfg['training_params'])
-    trainer_params['logger'] = SummaryWriter(cfg['save_path'] + '/tensorboard')
-    trainer_params['attack'] = attack
+            attack = get_attack(cfg['attack']['name'], attack_params)
 
-    disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
-    disc_trainer.train_model(train_loader, test_loader)
+            trainer_params = dict(cfg['training_params'])
+            trainer_params['logger'] = SummaryWriter(cfg['save_path'] + '/tensorboard')
+            trainer_params['attack'] = attack
+
+            disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
+            disc_trainer.train_model(train_loader, test_loader)
+
+            if not cfg['test_run']:
+                model_save_name = f'model_{cfg["model_id_attack"]}_{cfg["dataset"]}'
+                new_save_path = cfg['save_path'] + '/' + f'eps={eps}_n_steps={cfg["attack"]["attacks_params"]["n_steps"]}'
+                
+                disc_trainer.save_result(new_save_path, model_save_name)
+                save_config(new_save_path, CONFIG_NAME, CONFIG_NAME)
             
 if __name__=='__main__':
     main()

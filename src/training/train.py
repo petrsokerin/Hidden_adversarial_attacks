@@ -427,7 +427,7 @@ class DiscTrainer(Trainer):
         new_x = torch.concat([X_orig, X_adv], dim=0)
         new_y = torch.concat([disc_labels_zeros, disc_labels_ones], dim=0)
 
-        print('dataset size: ', new_y.shape, new_x.shape)
+        # print('dataset size: ', new_y.shape, new_x.shape)
 
         dataset_class = loader.dataset.__class__
         dataset = dataset_class(new_x, new_y)
