@@ -1,107 +1,126 @@
-import copy
 import os
-import pickle
 import warnings
-warnings.simplefilter("ignore")
+warnings.filterwarnings('ignore')
 
 import hydra
-from omegaconf import DictConfig
 from hydra.utils import instantiate
+from omegaconf import DictConfig
 
 import torch
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from tqdm.auto import tqdm
-from src.training.discrim_training import HideAttackExp
-from src.data import load_data, transform_data, build_dataloaders, MyDataset, Augmentator
-from src.utils import save_train_disc
-from src.config import get_attack, load_disc_config
+from src.data import load_data, transform_data, MyDataset
+from src.training.train import DiscTrainer
 
-CONFIG_NAME = 'train_disc_config'
+from src.estimation.estimators import AttackEstimator
+
+from src.config import get_criterion, get_model, get_disc_list, get_attack
+from src.utils import save_config
+
+CONFIG_NAME = 'train_disc_config_2'
+
 
 @hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
+    augmentator = [instantiate(trans) for trans in cfg['transform_data']] if cfg['transform_data'] else None
 
-    if cfg['test_run']:
-        print('ATTENTION!!!! Results will not be saved. Set param test_run=False')
-
-    augmentator = Augmentator([instantiate(trans) for trans in cfg['transform_data']]) 
-
+    # load data
     X_train, y_train, X_test, y_test = load_data(cfg['dataset'])
-    X_train, X_test, y_train, y_test = transform_data(X_train, X_test, y_train, y_test, slice_data=cfg['slice'])
+    
+    if len(set(y_test)) > 2:
+        return None
+    
+    X_train, X_test, y_train, y_test = transform_data(
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        slice_data=cfg['slice'],
+    )
 
-    train_loader, test_loader = build_dataloaders(X_train, X_test, y_train, y_test)
+    train_loader = DataLoader(
+        MyDataset(X_train, y_train, augmentator),
+        batch_size=cfg['batch_size'],
+        shuffle=True
+    )
+
+    test_loader = DataLoader(
+        MyDataset(X_test, y_test),
+        batch_size=cfg['batch_size'],
+        shuffle=False,
+    )
 
     device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
 
-    model_name = instantiate(cfg.attack_model).__class__.__name__
-    cfg['model_folder'] = cfg['model_folder'] + f'{model_name}/'
-    cfg['disc_path'] = cfg['disc_path'].format(model_name)
-    cfg['save_path'] = cfg['save_path'].format(model_name) 
+    attack_model_path = os.path.join(
+        cfg['model_folder'], 
+        cfg['attack_model']['name'],
+        f"model_{cfg['model_id_attack']}_{cfg['dataset']}.pth"
+    )
+    
+    attack_model = get_model(
+        cfg['attack_model']['name'], 
+        cfg['attack_model']['params'], 
+        path=attack_model_path, 
+        device=device,
+        train_mode=cfg['attack_model']['attack_train_mode']
+    )
 
-    print(cfg['alpha'], type(cfg['alpha']))
+    criterion = get_criterion(cfg['criterion_name'], cfg['criterion_params'])
+    
+    disc_check_list = get_disc_list(
+            model_name=cfg['disc_model_check']['name'], 
+            model_params=cfg['disc_model_check']['params'],
+            list_disc_params=cfg['list_check_model_params'], 
+            device=device, 
+            path=cfg['disc_path'], 
+            train_mode=False
+    ) if cfg['use_disc_check'] else None
 
-    for model_id in tqdm(cfg['model_ids']):
+    estimator = AttackEstimator(disc_check_list, cfg['metric_effect'])
 
-        attack_model = instantiate(cfg.attack_model).to(device)
-        model_path = cfg['model_folder'] + f'model_{model_id}_{cfg["dataset"]}.pth'
-        attack_model.load_state_dict(copy.deepcopy(torch.load(model_path)))
-        
-        attack_params = {'eps': cfg['eps']}
+    alphas = [0]
+    if 'alpha' in cfg['attack']['attacks_params']:
+            alphas = cfg['attack']['attacks_params']['alpha']
 
-        attack_func = get_attack(cfg['attack_type'])
+    for alpha in alphas:
+        for eps in cfg['attack']['attacks_params']['eps']:
+            print('----- Current epsilon:', eps, 
+                  '\n----- Current alpha:', alpha)
+            
+            attack_params = dict(cfg['attack']['attacks_params'])
+            attack_params['model'] = attack_model
+            attack_params['criterion'] = criterion
+            attack_params['estimator'] = estimator
+            attack_params['alpha'] = alpha
+            attack_params['eps'] = eps
 
-        discriminator_model = instantiate(cfg['disc_model']).to(device)
+            if 'list_reg_model_params' in cfg['attack']:
+                attack_params['disc_models'] = get_disc_list(
+                    model_name=cfg['disc_model_reg']['name'], 
+                    model_params=cfg['disc_model_reg']['params'],
+                    list_disc_params=cfg['attack']['list_reg_model_params'], 
+                    device=device, 
+                    path=cfg['disc_path'], 
+                    train_mode=cfg['disc_model_reg']['attack_train_mode']
+                )
 
-        if 'reg' in cfg['attack_type'] :
-            attack_params['alpha'] = cfg['alpha']
+            attack = get_attack(cfg['attack']['name'], attack_params)
 
-        elif 'disc' in cfg['attack_type']:
-            attack_params['alpha'] = cfg['alpha']
-            attack_params['disc_models'] = load_disc_config(
-                discriminator_model,
-                cfg['disc_path'], 
-                device, 
-                cfg['list_reg_model_params']
-            )  
-            attack_params['use_sigmoid'] = cfg['use_extra_sigmoid']
+            trainer_params = dict(cfg['training_params'])
+            trainer_params['logger'] = SummaryWriter(cfg['save_path'] + '/tensorboard')
+            trainer_params['attack'] = attack
 
-        attack_train_params = {
-            'attack_func': attack_func, 
-            'attack_params': attack_params, 
-            'criterion': torch.nn.BCELoss(), 
-            'n_steps': cfg['n_iterations'],
-            'train_mode': cfg['train_mode'],
-        }
-        attack_test_params = attack_train_params
+            disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
+            disc_trainer.train_model(train_loader, test_loader)
 
-        
-        optimizer = torch.optim.Adam(discriminator_model.parameters(), lr=cfg['lr'])
-        disc_train_params = {
-            'n_epoch': cfg['n_epochs'],
-            'optimizer': optimizer,
-            'scheduler': torch.optim.lr_scheduler.StepLR(optimizer, cfg['step_lr'], gamma=cfg['gamma'])
-        }      
-
-        logger = SummaryWriter(cfg['save_path']+f'/tensorboard/{model_id}')
-        experiment = HideAttackExp(
-            attack_model,
-            train_loader,
-            test_loader,
-            augmentator,
-            attack_train_params,
-            attack_test_params,
-            discriminator_model,
-            disc_train_params,
-            logger = logger,
-        )
-        experiment.run(cfg['TS2Vec'], cfg['early_stop_patience'], cfg['verbose_ts2vec'])
-
-        if not cfg['test_run']:
-            save_train_disc(experiment, CONFIG_NAME, model_id, cfg)
-            print('Success')
-
-
+            if not cfg['test_run']:
+                model_save_name = f'{cfg["model_id_attack"]}_{cfg["dataset"]}'
+                new_save_path = cfg['save_path'] + '/' + f'{cfg["attack"]["short_name"]}_eps={eps}_nsteps={cfg["attack"]["attacks_params"]["n_steps"]}'
+                
+                disc_trainer.save_result(new_save_path, model_save_name)
+                save_config(new_save_path, CONFIG_NAME, CONFIG_NAME)
+            
 if __name__=='__main__':
     main()
-

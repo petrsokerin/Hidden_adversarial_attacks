@@ -4,6 +4,7 @@ from typing import Dict
 
 from tqdm.auto import tqdm
 import torch
+from torch.utils.data import DataLoader
 import optuna
 from optuna.trial import Trial
 from hydra.utils import instantiate
@@ -12,14 +13,11 @@ from omegaconf import DictConfig
 import pandas as pd
 import numpy as np
 import torch
-from sklearn.metrics import (accuracy_score, precision_score,
-                             recall_score, f1_score)
 
-from src.utils import (get_optimization_dict, update_trainer_params, 
-collect_default_params, fix_seed)
+from src.utils import (get_optimization_dict, update_trainer_params,
+                       collect_default_params, fix_seed)
 from src.estimation import ClassifierEstimator
-from src.config import get_model, get_criterion, get_optimizer, get_scheduler
-
+from src.config import get_model, get_criterion, get_optimizer, get_scheduler, get_attack
 
 
 def req_grad(model, state: bool = True) -> None:
@@ -52,42 +50,27 @@ class EarlyStopper:
             if self.counter >= self.patience:
                 return True
         return False
-    
+
 
 class Trainer:
     def __init__(
-            self,
-            model_name='LSTM',
-            model_params=None, 
-            criterion_name='BCE', 
-            criterioin_params=None,
-            optimizer_name='Adam', 
-            optimizer_params=None, 
-            scheduler_name='None',
-            scheduler_params=None,
-            n_epochs=30,
-            early_stop_patience=None,
-            logger=None,
-            print_every=5,
-            device='cpu',
-            seed = 0,
-            multiclass=False
-        ):
-
-        fix_seed(seed)
-        if model_params == 'None' or not model_params:
-            model_params = {}
-        if criterioin_params == 'None' or not criterioin_params:
-            criterioin_params = {}
-        if optimizer_params == 'None' or not optimizer_params:
-            optimizer_params = {}
-        if scheduler_params == 'None' or not scheduler_params:
-            scheduler_params = {}
+        self,
+        model,
+        criterion,
+        optimizer,
+        scheduler,
+        n_epochs=30,
+        early_stop_patience=None,
+        logger=None,
+        print_every=5,
+        device='cpu',
+        multiclass=False
+    ):
+        self.model = model
+        self.criterion = criterion
+        self.optimizer = optimizer
+        self.scheduler = scheduler
         
-        self.model = get_model(model_name, model_params).to(device)
-        self.criterion = get_criterion(criterion_name, criterioin_params)
-        self.optimizer = get_optimizer(optimizer_name, self.model.parameters(), optimizer_params)
-        self.scheduler = get_scheduler(scheduler_name, self.optimizer, scheduler_params)
 
         self.estimator = ClassifierEstimator()
         self.n_epochs = n_epochs
@@ -100,12 +83,52 @@ class Trainer:
         self.logger = logger
         self.dict_logging = {}
 
-
     @staticmethod
     def initialize_with_params(
-        trainer_params,
-    ):        
-        return Trainer(**trainer_params)
+        model_name='LSTM',
+        model_params=None,
+        criterion_name='BCELoss',
+        criterioin_params=None,
+        optimizer_name='Adam',
+        optimizer_params=None,
+        scheduler_name='None',
+        scheduler_params=None,
+        n_epochs=30,
+        early_stop_patience=None,
+        logger=None,
+        print_every=5,
+        device='cpu',
+        seed=0,
+        multiclass=False
+    ):
+        fix_seed(seed)
+        if model_params == 'None' or not model_params:
+            model_params = {}
+        if criterioin_params == 'None' or not criterioin_params:
+            criterioin_params = {}
+        if optimizer_params == 'None' or not optimizer_params:
+            optimizer_params = {}
+        if scheduler_params == 'None' or not scheduler_params:
+            scheduler_params = {}
+        
+        model = get_model(model_name, model_params, device=device)
+        criterion = get_criterion(criterion_name, criterioin_params)
+        optimizer = get_optimizer(
+            optimizer_name, model.parameters(), optimizer_params)
+        scheduler = get_scheduler(
+            scheduler_name, optimizer, scheduler_params)
+        return Trainer(
+            model,
+            criterion,
+            optimizer,
+            scheduler,
+            n_epochs=n_epochs,
+            early_stop_patience=early_stop_patience,
+            logger=logger,
+            print_every=print_every,
+            device=device,
+            multiclass=multiclass
+        )
 
     @staticmethod
     def initialize_with_optimization(
@@ -124,29 +147,31 @@ class Trainer:
             partial(
                 Trainer.objective,
                 params_vary=optuna_params["hyperparameters_vary"],
-                const_params = const_params,
+                optim_metric=optuna_params['optim_metric'],
+                const_params=const_params,
                 train_loader=train_loader,
                 valid_loader=valid_loader,
             ),
             n_trials=optuna_params["n_trials"],
         )
-        
-        default_params = collect_default_params(optuna_params["hyperparameters_vary"])
+
+        default_params = collect_default_params(
+            optuna_params["hyperparameters_vary"])
         best_params = study.best_params.copy()
         best_params = update_trainer_params(best_params, default_params)
 
         best_params.update(const_params)
         print("Best parameters are - %s", best_params)
-        return Trainer.initialize_with_params(best_params)
+        return Trainer.initialize_with_params(**best_params)
 
     @staticmethod
     def objective(
         trial: Trial,
         params_vary: DictConfig,
+        optim_metric: str,
         const_params: Dict,
         train_loader,
         valid_loader,
-        optim_metric='f1'
     ) -> float:
 
         initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
@@ -154,12 +179,11 @@ class Trainer:
         initial_model_parameters.update(const_params)
 
         model = Trainer.initialize_with_params(
-            initial_model_parameters
+            **initial_model_parameters
         )
         last_epoch_metrics = model.train_model(train_loader, valid_loader)
         return last_epoch_metrics[optim_metric]
 
-    
     def _logging(self, data, epoch, mode='train'):
 
         for metric in self.dict_logging[mode].keys():
@@ -172,7 +196,7 @@ class Trainer:
         if self.early_stop_patience and self.early_stop_patience != 'None':
             earl_stopper = EarlyStopper(self.early_stop_patience)
 
-        metric_names = ['loss'] + self.estimator.get_metrics_name()
+        metric_names = ['loss'] + self.estimator.get_metrics_names()
         self.dict_logging = {'train': {metric: [] for metric in metric_names},
                              'test': {metric: [] for metric in metric_names}}
 
@@ -188,7 +212,7 @@ class Trainer:
             test_metrics_epoch = self._valid_step(valid_loader)
             test_metrics_epoch = {met_name: met_val for met_name, met_val
                                   in zip(metric_names, test_metrics_epoch)}
-            
+
             self._logging(test_metrics_epoch, epoch, mode='test')
 
             if epoch % self.print_every == 0:
@@ -207,7 +231,8 @@ class Trainer:
                 self.scheduler.step()
 
             if self.early_stop_patience and self.early_stop_patience != 'None':
-                res_early_stop = earl_stopper.early_stop(test_metrics_epoch['loss'])
+                res_early_stop = earl_stopper.early_stop(
+                    test_metrics_epoch['loss'])
                 if res_early_stop:
                     break
         return test_metrics_epoch
@@ -247,9 +272,12 @@ class Trainer:
         y_all_pred = y_all_pred.numpy().reshape([-1, 1])
         y_all_true = y_all_true.numpy().reshape([-1, 1])
 
-        acc, pr, rec, f1, balance = self.estimator.estimate(y_all_true, y_all_pred)
-        return mean_loss, acc, pr, rec, f1, balance
-
+        metrics = self.estimator.estimate(
+            y_all_true, y_all_pred)
+        
+        metrics = [mean_loss] + metrics
+        return metrics
+    
     def _valid_step(self, loader):
 
         y_all_pred = torch.tensor([])
@@ -280,11 +308,11 @@ class Trainer:
         y_all_pred = y_all_pred.numpy().reshape([-1, 1])
         y_all_true = y_all_true.numpy().reshape([-1, 1])
 
-        acc, pr, rec, f1, balance = self.estimator.estimate(y_all_true, y_all_pred)
-        return mean_loss, acc, pr, rec, f1, balance
+        metrics = self.estimator.estimate(
+            y_all_true, y_all_pred)
+        metrics = [mean_loss] + metrics
+        return metrics
 
-
-    
     def save_metrics_as_csv(self, path):
         res = pd.DataFrame([])
         for split, metrics in self.dict_logging.items():
@@ -305,4 +333,112 @@ class Trainer:
         self.save_metrics_as_csv(full_path+'_metrics.csv')
 
         # with open(full_path+'_metrics.pickle', 'wb') as f:
-        #     pickle.dump(self.dict_logging, f) 
+        #     pickle.dump(self.dict_logging, f)
+
+
+class DiscTrainer(Trainer):
+    def __init__(
+        self,
+        model,
+        criterion,
+        optimizer,
+        scheduler,
+        n_epochs=30,
+        early_stop_patience=None,
+        logger=None,
+        print_every=5,
+        device='cpu',
+        multiclass=False,
+        attack = None,
+    ):
+
+        super().__init__(
+        model = model,
+        criterion = criterion,
+        optimizer = optimizer,
+        scheduler = scheduler,
+        n_epochs = n_epochs,
+        early_stop_patience = early_stop_patience,
+        logger = logger,
+        print_every = print_every,
+        device = device,
+        multiclass = multiclass
+        )
+
+        self.attack = attack
+
+    @staticmethod
+    def initialize_with_params(
+        model_name='LSTM',
+        model_params=None,
+        criterion_name='BCELoss',
+        criterioin_params=None,
+        optimizer_name='Adam',
+        optimizer_params=None,
+        scheduler_name='None',
+        scheduler_params=None,
+        n_epochs=30,
+        early_stop_patience=None,
+        logger=None,
+        print_every=5,
+        device='cpu',
+        seed=0,
+        multiclass=False,
+        attack = None
+    ):
+        fix_seed(seed)
+        if model_params == 'None' or not model_params:
+            model_params = {}
+        if criterioin_params == 'None' or not criterioin_params:
+            criterioin_params = {}
+        if optimizer_params == 'None' or not optimizer_params:
+            optimizer_params = {}
+        if scheduler_params == 'None' or not scheduler_params:
+            scheduler_params = {}
+        
+        model = get_model(model_name, model_params, device=device)
+        criterion = get_criterion(criterion_name, criterioin_params)
+        optimizer = get_optimizer(
+            optimizer_name, model.parameters(), optimizer_params)
+        scheduler = get_scheduler(
+            scheduler_name, optimizer, scheduler_params)
+        
+        return DiscTrainer(
+            model = model,
+            criterion = criterion,
+            optimizer = optimizer,
+            scheduler = scheduler,
+            n_epochs=n_epochs,
+            early_stop_patience=early_stop_patience,
+            logger=logger,
+            print_every=print_every,
+            device=device,
+            multiclass=multiclass,
+            attack=attack)
+
+    def _generate_adversarial_data(self, loader):
+
+        X_orig = torch.tensor(loader.dataset.X)
+        X_adv = self.attack.apply_attack(loader).squeeze(-1)
+
+        disc_labels_zeros = torch.zeros_like(loader.dataset.y)  
+        disc_labels_ones = torch.ones_like(loader.dataset.y)  
+
+        new_x = torch.concat([X_orig, X_adv], dim=0)
+        new_y = torch.concat([disc_labels_zeros, disc_labels_ones], dim=0)
+
+        # print('dataset size: ', new_y.shape, new_x.shape)
+
+        dataset_class = loader.dataset.__class__
+        dataset = dataset_class(new_x, new_y)
+
+        loader = DataLoader(dataset, batch_size=loader.batch_size, shuffle=True)
+
+        return loader
+    
+
+    def train_model(self, train_loader, valid_loader):
+        train_loader = self._generate_adversarial_data(train_loader)
+        valid_loader = self._generate_adversarial_data(valid_loader)
+
+        super().train_model(train_loader, valid_loader)

@@ -1,0 +1,6 @@
+name: FGSMAttack
+short_name: fgsm_attack
+
+attacks_params:
+  eps: [0.005, 0.001, 0.03, 0.07, 0.1, 0.13]
+  n_steps: 50

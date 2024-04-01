@@ -9,19 +9,18 @@ from sklearn.metrics import accuracy_score, roc_auc_score, average_precision_sco
 
 class BaseEstimator(ABC):
     def __init__(self):
-        self.metrics_name = []
+        self.metrics_names = []
 
     @abstractmethod
     def estimate(self, y_true, y_pred):
         return NotImplementedError("This method should be implemented by subclasses.")
 
-    def get_metrics_name(self):
-        return self.metrics_name
+    def get_metrics_names(self):
+        return self.metrics_names
 
 
 class ClassifierEstimator(BaseEstimator):
     def __init__(self):
-
         self.metrics = {
             'accuracy': accuracy_score,
             'precision': roc_auc_score,
@@ -30,20 +29,17 @@ class ClassifierEstimator(BaseEstimator):
             'balance_true': lambda y_true, y_pred: np.mean(y_true),
             'balance_pred': lambda y_true, y_pred: np.mean(y_pred),
         }
-        self.metrics_name = list(self.metrics.keys())
-        
+        self.metrics_names = list(self.metrics.keys())
 
     def estimate(self, y_true, y_pred):
         metrics_res = []
-        for metric_name, metric_func in self.metrics.items():
+        for _, metric_func in self.metrics.items():
             metrics_res.append(metric_func(y_true, y_pred))
         return metrics_res
 
 
-
-
 class AttackEstimator(BaseEstimator):
-    def __init__(self, disc_model=None, metric_effect='F1'):
+    def __init__(self, disc_models=None, metric_effect='F1'):
         self.metrics = {
             'ACC': accuracy_score,
             'ROC': roc_auc_score,
@@ -52,12 +48,12 @@ class AttackEstimator(BaseEstimator):
         }
         self.metric_effect = metric_effect
         
-        self.metrics_name = list(self.metrics.keys()) + ['EFF']
+        self.metrics_names = list(self.metrics.keys()) + ['EFF']
         
-        self.calculate_hid = bool(disc_model)
-        if disc_model:
-            self.disc_model = disc_model
-            self.metrics_name += ['HID', 'CONC']
+        self.calculate_hid = bool(disc_models)
+        if disc_models:
+            self.disc_models = disc_models
+            self.metrics_names += ['HID', 'CONC', 'F_EFF_CONC']
 
     def calculate_effectiveness(self, y_true, y_pred):
         metric_res = {}
@@ -66,24 +62,36 @@ class AttackEstimator(BaseEstimator):
             metric_res[metric_name] = metric_func(y_true, y_pred)
 
         metric_res['EFF'] = 1 - metric_res[self.metric_effect]
-        return list(metric_res.values())
+        return metric_res
 
 
     def calculate_hiddeness(self, X):
-        model_device = next(self.disc_model.parameters()).device
+        model_device = next(self.disc_models[0].parameters()).device
         X = X.to(model_device)
-        hid = torch.mean(self.disc_model(X)).detach().cpu().numpy()
-        conc = 1 - hid
-        return list(hid, conc)
 
+        hid_list = list()
+        for disc_model in self.disc_models:
+            hid = torch.mean(disc_model(X)).detach().cpu().numpy()
+            hid_list.append(hid)
+        
+        hid = max(hid_list)
+        conc = 1 - hid
+        return {'HID': hid, 'CONC': conc}
     
+    @staticmethod
+    def calculate_f_eff_conc(effectiveness, concealability):
+        return 2 * effectiveness * concealability / (effectiveness + concealability)
+
     def estimate(self, y_true, y_pred, X=None):
         metrics = self.calculate_effectiveness(y_true, y_pred)
 
         if self.calculate_hid:
             metric_hid = self.calculate_hiddeness(X)
-            metrics = metrics + metric_hid
-        return metrics
+            metric_hid['F_EFF_CONC'] = self.calculate_f_eff_conc(metrics['EFF'], metric_hid['CONC'])
+            metrics.update(metric_hid)
+
+        return_order_metrics = [metrics[name] for name in self.metrics_names]
+        return return_order_metrics
 
 # def calculate_metrics_class_and_hiddens(
 #         y_true: np.array,

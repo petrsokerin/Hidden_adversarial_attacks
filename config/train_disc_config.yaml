@@ -1,58 +1,51 @@
 dataset: FordA
 slice: True
+use_disc_check: False
 test_run: False # If true results will be not saved!!!!
-use_extra_sigmoid: False
-exp_name: ''
+exp_name: '_LSTM_NEW'
 
-
-model_folder: checkpoints/${dataset}/
-disc_path: results/${dataset}/{}/discriminator/${attack_type}${exp_name} # Discriminator regularization for attack
-save_path: results/${dataset}/{}/discriminator/${attack_type}${exp_name}
-
-model_ids: [0, 1]
-prefix: ''
-
-TS2Vec: False
-verbose_ts2vec: False
-
-cuda: 'cuda'
-
-transform_data: 
-- _target_: tsai.data.transforms.TSRandomResizedCrop
-  magnitude: 0.1
+model_folder: checkpoints/${dataset}
+disc_path: results/${dataset}/${attack_model.name}/discriminator/fgsm_attack
+save_path: results/${dataset}/${attack_model.name}/discriminator/${attack.short_name}${exp_name}
+model_id_attack: 0
 
 defaults:
+  - model: LSTM
   - model@attack_model: LSTM
-  - model@disc_model: LSTM
+  - model@disc_model_reg: LSTM
   - model@disc_model_check: LSTM
+  - attack: FGSMDisc
 
+criterion_name: BCELoss
+criterion_params: null
 
-attack_type: fgsm_attack
-n_iterations: 2
-eps: 0.03 #[0.001, 0.0056, 0.0316, 0.1778, 1.0 ]  #  #[0.001, 0.01, 0.05, 0.2, 1.]
-train_mode: True
+metric_effect: F1
+
 batch_size: 64
+cuda: 'cuda:1'
 
-alpha: 0.01 #[0.01, 10, 0.0001, 0.001, 0.1, 1, 100]
+list_check_model_params:
+  - model_id : 0
+    model_name: fgsm_attack_eps=0.03_nsteps=10
 
-# training disc params
-lr: 0.001
-step_lr: 20
-gamma: 0.5
-n_epochs: 2
-early_stop_patience: 3
+transform_data: []
+# # - _target_: tsai.data.transforms.TSRandomResizedCrop
+# #   magnitude: 0.1
 
-disc_check_params:
-  model_id : 0
-  model_name: fgsm_reg_attack_eps=0.0316_nsteps=100_dropout=0.1
+training_params:
+  model_name: ${model.name}
+  model_params: ${model.params}
+  criterion_name: BCELoss
+  criterioin_params: null
+  optimizer_name: Adam
+  optimizer_params:
+    lr: 0.001
+  scheduler_name: StepLR
+  scheduler_params: 
+    step_size: 10
+    gamma: 0.5
+  n_epochs: 15
+  print_every: 1
+  early_stop_patience: null
 
-
-list_reg_model_params:
- - model_id: 1
-   model_name: 'fgsm_attack_eps=0.0056_alpha=1_nsteps=50'
- - model_id: 2
-   model_name: 'fgsm_attack_eps=0.0056_alpha=10_nsteps=50'
- - model_id: 3
-   model_name: 'fgsm_attack_eps=0.0056_alpha=1_nsteps=50'
- - model_id: 4
-   model_name: 'fgsm_attack_eps=0.0056_alpha=10_nsteps=50'
+      
