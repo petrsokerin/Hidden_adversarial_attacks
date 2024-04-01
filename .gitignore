@@ -9,6 +9,7 @@ outputs/*
 utils/__pycache__/*
 old/*
 multirun/*
+.vscode/
 utils/__pycache__/attacks.cpython-38.pyc
 utils/__pycache__/discrim_attack.cpython-38.pyc
 utils/__pycache__/estimation.cpython-38.pyc
