@@ -65,7 +65,7 @@ def main(cfg: DictConfig):
         else:
             trainer_params = dict(cfg['training_params'])
             trainer_params.update(const_params)
-            trainer = Trainer.initialize_with_params(trainer_params)
+            trainer = Trainer.initialize_with_params(**trainer_params)
 
         trainer.train_model(train_loader, test_loader)
         logger.close()
