@@ -18,7 +18,7 @@ from src.estimation.estimators import AttackEstimator
 from src.config import get_criterion, get_model, get_disc_list, get_attack
 from src.utils import save_config
 
-CONFIG_NAME = 'train_disc_config_2'
+CONFIG_NAME = 'train_disc_config'
 
 
 @hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
