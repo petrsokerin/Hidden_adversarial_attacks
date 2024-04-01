@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
-import pandas as pd
-
 import torch
-from sklearn.metrics import accuracy_score, roc_auc_score, average_precision_score, f1_score
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    f1_score,
+    roc_auc_score,
+)
 
 
 class BaseEstimator(ABC):
@@ -22,12 +25,12 @@ class BaseEstimator(ABC):
 class ClassifierEstimator(BaseEstimator):
     def __init__(self):
         self.metrics = {
-            'accuracy': accuracy_score,
-            'precision': roc_auc_score,
-            'recall': average_precision_score,
-            'f1': f1_score,
-            'balance_true': lambda y_true, y_pred: np.mean(y_true),
-            'balance_pred': lambda y_true, y_pred: np.mean(y_pred),
+            "accuracy": accuracy_score,
+            "precision": roc_auc_score,
+            "recall": average_precision_score,
+            "f1": f1_score,
+            "balance_true": lambda y_true, y_pred: np.mean(y_true),
+            "balance_pred": lambda y_true, y_pred: np.mean(y_pred),
         }
         self.metrics_names = list(self.metrics.keys())
 
@@ -39,21 +42,21 @@ class ClassifierEstimator(BaseEstimator):
 
 
 class AttackEstimator(BaseEstimator):
-    def __init__(self, disc_models=None, metric_effect='F1'):
+    def __init__(self, disc_models=None, metric_effect="F1"):
         self.metrics = {
-            'ACC': accuracy_score,
-            'ROC': roc_auc_score,
-            'PR': average_precision_score,
-            'F1': f1_score,
+            "ACC": accuracy_score,
+            "ROC": roc_auc_score,
+            "PR": average_precision_score,
+            "F1": f1_score,
         }
         self.metric_effect = metric_effect
-        
-        self.metrics_names = list(self.metrics.keys()) + ['EFF']
-        
+
+        self.metrics_names = list(self.metrics.keys()) + ["EFF", "L1", "ACC_ORIG_ADV"]
+
         self.calculate_hid = bool(disc_models)
         if disc_models:
             self.disc_models = disc_models
-            self.metrics_names += ['HID', 'CONC', 'F_EFF_CONC']
+            self.metrics_names += ["HID", "CONC", "F_EFF_CONC"]
 
     def calculate_effectiveness(self, y_true, y_pred):
         metric_res = {}
@@ -61,9 +64,8 @@ class AttackEstimator(BaseEstimator):
         for metric_name, metric_func in self.metrics.items():
             metric_res[metric_name] = metric_func(y_true, y_pred)
 
-        metric_res['EFF'] = 1 - metric_res[self.metric_effect]
+        metric_res["EFF"] = 1 - metric_res[self.metric_effect]
         return metric_res
-
 
     def calculate_hiddeness(self, X):
         model_device = next(self.disc_models[0].parameters()).device
@@ -73,93 +75,36 @@ class AttackEstimator(BaseEstimator):
         for disc_model in self.disc_models:
             hid = torch.mean(disc_model(X)).detach().cpu().numpy()
             hid_list.append(hid)
-        
+
         hid = max(hid_list)
         conc = 1 - hid
-        return {'HID': hid, 'CONC': conc}
+        return {"HID": hid, "CONC": conc}
     
+    @staticmethod
+    def calculate_l1(X_orig: torch.Tensor, X_adv: torch.Tensor) -> float:
+        data_shape_no_ax0 = list(np.arange(1, len(X_adv.shape)))
+        l1_vector = torch.sum(torch.abs(X_orig - X_adv), dim=data_shape_no_ax0)
+        assert l1_vector.shape[0] == len(X_orig)
+        l1 = torch.mean(l1_vector)
+        return l1.item()
+        
+
     @staticmethod
     def calculate_f_eff_conc(effectiveness, concealability):
         return 2 * effectiveness * concealability / (effectiveness + concealability)
 
-    def estimate(self, y_true, y_pred, X=None):
+    def estimate(self, y_true, y_pred, y_pred_orig=None, X_orig=None, X_adv=None):
         metrics = self.calculate_effectiveness(y_true, y_pred)
 
+        metrics["L1"] = self.calculate_l1(X_orig, X_adv)
+        metrics['ACC_ORIG_ADV'] = accuracy_score(y_pred_orig, y_pred)
+
         if self.calculate_hid:
-            metric_hid = self.calculate_hiddeness(X)
-            metric_hid['F_EFF_CONC'] = self.calculate_f_eff_conc(metrics['EFF'], metric_hid['CONC'])
+            metric_hid = self.calculate_hiddeness(X_adv)
+            metric_hid["F_EFF_CONC"] = self.calculate_f_eff_conc(
+                metrics["EFF"], metric_hid["CONC"]
+            )
             metrics.update(metric_hid)
 
         return_order_metrics = [metrics[name] for name in self.metrics_names]
         return return_order_metrics
-
-# def calculate_metrics_class_and_hiddens(
-#         y_true: np.array,
-#         y_pred: np.array,
-#         X,
-#         disc_model=None,
-# ):
-#     acc, roc, pr = calculate_metrics_class(y_true, y_pred)
-
-#     hid = calculate_hiddeness(disc_model, X) if disc_model else None
-
-#     return acc, roc, pr, hid
-
-
-
-# def build_df_aa_metrics(metric_dict: dict, eps: float):
-#     """
-#     Transform dict with metrics in pd.DataFrame
-
-#     :param metric_dict: dict key iter number and values list of metrics ACC, ROC AUC, PR AUC
-#     :param eps: eps param to add in result df
-#     :return: pd.DataFrame with metrics, number of iterations and eps
-
-#     """
-
-#     results_df = pd.DataFrame.from_dict(metric_dict, orient="index")
-#     results_df.set_axis(
-#         pd.Index(["ACC", "ROC AUC", "PR AUC", "HID"], name="metric"), axis=1, inplace=True
-#     )
-#     results_df.set_axis(
-#         pd.Index(results_df.index, name="n steps", ), axis=0, inplace=True,
-#     )
-
-#     results_df = results_df.reset_index()
-#     results_df['eps'] = eps
-#     return results_df
-
-
-# def calculate_metrics_class(y_true: np.array,
-#                             y_pred: np.array):
-#     # -> Tuple(float, float, float):
-#     acc = accuracy_score(y_true, y_pred)
-#     roc = roc_auc_score(y_true, y_pred)
-#     pr = average_precision_score(y_true, y_pred)
-#     return acc, roc, pr
-
-
-# def calculate_hiddeness(model, X):
-#     model_device = next(model.parameters()).device
-#     X = X.to(model_device)
-#     hid = torch.mean(model(X))
-#     return hid.detach().cpu().numpy()
-
-
-# def calculate_metrics_class_and_hiddens(
-#         y_true: np.array,
-#         y_pred: np.array,
-#         X,
-#         disc_model=None,
-# ):
-#     acc, roc, pr = calculate_metrics_class(y_true, y_pred)
-
-#     hid = calculate_hiddeness(disc_model, X) if disc_model else None
-
-#     return acc, roc, pr, hid
-
-
-# def calc_accuracy(model, y_pred, y_pred_adv):
-#     acc_val = np.mean((y_pred == model))
-#     acc_adv = np.mean((y_pred_adv == model))
-#     return acc_val, acc_adv

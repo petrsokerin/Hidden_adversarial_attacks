@@ -1,6 +1,6 @@
 dataset: FordA #GunPoint  
 slice: True
-save_path: checkpoints/${dataset}/
+save_path: checkpoints/${dataset}/${model.name}
 test_run: False # If true results will be not saved!!!!
 
 model_id_start: 0

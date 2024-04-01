@@ -37,15 +37,5 @@ optuna_optimizer:
   pruner:
     _target_: optuna.pruners.MedianPruner
   hyperparameters_vary:
-    n_steps:
-      optuna_type: const
-      value: ${n_steps}
-    eps: 
-      optuna_type: float
-      low: 0.01
-      high: 0.5
-    alpha:
-      optuna_type: float
-      low: 0.01
-      high: 0.5
+    ${attack.hyperparameters_vary}
     

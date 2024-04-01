@@ -1,7 +1,4 @@
 import warnings
-
-warnings.filterwarnings('ignore')
-
 import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
@@ -14,8 +11,9 @@ from src.data import load_data, transform_data, MyDataset
 from src.training.train import Trainer
 from src.utils import fix_seed, save_config
 
-CONFIG_NAME = 'train_classifier_config'
+warnings.filterwarnings('ignore')
 
+CONFIG_NAME = 'train_classifier_config'
 
 @hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
@@ -47,7 +45,6 @@ def main(cfg: DictConfig):
 
     print('Size:', len(X_train), len(X_test))
 
-    cfg['save_path'] = cfg['save_path'] + f'{instantiate(cfg.model).__class__.__name__}' 
     device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
 
     for model_id in range(cfg['model_id_start'], cfg['model_id_finish']):
@@ -65,7 +62,7 @@ def main(cfg: DictConfig):
         else:
             trainer_params = dict(cfg['training_params'])
             trainer_params.update(const_params)
-            trainer = Trainer.initialize_with_params(trainer_params)
+            trainer = Trainer.initialize_with_params(**trainer_params)
 
         trainer.train_model(train_loader, test_loader)
         logger.close()

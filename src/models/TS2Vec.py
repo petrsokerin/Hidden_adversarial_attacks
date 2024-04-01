@@ -6,7 +6,7 @@ from src.models.TS2Vec_src.ts2vec import TS2Vec
 from src.models.head import HeadClassifier
 
 
-class TS2VecClassifier(nn.Module):
+class TS2VEC(nn.Module):
     def __init__(
             self,
             emb_size=320,
