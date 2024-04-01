@@ -47,7 +47,6 @@ def main(cfg: DictConfig):
 
     print('Size:', len(X_train), len(X_test))
 
-    cfg['save_path'] = cfg['save_path'] + f'{instantiate(cfg.model).__class__.__name__}' 
     device = torch.device(cfg['cuda'] if torch.cuda.is_available() else 'cpu')
 
     for model_id in range(cfg['model_id_start'], cfg['model_id_finish']):
@@ -65,12 +64,13 @@ def main(cfg: DictConfig):
         else:
             trainer_params = dict(cfg['training_params'])
             trainer_params.update(const_params)
-            trainer = Trainer.initialize_with_params(trainer_params)
+            trainer = Trainer.initialize_with_params(**trainer_params)
 
         trainer.train_model(train_loader, test_loader)
         logger.close()
 
         if not cfg['test_run']:
+            print(cfg['save_path'])
             model_save_name = f'model_{model_id}_{cfg["dataset"]}'
             trainer.save_result(cfg['save_path'], model_save_name)
             save_config(cfg['save_path'], CONFIG_NAME, CONFIG_NAME)

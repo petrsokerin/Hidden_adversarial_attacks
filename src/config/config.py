@@ -114,7 +114,7 @@ def save_config(path, config_load_name, config_save_name):
 def get_disc_list(model_name, model_params, list_disc_params, device='cpu', path=None, train_mode=False):
     list_disc_models = list()
     for params in list_disc_params:
-        disc_path = f"{path}/{params['model_name']}/{params['model_id']}.pt"
+        disc_path = f"{path}/{params['model_name']}/{params['model_id']}.pth"
         disc = get_model(model_name, model_params, device=device, path=disc_path, train_mode=train_mode)
         list_disc_models.append(disc)
     return list_disc_models
