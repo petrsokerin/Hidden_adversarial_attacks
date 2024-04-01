@@ -23,14 +23,18 @@ class BatchIterativeAttack:
         self,
         y_true: torch.Tensor,
         y_pred: torch.Tensor,
-        X: torch.Tensor = None,
+        y_pred_orig: torch.Tensor,
+        X_orig: torch.Tensor,
+        X_adv: torch.Tensor = None,
         step_id: int = 0,
     ) -> None:
         y_true = y_true.flatten().numpy()
         y_pred = y_pred.flatten().numpy()
+        y_pred_orig = y_pred_orig.flatten().numpy()
         y_pred_classes = np.round(y_pred)
+        y_pred_orig_classes = np.round(y_pred_orig)
 
-        metrics_line = self.estimator.estimate(y_true, y_pred_classes, X)
+        metrics_line = self.estimator.estimate(y_true, y_pred_classes, y_pred_orig_classes, X_orig, X_adv)
         metrics_line = [step_id] + list(metrics_line)
         metrics_names = ["step_id"] + self.metrics_names
         df_line = pd.DataFrame(metrics_line, index=metrics_names).T
@@ -124,15 +128,15 @@ class BatchIterativeAttack:
         y_true = loader.dataset.y
 
         if self.logging:
-            y_pred = self.get_model_predictions(loader)
-            y_pred = y_pred.cpu().detach()
-            X = loader.dataset.X.unsqueeze(-1)
-            self.log_step(y_true, y_pred, X, step_id=0)
+            y_pred_orig = self.get_model_predictions(loader)
+            y_pred_orig = y_pred_orig.cpu().detach()
+            X_orig = loader.dataset.X.unsqueeze(-1)
+            self.log_step(y_true=y_true, y_pred=y_pred_orig, y_pred_orig=y_pred_orig, X_orig=X_orig, X_adv=X_orig, step_id=0)
 
         for step_id in tqdm(range(1, self.n_steps + 1)):
             if self.logging:
                 X_adv, _, y_pred = self.run_iteration_log(loader)
-                self.log_step(y_true, y_pred, X_adv, step_id=step_id)
+                self.log_step(y_true=y_true, y_pred=y_pred, y_pred_orig=y_pred_orig, X_orig=X_orig, X_adv=X_adv, step_id=step_id)
             else:
                 X_adv, _ = self.run_iteration(loader)
 

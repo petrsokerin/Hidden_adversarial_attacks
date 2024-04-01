@@ -51,7 +51,7 @@ class AttackEstimator(BaseEstimator):
         }
         self.metric_effect = metric_effect
 
-        self.metrics_names = list(self.metrics.keys()) + ["EFF"]
+        self.metrics_names = list(self.metrics.keys()) + ["EFF", "L1", "ACC_ORIG_ADV"]
 
         self.calculate_hid = bool(disc_models)
         if disc_models:
@@ -79,16 +79,28 @@ class AttackEstimator(BaseEstimator):
         hid = max(hid_list)
         conc = 1 - hid
         return {"HID": hid, "CONC": conc}
+    
+    @staticmethod
+    def calculate_l1(X_orig: torch.Tensor, X_adv: torch.Tensor) -> float:
+        data_shape_no_ax0 = list(np.arange(1, len(X_adv.shape)))
+        l1_vector = torch.sum(torch.abs(X_orig - X_adv), dim=data_shape_no_ax0)
+        assert l1_vector.shape[0] == len(X_orig)
+        l1 = torch.mean(l1_vector)
+        return l1.item()
+        
 
     @staticmethod
     def calculate_f_eff_conc(effectiveness, concealability):
         return 2 * effectiveness * concealability / (effectiveness + concealability)
 
-    def estimate(self, y_true, y_pred, X=None):
+    def estimate(self, y_true, y_pred, y_pred_orig=None, X_orig=None, X_adv=None):
         metrics = self.calculate_effectiveness(y_true, y_pred)
 
+        metrics["L1"] = self.calculate_l1(X_orig, X_adv)
+        metrics['ACC_ORIG_ADV'] = accuracy_score(y_pred_orig, y_pred)
+
         if self.calculate_hid:
-            metric_hid = self.calculate_hiddeness(X)
+            metric_hid = self.calculate_hiddeness(X_adv)
             metric_hid["F_EFF_CONC"] = self.calculate_f_eff_conc(
                 metrics["EFF"], metric_hid["CONC"]
             )
