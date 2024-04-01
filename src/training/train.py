@@ -2,7 +2,6 @@ import os
 from functools import partial
 from typing import Dict
 
-from tqdm.auto import tqdm
 import torch
 from torch.utils.data import DataLoader
 import optuna
