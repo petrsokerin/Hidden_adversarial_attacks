@@ -1,33 +1,13 @@
-import copy
 import os
 import shutil
-from typing import List
+from ast import Dict
 
 import torch
 
 from src import attacks, estimation, models
 
-# def get_attack(attack_name, attack_params):
-#     dict_attack = {
-#         'fgsm_attack': fgsm_attack,
-#         'fgsm_reg_attack': fgsm_reg_attack,
-#         'fgsm_disc_attack': fgsm_disc_attack,
-#         'simba_binary': simba_binary,
-#         'simba_binary_reg': simba_binary_reg,
-#         'simba_binary_disc_reg': simba_binary_disc_reg,
-#         'deepfool_attack': deepfool_attack,
-#         'only_disc_attack': only_disc_attack,
-#         'ascend_smax_disc_attack': ascend_smax_disc_attack,
-#         'fgsm_disc_smax_attack': fgsm_disc_smax_attack,
-#     }
 
-#     if attack_name in dict_attack:
-#         return dict_attack[attack_name]
-#     else:
-#         raise ValueError(f"Model with name {attack_name} is not implemented")
-
-
-def get_estimator(estimator_name, estimator_params):
+def get_estimator(estimator_name: str, estimator_params: Dict):
     if estimator_params is None:
         estimator_params = dict()
     try:
@@ -36,7 +16,7 @@ def get_estimator(estimator_name, estimator_params):
         raise ValueError(f"Estimator with name {estimator_name} is not implemented")
 
 
-def get_attack(attack_name, attack_params):
+def get_attack(attack_name: str, attack_params: Dict):
     if attack_params is None:
         attack_params = dict()
     try:
@@ -88,26 +68,6 @@ def get_scheduler(scheduler_name, optimizer, scheduler_params=None):
         raise ValueError(f"Optimizer with name {scheduler_name} is not implemented")
 
 
-# def get_attack(attack_name):
-#     dict_attack = {
-#         'fgsm_attack': fgsm_attack,
-#         'fgsm_reg_attack': fgsm_reg_attack,
-#         'fgsm_disc_attack': fgsm_disc_attack,
-#         'simba_binary': simba_binary,
-#         'simba_binary_reg': simba_binary_reg,
-#         'simba_binary_disc_reg': simba_binary_disc_reg,
-#         'deepfool_attack': deepfool_attack,
-#         'only_disc_attack': only_disc_attack,
-#         'ascend_smax_disc_attack': ascend_smax_disc_attack,
-#         'fgsm_disc_smax_attack': fgsm_disc_smax_attack,
-#     }
-
-#     if attack_name in dict_attack:
-#         return dict_attack[attack_name]
-#     else:
-#         raise ValueError("attack name isn't correct")
-
-
 def save_config(path, config_load_name, config_save_name):
     if not os.path.isdir(path):
         os.makedirs(path)
@@ -139,35 +99,35 @@ def get_disc_list(
     return list_disc_models
 
 
-def load_disc_model(
-    disc_model,
-    path="results/FordA/Regular/Discriminator_pickle",
-    model_name="fgsm_attack_eps=0.03_nsteps=10",
-    device="cpu",
-    model_id=0,
-):
-    path = rf"{path}/{model_name}/{model_id}.pt"
+# def load_disc_model(
+#     disc_model: torch.nn.Module,
+#     path: str,
+#     model_name: str,
+#     device: str = "cpu",
+#     model_id: int = 0,
+# ):
+#     path = rf"{path}/{model_name}/{model_id}.pt"
 
-    disc_model = copy.deepcopy(disc_model)
-    disc_model.load_state_dict(torch.load(path, map_location=torch.device(device)))
-    disc_model.to(device)
-    disc_model.train(True)
+#     disc_model = copy.deepcopy(disc_model)
+#     disc_model.load_state_dict(torch.load(path, map_location=torch.device(device)))
+#     disc_model.to(device)
+#     disc_model.train(True)
 
-    return disc_model
+#     return disc_model
 
 
-def load_disc_config(
-    disc_model,
-    path: str,
-    device: str,
-    list_disc_params: List,
-    train_mode: bool = True,
-) -> List:
-    list_disc_models = list()
+# def load_disc_config(
+#     disc_model: torch.nn.Module,
+#     path: str,
+#     device: str,
+#     list_disc_params: List[Dict],
+#     train_mode: bool = True,
+# ) -> List[torch.nn.Module]:
+#     list_disc_models = list()
 
-    for params in list_disc_params:
-        model = load_disc_model(disc_model, device=device, path=path, **params)
-        model.train(train_mode)
-        list_disc_models.append(model)
+#     for params in list_disc_params:
+#         model = load_disc_model(disc_model, device=device, path=path, **params)
+#         model.train(train_mode)
+#         list_disc_models.append(model)
 
-    return list_disc_models
+#     return list_disc_models

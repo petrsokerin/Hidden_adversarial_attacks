@@ -1,10 +1,11 @@
-from .base_attacks import BaseIterativeAttack
-from .regularizers import reg_neigh, reg_disc
 import torch
+
+from .base_attacks import BaseIterativeAttack
+from .regularizers import reg_disc, reg_neigh
 
 
 class SimBABinary(BaseIterativeAttack):
-    def __init__(self, model, criterion, eps, n_steps, device='cpu'):
+    def __init__(self, model, criterion, eps, n_steps, device="cpu"):
         super().__init__(model, criterion, eps, n_steps, device=device)
 
     def step(self, x, y_true):
@@ -24,19 +25,26 @@ class SimBABinary(BaseIterativeAttack):
         p_plus = torch.sigmoid(y_pred_plus)
 
         x_all = torch.cat([x, x_minus, x_plus]).view(3, *x.shape)
-        losses = torch.stack([self.criterion(p_orig, y_true),
-                              self.criterion(p_minus, y_true),
-                              self.criterion(p_plus, y_true)], dim=0)
+        losses = torch.stack(
+            [
+                self.criterion(p_orig, y_true),
+                self.criterion(p_minus, y_true),
+                self.criterion(p_plus, y_true),
+            ],
+            dim=0,
+        )
 
         min_loss_indices = torch.argmin(losses, dim=0)
-        min_loss_indices = min_loss_indices.unsqueeze(-1).unsqueeze(-1).expand(-1, x.shape[-1])
+        min_loss_indices = (
+            min_loss_indices.unsqueeze(-1).unsqueeze(-1).expand(-1, x.shape[-1])
+        )
 
         x_adv = torch.gather(x_all, 0, min_loss_indices).squeeze(0)
         return x_adv
 
 
 class SimBABinaryReg(SimBABinary):
-    def __init__(self, model, criterion, eps, n_steps, alpha, device='cpu'):
+    def __init__(self, model, criterion, eps, n_steps, alpha, device="cpu"):
         super().__init__(model, criterion, eps, n_steps, device=device)
         self.alpha = alpha
 
@@ -52,7 +60,9 @@ class SimBABinaryReg(SimBABinary):
 
 
 class SimBABinaryDiscReg(SimBABinary):
-    def __init__(self, model, criterion, eps, n_steps, alpha, disc_models, device='cpu'):
+    def __init__(
+        self, model, criterion, eps, n_steps, alpha, disc_models, device="cpu"
+    ):
         super().__init__(model, criterion, eps, n_steps, device=device)
         self.alpha = alpha
         self.disc_models = disc_models
