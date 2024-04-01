@@ -338,6 +338,36 @@ class Trainer:
 class DiscTrainer(Trainer):
     def __init__(
         self,
+        model,
+        criterion,
+        optimizer,
+        scheduler,
+        n_epochs=30,
+        early_stop_patience=None,
+        logger=None,
+        print_every=5,
+        device='cpu',
+        multiclass=False,
+        attack = None,
+    ):
+
+        super().__init__(
+        model = model,
+        criterion = criterion,
+        optimizer = optimizer,
+        scheduler = scheduler,
+        n_epochs = n_epochs,
+        early_stop_patience = early_stop_patience,
+        logger = logger,
+        print_every = print_every,
+        device = device,
+        multiclass = multiclass
+        )
+
+        self.attack = attack
+
+    @staticmethod
+    def initialize_with_params(
         model_name='LSTM',
         model_params=None,
         criterion_name='BCELoss',
@@ -353,35 +383,42 @@ class DiscTrainer(Trainer):
         device='cpu',
         seed=0,
         multiclass=False,
-        attack_name = None, # str - attack name,
-        attack_params = None, 
+        attack = None
     ):
-
-        super().__init__(
-            model_name=model_name,
-            model_params=model_params,
-            criterion_name=criterion_name,
-            criterioin_params=criterioin_params,
-            optimizer_name=optimizer_name,
-            optimizer_params=optimizer_params,
-            scheduler_name=scheduler_name,
-            scheduler_params=scheduler_params,
+        fix_seed(seed)
+        if model_params == 'None' or not model_params:
+            model_params = {}
+        if criterioin_params == 'None' or not criterioin_params:
+            criterioin_params = {}
+        if optimizer_params == 'None' or not optimizer_params:
+            optimizer_params = {}
+        if scheduler_params == 'None' or not scheduler_params:
+            scheduler_params = {}
+        
+        model = get_model(model_name, model_params, device=device)
+        criterion = get_criterion(criterion_name, criterioin_params)
+        optimizer = get_optimizer(
+            optimizer_name, model.parameters(), optimizer_params)
+        scheduler = get_scheduler(
+            scheduler_name, optimizer, scheduler_params)
+        
+        return DiscTrainer(
+            model = model,
+            criterion = criterion,
+            optimizer = optimizer,
+            scheduler = scheduler,
             n_epochs=n_epochs,
             early_stop_patience=early_stop_patience,
             logger=logger,
             print_every=print_every,
             device=device,
-            seed=seed,
-            multiclass=multiclass
-        )
-
-        self.attack_model = get_attack(attack_name, **attack_params)
-
+            multiclass=multiclass,
+            attack=attack)
 
     def _generate_adversarial_data(self, loader):
 
         X_orig = torch.tensor(loader.dataset.X)
-        X_adv = self.attack_model(loader)
+        X_adv = self.attack.apply_attack(loader).squeeze(-1)
 
         disc_labels_zeros = torch.zeros_like(loader.dataset.y)  
         disc_labels_ones = torch.ones_like(loader.dataset.y)  
@@ -389,19 +426,18 @@ class DiscTrainer(Trainer):
         new_x = torch.concat([X_orig, X_adv], dim=0)
         new_y = torch.concat([disc_labels_zeros, disc_labels_ones], dim=0)
 
+        # print('dataset size: ', new_y.shape, new_x.shape)
+
         dataset_class = loader.dataset.__class__
         dataset = dataset_class(new_x, new_y)
 
-        loader = DataLoader(dataset, batch_size=loader.batch_size)
+        loader = DataLoader(dataset, batch_size=loader.batch_size, shuffle=True)
 
         return loader
     
 
-    def train_model(self, train_loader, valid_loader, attack_params):
-        train_loader = self._generate_adversarial_data(train_loader, attack_params)
-        valid_loader = self._generate_adversarial_data(valid_loader, attack_params)
+    def train_model(self, train_loader, valid_loader):
+        train_loader = self._generate_adversarial_data(train_loader)
+        valid_loader = self._generate_adversarial_data(valid_loader)
 
         super().train_model(train_loader, valid_loader)
-
-
-       
