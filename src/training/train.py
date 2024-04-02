@@ -11,7 +11,7 @@ from omegaconf import DictConfig
 from optuna.trial import Trial
 from torch.utils.data import DataLoader
 
-from src.config import get_criterion, get_model, get_optimizer, get_scheduler
+from src.config import get_criterion, get_model, get_optimizer, get_scheduler, get_attack
 from src.estimation import ClassifierEstimator
 from src.utils import (
     collect_default_params,
@@ -362,7 +362,7 @@ class DiscTrainer(Trainer):
         model_name="LSTM",
         model_params=None,
         attack_name = 'FGSM',
-        attack_params = 'None',
+        attack_params = None,
         criterion_name='BCELoss',
         criterioin_params=None,
         optimizer_name="Adam",
