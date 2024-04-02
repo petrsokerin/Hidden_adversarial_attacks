@@ -1,12 +1,19 @@
+import torch
 import torch.nn as nn
+from utils import Activation
 
-from .s4_utils import Activation, S4Block
+from .s4_utils import S4Block
 
 
 class S4(nn.Module):
     def __init__(
-        self, input_dim=1, hidden_dim=32, output_dim=1, dropout=0.2, activ_type=None
-    ):
+        self,
+        input_dim: int = 1,
+        hidden_dim: int = 32,
+        output_dim: int = 1,
+        dropout: float = 0.2,
+        activation_type: str = "sigmoid",
+    ) -> None:
         super().__init__()
         self.input_projector = nn.Sequential(
             nn.Linear(input_dim, hidden_dim // 2),
@@ -24,10 +31,10 @@ class S4(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_dim // 2, output_dim),
         )
-        self.final_activ = Activation(activ_type)
+        self.final_activation = Activation(activation_type)
 
-    def forward(self, data):
-        proj_data = self.input_projector(data)
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        proj_data = self.input_projector(X)
         output, _ = self.seq_model(proj_data)
         output = output[:, -1, :]
-        return self.final_activ(self.outp_projector(output))
+        return self.final_activation(output)

@@ -1,18 +1,16 @@
-import torch.nn.functional as F
-from torch import nn
-
+import torch
 import tsai.models.all as mdls
+from torch import nn
+from utils import Activation
+
 
 class TST(nn.Module):
-    def __init__(self, **kwargs):
-        super().__init__() 
+    def __init__(self, activation_type: str = "sigmoid", **kwargs) -> None:
+        super().__init__()
         self.model = mdls.TST(c_in=1, c_out=1, **kwargs).float()
+        self.final_activation = Activation(activation_type)
 
-    def forward(self, x):
-        x = x.transpose(1, 2)
-        #x = torch.unsqueeze(x, 1).float()
-        # = x.view([-1, 1, 500]).float() # 50 если slice=true
-        
-        preds = self.model(x)
-        output =  F.sigmoid(preds)
-        return output
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        X = X.transpose(1, 2)
+        output = self.model(X)
+        return self.final_activation(output)

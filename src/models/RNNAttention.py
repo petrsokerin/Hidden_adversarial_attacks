@@ -1,16 +1,18 @@
-import torch.nn.functional as F
+import torch
 from torch import nn
-
 from tsai.models.all import RNNAttention
+from utils import Activation
+
 
 class RNNA(nn.Module):
-    def __init__(self, **kwargs):
-        super().__init__() 
-        self.model = RNNAttention(c_in = 1, c_out = 1, **kwargs).float() # bs x length x channels
+    def __init__(self, activation_type: str = "sigmoid", **kwargs) -> None:
+        super().__init__()
+        self.model = RNNAttention(
+            c_in=1, c_out=1, **kwargs
+        ).float()  # bs x length x channels
+        self.final_activation = Activation(activation_type)
 
-    def forward(self, x):
-        x = x.transpose(1, 2)
-        
-        preds = self.model(x)
-        output =  F.sigmoid(preds)
-        return output
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        X = X.transpose(1, 2)
+        output = self.model(X)
+        return self.final_activation(output)
