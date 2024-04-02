@@ -24,7 +24,7 @@ from src.utils import (
     collect_default_params,
     fix_seed,
     get_optimization_dict,
-    update_trainer_params,
+    update_dict_params,
 )
 
 
@@ -150,10 +150,14 @@ class Trainer:
         )
 
         default_params = collect_default_params(optuna_params["hyperparameters_vary"])
+        print("DEFAULT", default_params)
         best_params = study.best_params.copy()
-        best_params = update_trainer_params(best_params, default_params)
-
-        best_params.update(const_params)
+        print("BEST", best_params)
+        best_params = update_dict_params(default_params, best_params)
+        if "attack_params" in const_params:
+            best_params["attack_params"].update(const_params["attack_params"])
+        else:
+            best_params.update(const_params)
         print("Best parameters are - %s", best_params)
         return Trainer.initialize_with_params(**best_params)
 
@@ -168,7 +172,12 @@ class Trainer:
     ) -> float:
         initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
         initial_model_parameters = dict(initial_model_parameters)
-        initial_model_parameters.update(const_params)
+        if "attack_params" in const_params:
+            initial_model_parameters["attack_params"].update(
+                const_params["attack_params"]
+            )
+        else:
+            initial_model_parameters.update(const_params)
 
         model = Trainer.initialize_with_params(**initial_model_parameters)
         last_epoch_metrics = model.train_model(train_loader, valid_loader)
