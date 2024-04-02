@@ -8,9 +8,7 @@ from .utils import Activation
 class RNNA(BaseModel):
     def __init__(self, activation_type: str = "sigmoid", **kwargs) -> None:
         super().__init__()
-        self.model = RNNAttention(
-            c_in=1, c_out=1, **kwargs
-        ).float()  # bs x length x channels
+        self.model = RNNAttention(**kwargs).float()  # bs x length x channels
         self.final_activation = Activation(activation_type)
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
