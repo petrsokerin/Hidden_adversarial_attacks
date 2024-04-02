@@ -64,7 +64,7 @@ def main(cfg: DictConfig):
     estimator = AttackEstimator(disc_check_list, cfg["metric_effect"])
 
     if cfg["enable_optimization"]:
-        const_params = dict(cfg["attack"]["attacks_params"])
+        const_params = dict(cfg["attack"]["attack_params"])
         const_params["model"] = attack_model
         const_params["criterion"] = criterion
         const_params["estimator"] = estimator
@@ -104,15 +104,15 @@ def main(cfg: DictConfig):
 
     else:
         alphas = [0]
-        if "alpha" in cfg["attack"]["attacks_params"]:
-            alphas = cfg["attack"]["attacks_params"]["alpha"]
+        if "alpha" in cfg["attack"]["attack_params"]:
+            alphas = cfg["attack"]["attack_params"]["alpha"]
 
         for alpha in alphas:  # tqdm(alphas):
             attack_metrics = pd.DataFrame()
-            for eps in cfg["attack"]["attacks_params"][
+            for eps in cfg["attack"]["attack_params"][
                 "eps"
-            ]:  # tqdm(cfg['attack']['attacks_params']['eps']):
-                attack_params = dict(cfg["attack"]["attacks_params"])
+            ]:  # tqdm(cfg['attack']['attack_params']['eps']):
+                attack_params = dict(cfg["attack"]["attack_params"])
                 attack_params["model"] = attack_model
                 attack_params["criterion"] = criterion
                 attack_params["estimator"] = estimator
