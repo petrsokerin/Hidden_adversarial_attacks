@@ -11,7 +11,7 @@ from omegaconf import DictConfig
 from optuna.trial import Trial
 from torch.utils.data import DataLoader
 
-from src.config import get_criterion, get_model, get_optimizer, get_scheduler
+from src.config import get_criterion, get_model, get_optimizer, get_scheduler, get_attack
 from src.estimation import ClassifierEstimator
 from src.utils import (
     collect_default_params,
@@ -46,8 +46,8 @@ class EarlyStopper:
 class Trainer:
     def __init__(
         self,
-        model,
-        criterion,
+        model: torch.nn.Module,
+        criterion: torch.nn.Module,
         optimizer,
         scheduler,
         n_epochs=30,
@@ -174,6 +174,14 @@ class Trainer:
             self.logger.add_scalar(metric + "/" + mode, data[metric], epoch)
 
     def train_model(self, train_loader, valid_loader):
+
+        if self.model.self_supervised:
+            print('Training self-supervised model')
+            X_train = train_loader.dataset.X.unsqueeze(-1).numpy()
+            print(self.model.device)
+            self.model.train_embedding(X_train, verbose=True)
+            print('Training self-supervised part is finished')
+            
         if self.early_stop_patience and self.early_stop_patience != "None":
             earl_stopper = EarlyStopper(self.early_stop_patience)
 
@@ -323,6 +331,7 @@ class DiscTrainer(Trainer):
     def __init__(
         self,
         model,
+        attack,
         criterion,
         optimizer,
         scheduler,
@@ -332,7 +341,6 @@ class DiscTrainer(Trainer):
         print_every=5,
         device="cpu",
         multiclass=False,
-        attack=None,
     ):
         super().__init__(
             model=model,
@@ -353,7 +361,9 @@ class DiscTrainer(Trainer):
     def initialize_with_params(
         model_name="LSTM",
         model_params=None,
-        criterion_name="BCELoss",
+        attack_name = 'FGSM',
+        attack_params = None,
+        criterion_name='BCELoss',
         criterioin_params=None,
         optimizer_name="Adam",
         optimizer_params=None,
@@ -366,7 +376,6 @@ class DiscTrainer(Trainer):
         device="cpu",
         seed=0,
         multiclass=False,
-        attack=None,
     ):
         fix_seed(seed)
         if model_params == "None" or not model_params:
@@ -380,21 +389,25 @@ class DiscTrainer(Trainer):
 
         model = get_model(model_name, model_params, device=device)
         criterion = get_criterion(criterion_name, criterioin_params)
-        optimizer = get_optimizer(optimizer_name, model.parameters(), optimizer_params)
-        scheduler = get_scheduler(scheduler_name, optimizer, scheduler_params)
-
+        optimizer = get_optimizer(
+            optimizer_name, model.parameters(), optimizer_params)
+        scheduler = get_scheduler(
+            scheduler_name, optimizer, scheduler_params)
+        
+        attack = get_attack(attack_name, attack_params)
+        
         return DiscTrainer(
-            model=model,
-            criterion=criterion,
-            optimizer=optimizer,
-            scheduler=scheduler,
+            model = model,
+            attack = attack,
+            criterion = criterion,
+            optimizer = optimizer,
+            scheduler = scheduler,
             n_epochs=n_epochs,
             early_stop_patience=early_stop_patience,
             logger=logger,
             print_every=print_every,
             device=device,
             multiclass=multiclass,
-            attack=attack,
         )
 
     def _generate_adversarial_data(self, loader):

@@ -34,6 +34,9 @@ class BatchIterativeAttack:
         y_pred_classes = np.round(y_pred)
         y_pred_orig_classes = np.round(y_pred_orig)
 
+        X_orig = X_orig.detach().numpy()
+        X_adv = X_adv.detach().numpy()
+
         metrics_line = self.estimator.estimate(y_true, y_pred_classes, y_pred_orig_classes, X_orig, X_adv)
         metrics_line = [step_id] + list(metrics_line)
         metrics_names = ["step_id"] + self.metrics_names
