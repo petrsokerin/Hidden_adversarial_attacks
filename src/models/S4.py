@@ -38,4 +38,5 @@ class S4(BaseModel):
         proj_data = self.input_projector(X)
         output, _ = self.seq_model(proj_data)
         output = output[:, -1, :]
+        output = self.outp_projector(output)
         return self.final_activation(output)

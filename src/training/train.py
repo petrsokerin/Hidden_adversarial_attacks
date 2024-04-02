@@ -186,7 +186,6 @@ class Trainer:
         if self.model.self_supervised:
             print("Training self-supervised model")
             X_train = train_loader.dataset.X.unsqueeze(-1).numpy()
-            print(self.model.device)
             self.model.train_embedding(X_train, verbose=True)
             print("Training self-supervised part is finished")
 
@@ -322,7 +321,6 @@ class Trainer:
         res.to_csv(path, index=False)
 
     def save_result(self, save_path: str, model_name: str) -> None:
-        print()
         if not os.path.isdir(save_path):
             os.makedirs(save_path)
 
@@ -385,15 +383,15 @@ class DiscTrainer(Trainer):
         fix_seed(seed)
         if model_params == "None" or not model_params:
             model_params = {}
-        if criterioin_params == "None" or not criterioin_params:
-            criterioin_params = {}
+        if criterion_params == "None" or not criterion_params:
+            criterion_params = {}
         if optimizer_params == "None" or not optimizer_params:
             optimizer_params = {}
         if scheduler_params == "None" or not scheduler_params:
             scheduler_params = {}
 
         model = get_model(model_name, model_params, device=device)
-        criterion = get_criterion(criterion_name, criterioin_params)
+        criterion = get_criterion(criterion_name, criterion_params)
         optimizer = get_optimizer(optimizer_name, model.parameters(), optimizer_params)
         scheduler = get_scheduler(scheduler_name, optimizer, scheduler_params)
 

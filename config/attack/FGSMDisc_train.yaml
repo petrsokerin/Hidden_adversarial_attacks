@@ -1,7 +1,7 @@
 name: FGSMRegDiscAttack
 short_name: fgsm_disc_attack
 
-attacks_params:
+attack_params:
   eps: [0.03] #[0.005, 0.001, 0.03, 0.07, 0.1, 0.13]
   n_steps: 10
   alpha: [0.001] #[10, 1, 100, 0.01, 0.0001, 0.001, 0.1]

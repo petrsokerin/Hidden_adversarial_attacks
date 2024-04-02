@@ -47,7 +47,7 @@ def get_model(
         raise ValueError(f"Model with name {model_name} is not implemented")
 
 
-def get_criterion(criterion_name: str, criterion_params: Dict = None) torch.nn.Module:
+def get_criterion(criterion_name: str, criterion_params: Dict = None) -> torch.nn.Module:
     if criterion_params is None:
         criterion_params = dict()
     try:
