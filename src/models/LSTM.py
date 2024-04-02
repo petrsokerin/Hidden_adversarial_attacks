@@ -1,6 +1,7 @@
 import torch
 from torch import nn
-from utils import Activation
+
+from .utils import Activation
 
 
 class LSTM(nn.Module):

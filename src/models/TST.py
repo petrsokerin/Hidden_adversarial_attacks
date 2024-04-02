@@ -1,7 +1,8 @@
 import torch
 import tsai.models.all as mdls
 from torch import nn
-from utils import Activation
+
+from .utils import Activation
 
 
 class TST(nn.Module):

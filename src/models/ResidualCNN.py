@@ -1,7 +1,8 @@
 import torch
 from torch import nn
 from tsai.models.all import ResCNN
-from utils import Activation
+
+from .utils import Activation
 
 
 class ResidualCNN(nn.Module):

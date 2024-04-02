@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
-from utils import Activation
 
 from .s4_utils import S4Block
+from .utils import Activation
 
 
 class S4(nn.Module):

@@ -12,7 +12,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
 from pytorch_lightning.utilities import rank_zero_only
-from utils import Activation
+
+from .utils import Activation
 
 # Function aliases
 contract = torch.einsum
