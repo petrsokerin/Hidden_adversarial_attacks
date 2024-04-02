@@ -125,8 +125,8 @@ def load_Ford_A() -> Tuple[np.ndarray]:
 def readucr(filename: str) -> Tuple[np.ndarray]:
     data = np.loadtxt(filename, delimiter="\t")
     y = data[:, 0]
-    x = data[:, 1:]
-    return x, y.astype(int)
+    X = data[:, 1:]
+    return X, y.astype(int)
 
 
 def transform_data(
@@ -185,17 +185,17 @@ def build_dataloaders(
 
 
 class Augmentator:
-    def __init__(self, methods: Any):
+    def __init__(self, methods: Any) -> None:
         if isinstance(methods, Iterable):
             self.methods = methods
         else:
             self.methods = [methods]
 
-    def __call__(self, x):
+    def __call__(self, X: torch.Tensor) -> torch.Tensor:
         for method in self.methods:
-            x = TSTensor(x.unsqueeze(0).transpose(1, 2))
-            x = method.encodes(x).data.transpose(1, 2).squeeze(0)
-        return x
+            X = TSTensor(X.unsqueeze(0).transpose(1, 2))
+            X = method.encodes(X).data.transpose(1, 2).squeeze(0)
+        return X
 
 
 class MyDataset(Dataset):
@@ -205,17 +205,17 @@ class MyDataset(Dataset):
         y: torch.Tensor,
         window: int = 50,
         transform: Callable = None,
-    ):
+    ) -> None:
         super().__init__()
         self.X = X
         self.y = y
         self.window = window
         self.transform = transform
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.y)
 
-    def __getitem__(self, idx: Any):
+    def __getitem__(self, idx: Any) -> Tuple[torch.Tensor]:
         X = torch.tensor(self.X[idx], dtype=torch.float32)
 
         X = X.reshape([-1, 1])
