@@ -1,7 +1,6 @@
 name: S4
 
 params:
-  activ_type: sigmoid
   input_dim: 1 
   hidden_dim: 128
   output_dim: 1 
