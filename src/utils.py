@@ -96,6 +96,19 @@ def update_dict_params(original_params: Dict, new_params: Dict) -> Dict:
     return final_best_params
 
 
+def update_params_with_attack_params(params: Dict, new_params: Dict) -> Dict:
+    if "attack_params" in params:
+        for param in new_params:
+            if param == 'attack_params':
+                params['attack_params'].update(new_params['attack_params'])
+            else:
+                params[param] = new_params[param]
+    else:
+        params.update(new_params)
+    return params
+
+
+
 def collect_default_params(params_vary: DictConfig) -> Dict:
     initial_model_parameters = {}
 

@@ -1,7 +1,6 @@
 import os
 from functools import partial
 from typing import Any, Dict, List
-from copy import copy
 
 import numpy as np
 import optuna
@@ -26,6 +25,7 @@ from src.utils import (
     fix_seed,
     get_optimization_dict,
     update_dict_params,
+    update_params_with_attack_params,
 )
 
 
@@ -155,10 +155,9 @@ class Trainer:
         best_params = study.best_params.copy()
         print("BEST", best_params)
         best_params = update_dict_params(default_params, best_params)
-        if "attack_params" in const_params:
-            best_params["attack_params"].update(const_params["attack_params"])
-        else:
-            best_params.update(const_params)
+
+        best_params = update_params_with_attack_params(const_params, best_params)
+
         print("Best parameters are - %s", best_params)
         return Trainer.initialize_with_params(**best_params)
 
@@ -173,12 +172,10 @@ class Trainer:
     ) -> float:
         initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
         initial_model_parameters = dict(initial_model_parameters)
-        if "attack_params" in const_params:
-            initial_model_parameters["attack_params"].update(
-                const_params["attack_params"]
-            )
-        else:
-            initial_model_parameters.update(const_params)
+
+        initial_model_parameters = update_params_with_attack_params(
+            const_params, initial_model_parameters
+        )
 
         model = Trainer.initialize_with_params(**initial_model_parameters)
         last_epoch_metrics = model.train_model(train_loader, valid_loader)
@@ -420,7 +417,7 @@ class DiscTrainer(Trainer):
             device=device,
             multiclass=multiclass,
         )
-    
+
     @staticmethod
     def initialize_with_optimization(
         train_loader: DataLoader,
@@ -438,7 +435,7 @@ class DiscTrainer(Trainer):
                 DiscTrainer.objective,
                 params_vary=optuna_params["hyperparameters_vary"],
                 optim_metric=optuna_params["optim_metric"],
-                const_params=copy(const_params),
+                const_params=const_params,
                 train_loader=train_loader,
                 valid_loader=valid_loader,
             ),
@@ -450,12 +447,9 @@ class DiscTrainer(Trainer):
         best_params = study.best_params.copy()
         print("BEST", best_params)
         best_params = update_dict_params(default_params, best_params)
-        if "attack_params" in const_params:
-            new_attack_params = set(const_params["attack_params"]) - set(best_params["attack_params"])
-            for param in new_attack_params:
-                best_params["attack_params"][param] = const_params["attack_params"][param]
-            del const_
-        best_params.update(const_params)
+        best_params = update_params_with_attack_params(
+            const_params, best_params
+        )
         print("Best parameters are - %s", best_params)
         return DiscTrainer.initialize_with_params(**best_params)
 
@@ -470,14 +464,9 @@ class DiscTrainer(Trainer):
     ) -> float:
         initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
         initial_model_parameters = dict(initial_model_parameters)
-        if "attack_params" in const_params:
-            new_attack_params = set(const_params["attack_params"]) - set(initial_model_parameters["attack_params"])
-            for param in new_attack_params:
-                initial_model_parameters["attack_params"][param] = const_params["attack_params"][param]
-            del const_params['attack_params']
-        initial_model_parameters.update(const_params)
-
-        print(initial_model_parameters)
+        initial_model_parameters = update_params_with_attack_params(
+            const_params, initial_model_parameters
+        )
 
         model = DiscTrainer.initialize_with_params(**initial_model_parameters)
         last_epoch_metrics = model.train_model(train_loader, valid_loader)
