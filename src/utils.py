@@ -11,7 +11,7 @@ from omegaconf import DictConfig
 from optuna.trial import Trial
 
 
-def save_config(path, config_name:str, config_save_name: str) -> None:
+def save_config(path, config_name: str, config_save_name: str) -> None:
     shutil.copytree("config/my_configs", path + "/config_folder", dirs_exist_ok=True)
     shutil.copyfile(
         f"config/my_configs/{config_name}.yaml", path + "/" + config_save_name
@@ -72,28 +72,41 @@ def get_optuna_param_for_type(
     return initial_model_parameters, trial
 
 
-def update_one_best_param(
-    best_param_name: str, best_param_value: Any, final_best_params: Dict
+def update_one_param(
+    new_param_name: str, new_param_value: Any, final_params: Dict
 ) -> Dict:
-    for def_param_name, def_param_value in final_best_params.items():
+    for def_param_name, def_param_value in final_params.items():
         if isinstance(def_param_value, dict):
-            final_best_params[def_param_name] = update_one_best_param(
-                best_param_name, best_param_value, def_param_value
+            final_params[def_param_name] = update_one_param(
+                new_param_name, new_param_value, def_param_value
             )
         else:
-            if best_param_name == def_param_name:
-                final_best_params[best_param_name] = best_param_value
-            # final_best_params.update({best_param_name: best_param_value})
-    return final_best_params
+            if new_param_name == def_param_name:
+                final_params[new_param_name] = new_param_value
+                # final_params.update({best_param_name: best_param_value})
+    return final_params
 
 
-def update_trainer_params(best_params: Dict, default_params: Dict) -> Dict:
-    final_best_params = copy.deepcopy(default_params)
-    for best_param_name, best_param_value in best_params.items():
-        final_best_params = update_one_best_param(
-            best_param_name, best_param_value, final_best_params
+def update_dict_params(original_params: Dict, new_params: Dict) -> Dict:
+    final_params = copy.deepcopy(original_params)
+    for new_param_name, new_param_value in new_params.items():
+        final_best_params = update_one_param(
+            new_param_name, new_param_value, final_params
         )
     return final_best_params
+
+
+def update_params_with_attack_params(params: Dict, new_params: Dict) -> Dict:
+    if "attack_params" in params:
+        for param in new_params:
+            if param == 'attack_params':
+                params['attack_params'].update(new_params['attack_params'])
+            else:
+                params[param] = new_params[param]
+    else:
+        params.update(new_params)
+    return params
+
 
 
 def collect_default_params(params_vary: DictConfig) -> Dict:

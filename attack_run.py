@@ -79,7 +79,6 @@ def main(cfg: DictConfig):
                 train_mode=cfg["disc_model_reg"]["attack_train_mode"],
             )
 
-        attack = get_attack(cfg["attack"]["name"], const_params)
         attack = attack.initialize_with_optimization(
             test_loader, cfg["optuna_optimizer"], const_params
         )

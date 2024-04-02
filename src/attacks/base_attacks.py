@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from src.utils import (
     collect_default_params,
     get_optimization_dict,
-    update_trainer_params,
+    update_dict_params,
 )
 
 
@@ -58,7 +58,7 @@ class BaseIterativeAttack(ABC):
 
         default_params = collect_default_params(optuna_params["hyperparameters_vary"])
         best_params = study.best_params.copy()
-        best_params = update_trainer_params(best_params, default_params)
+        best_params = update_dict_params(default_params, best_params)
 
         best_params.update(const_params)
 

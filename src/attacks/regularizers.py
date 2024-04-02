@@ -5,6 +5,8 @@ import torch.nn.functional as F
 
 from src.utils import req_grad
 
+from .utils import boltzmann
+
 
 def reg_neigh(X: torch.Tensor, alpha: float) -> torch.Tensor:
     X_anchor = X[:, 1:-1]
@@ -20,7 +22,6 @@ def reg_neigh(X: torch.Tensor, alpha: float) -> torch.Tensor:
 
 def reg_disc(
     X: torch.Tensor,
-    alpha: float,
     disc_models: List[torch.nn.Module],
     use_sigmoid: bool = True,
 ) -> torch.Tensor:
@@ -34,19 +35,13 @@ def reg_disc(
             model_output = torch.mean(torch.log(d_model(X)))
         reg_value = reg_value + model_output
 
-    reg_value = alpha * reg_value / n_models
+    reg_value = reg_value / n_models
     return reg_value
 
 
 def reg_boltzmann(
-    X: torch.Tensor, alpha: float, disc_models: List, use_sigmoid: bool = True
+    X: torch.Tensor, beta: float, disc_models: List, use_sigmoid: bool = True
 ) -> torch.Tensor:
-    def boltzmann(tensor, alpha, dim=None):
-        exp = torch.exp(alpha * tensor)
-        maximum = (exp * tensor).sum(dim=dim) / exp.sum(dim=dim)
-
-        return maximum
-
     reg_value = torch.empty(len(disc_models))
 
     for i, d_model in enumerate(disc_models):
@@ -58,5 +53,5 @@ def reg_boltzmann(
 
         reg_value[i] = model_output
 
-    reg_value = alpha * boltzmann(reg_value, alpha=30)
+    reg_value = beta * boltzmann(reg_value, beta=beta)
     return reg_value

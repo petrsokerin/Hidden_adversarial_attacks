@@ -41,6 +41,7 @@ optuna_optimizer:
     seed: 0
   pruner:
     _target_: optuna.pruners.MedianPruner
+  optim_metric: f1
   hyperparameters_vary:
     model_name: 
       optuna_type: const

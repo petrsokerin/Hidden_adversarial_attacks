@@ -1,20 +1,22 @@
-dataset: FordA
-slice: True
+dataset: Coffee
+slice: False
 use_disc_check: False
 test_run: False # If true results will be not saved!!!!
-exp_name: '_LSTM_NEW'
+exp_name: '_NEW'
 
 model_folder: checkpoints/${dataset}
 disc_path: results/${dataset}/${attack_model.name}/discriminator/fgsm_attack
 save_path: results/${dataset}/${attack_model.name}/discriminator/${attack.short_name}${exp_name}
-model_id_attack: 0
+model_id_attack: 5
+
+model_ids: [0, 1]
 
 defaults:
-  - model: LSTM
-  - model@attack_model: LSTM
-  - model@disc_model_reg: LSTM
-  - model@disc_model_check: LSTM
-  - attack: FGSMDisc
+  - model: ResidualCNN
+  - model@attack_model: ResidualCNN
+  - model@disc_model_reg: ResidualCNN
+  - model@disc_model_check: ResidualCNN
+  - attack: FGSM
 
 criterion_name: BCELoss
 criterion_params: null
@@ -23,10 +25,11 @@ metric_effect: F1
 
 batch_size: 64
 cuda: 'cuda:1'
+print_every: 1
 
 list_check_model_params:
-  - model_id : 0
-    model_name: fgsm_attack_eps=0.03_nsteps=10
+  # - model_id : 0
+  #   model_name: fgsm_attack_eps=0.03_nsteps=10
 
 transform_data: []
 # # - _target_: tsai.data.transforms.TSRandomResizedCrop
@@ -36,7 +39,7 @@ training_params:
   model_name: ${model.name}
   model_params: ${model.params}
   criterion_name: BCELoss
-  criterion_params: null
+  criterioin_params: null
   optimizer_name: Adam
   optimizer_params:
     lr: 0.001
@@ -44,8 +47,59 @@ training_params:
   scheduler_params: 
     step_size: 10
     gamma: 0.5
-  n_epochs: 15
-  print_every: 1
+  n_epochs: 40
+  print_every: ${print_every}
   early_stop_patience: null
 
-      
+
+enable_optimization: True
+optuna_optimizer:
+  n_trials: 3
+  sampler:
+    _target_: optuna.samplers.TPESampler
+    seed: 0
+  pruner:
+    _target_: optuna.pruners.MedianPruner
+  optim_metric: f1
+  hyperparameters_vary:
+# ATTACK 
+    attack_name:
+      optuna_type: const
+      value: ${attack.name}
+    attack_params: ${attack.hyperparameters_vary}
+# MODEL 
+    model_name: 
+      optuna_type: const
+      value: ${model.name}
+    model_params: ${model.hyperparameters_vary}
+    criterion_name: 
+      optuna_type: const
+      value: BCELoss
+    criterion_params:
+      optuna_type: const
+      value: None
+    optimizer_name: 
+      optuna_type: choice
+      choices: 
+        - Adam
+        - AdamW
+    optimizer_params:
+      lr: 
+        optuna_type: float
+        low: 0.0001
+        high: 0.01 
+        log: True
+    scheduler_name: 
+      optuna_type: const
+      value: StepLR
+    scheduler_params: 
+      optuna_type: const
+      value: 
+        step_size: 10
+        gamma: 0.5
+    n_epochs:
+      optuna_type: const
+      value: 3
+    early_stop_patience:
+      optuna_type: const
+      value: None
