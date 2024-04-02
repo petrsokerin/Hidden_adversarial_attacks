@@ -70,7 +70,6 @@ def main(cfg: DictConfig):
         logger.close()
 
         if not cfg['test_run']:
-            print(cfg['save_path'])
             model_save_name = f'model_{model_id}_{cfg["dataset"]}'
             trainer.save_result(cfg['save_path'], model_save_name)
             save_config(cfg['save_path'], CONFIG_NAME, CONFIG_NAME)

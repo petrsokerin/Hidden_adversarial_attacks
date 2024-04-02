@@ -340,6 +340,7 @@ class DiscTrainer(Trainer):
     def __init__(
         self,
         model,
+        attack,
         criterion,
         optimizer,
         scheduler,
@@ -349,7 +350,6 @@ class DiscTrainer(Trainer):
         print_every=5,
         device='cpu',
         multiclass=False,
-        attack = None,
     ):
 
         super().__init__(
@@ -371,6 +371,8 @@ class DiscTrainer(Trainer):
     def initialize_with_params(
         model_name='LSTM',
         model_params=None,
+        attack_name = 'FGSM',
+        attack_params = 'None',
         criterion_name='BCELoss',
         criterioin_params=None,
         optimizer_name='Adam',
@@ -384,7 +386,6 @@ class DiscTrainer(Trainer):
         device='cpu',
         seed=0,
         multiclass=False,
-        attack = None
     ):
         fix_seed(seed)
         if model_params == 'None' or not model_params:
@@ -403,8 +404,11 @@ class DiscTrainer(Trainer):
         scheduler = get_scheduler(
             scheduler_name, optimizer, scheduler_params)
         
+        attack = get_attack(attack_name, attack_params)
+        
         return DiscTrainer(
             model = model,
+            attack = attack,
             criterion = criterion,
             optimizer = optimizer,
             scheduler = scheduler,
@@ -414,7 +418,7 @@ class DiscTrainer(Trainer):
             print_every=print_every,
             device=device,
             multiclass=multiclass,
-            attack=attack)
+        )
 
     def _generate_adversarial_data(self, loader):
 

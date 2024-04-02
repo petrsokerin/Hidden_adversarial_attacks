@@ -1,7 +1,8 @@
 dataset: Coffee #GunPoint  
 slice: False
-save_path: checkpoints/${dataset}/${model.name}
+save_path: checkpoints/${dataset}/${model.name}${exp_name}/
 test_run: False # If true results will be not saved!!!!
+exp_name: '_NEW'
 
 model_id_start: 5
 model_id_finish: 6
