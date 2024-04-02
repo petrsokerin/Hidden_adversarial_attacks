@@ -11,7 +11,7 @@ from omegaconf import DictConfig
 from optuna.trial import Trial
 
 
-def save_config(path, config_name:str, config_save_name: str) -> None:
+def save_config(path, config_name: str, config_save_name: str) -> None:
     shutil.copytree("config/my_configs", path + "/config_folder", dirs_exist_ok=True)
     shutil.copyfile(
         f"config/my_configs/{config_name}.yaml", path + "/" + config_save_name
@@ -83,7 +83,7 @@ def update_one_param(
         else:
             if new_param_name == def_param_name:
                 final_params[new_param_name] = new_param_value
-                #final_params.update({best_param_name: best_param_value})
+                # final_params.update({best_param_name: best_param_value})
     return final_params
 
 
