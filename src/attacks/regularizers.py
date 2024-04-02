@@ -22,7 +22,6 @@ def reg_neigh(X: torch.Tensor, alpha: float) -> torch.Tensor:
 
 def reg_disc(
     X: torch.Tensor,
-    alpha: float,
     disc_models: List[torch.nn.Module],
     use_sigmoid: bool = True,
 ) -> torch.Tensor:
@@ -36,7 +35,7 @@ def reg_disc(
             model_output = torch.mean(torch.log(d_model(X)))
         reg_value = reg_value + model_output
 
-    reg_value = alpha * reg_value / n_models
+    reg_value = reg_value / n_models
     return reg_value
 
 

@@ -80,10 +80,11 @@ def main(cfg: DictConfig):
 
     estimator = AttackEstimator(disc_check_list, cfg['metric_effect'])
 
-    for model_id in range(cfg['model_id_start'], cfg['model_id_finish']):
+    for model_id in cfg['model_ids']:
+        logger = SummaryWriter(cfg['save_path'] + '/tensorboard')
         if cfg['enable_optimization']:
 
-            attack_const_params = dict(cfg['attack']['attacks_params'])
+            attack_const_params = dict(cfg['attack']['attack_params'])
             attack_const_params['model'] = attack_model
             attack_const_params['criterion'] = criterion
             attack_const_params['estimator'] = estimator
@@ -98,14 +99,15 @@ def main(cfg: DictConfig):
                     train_mode=cfg['disc_model_reg']['attack_train_mode']
                 )
 
-            attack = get_attack(cfg['attack']['name'], attack_const_params)
-            attack = attack.initialize_with_optimization(test_loader, cfg['optuna_optimizer'], attack_const_params)
-                
+            # attack = get_attack(cfg['attack']['name'], attack_const_params)
+            # attack = attack.initialize_with_optimization(test_loader, cfg['optuna_optimizer'], attack_const_params)
+            
+            const_params = {'attack_params': attack_const_params, 'logger': logger, 'print_every': cfg['print_every'], 'device': device, 'seed': model_id}
             disc_trainer = DiscTrainer.initialize_with_optimization(
                 train_loader, 
                 test_loader, 
                 cfg['optuna_optimizer'], 
-                attack_const_params
+                const_params
                 )
             disc_trainer.train_model(train_loader, test_loader)
             
@@ -145,7 +147,7 @@ def main(cfg: DictConfig):
                         )
 
                     trainer_params = dict(cfg['training_params'])
-                    trainer_params['logger'] = SummaryWriter(cfg['save_path'] + '/tensorboard')
+                    trainer_params['logger'] = logger
                     
                     trainer_params['attack_name'] = cfg['attack']['name']
                     trainer_params['attack_params'] =  attack_params

@@ -3,11 +3,11 @@ from typing import List
 import torch
 
 from src.estimation import BaseEstimator
+from .utils import boltzman_loss
 
 from .base_attacks import BaseIterativeAttack
 from .procedures import BatchIterativeAttack
 from .regularizers import reg_disc, reg_neigh
-
 
 class FGSMAttack(BaseIterativeAttack, BatchIterativeAttack):
     def __init__(
@@ -93,8 +93,37 @@ class FGSMRegDiscAttack(FGSMAttack):
     def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         loss = self.get_loss(X, y_true)
 
-        reg_value = reg_disc(X, self.alpha, self.disc_models, self.use_sigmoid)
-        loss = loss - reg_value
+        reg_value = reg_disc(X, self.disc_models, self.use_sigmoid)
+        loss = loss - self.alpha * reg_value
+
+        X_adv = self.get_adv_data(X, loss)
+        return X_adv
+    
+class FGSMRegDiscSmoothMaxAttack(FGSMAttack):
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        criterion: torch.nn.Module,
+        disc_models: List[torch.nn.Module],
+        estimator,
+        eps: float = 0.03,
+        beta: float = 0.0,
+        n_steps: int = 10,
+        use_sigmoid: bool = False,
+        *args,
+        **kwargs,
+     ) -> None:
+        super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
+        self.beta = beta
+        self.disc_models = disc_models
+        self.use_sigmoid = use_sigmoid
+        self.is_regularized = True
+
+    def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        loss = self.get_loss(X, y_true)
+
+        reg_value = reg_disc(X, self.disc_models, self.use_sigmoid)
+        loss = boltzman_loss(loss, reg_value, beta=self.beta)
 
         X_adv = self.get_adv_data(X, loss)
         return X_adv
