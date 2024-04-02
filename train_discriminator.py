@@ -96,8 +96,8 @@ def main(cfg: DictConfig):
     #             train_mode=cfg['disc_model_reg']['attack_train_mode']
     #         )
 
-    #     attack = get_attack(cfg['attack']['name'], const_params)
-    #     attack = attack.initialize_with_optimization(test_loader, cfg['optuna_optimizer'], const_params)
+    #     # attack = get_attack(cfg['attack']['name'], const_params)
+    #     # attack = attack.initialize_with_optimization(test_loader, cfg['optuna_optimizer'], const_params)
 
     #     disc_trainer = DiscTrainer.initialize_with_optimization(
     #         train_loader, 
@@ -128,15 +128,15 @@ def main(cfg: DictConfig):
     # else:
     alphas = [0]
 
-    if 'alpha' in cfg['attack']['attacks_params']:
-            alphas = cfg['attack']['attacks_params']['alpha']
+    if 'alpha' in cfg['attack']['attack_params']:
+            alphas = cfg['attack']['attack_params']['alpha']
 
     for alpha in alphas:
-        for eps in cfg['attack']['attacks_params']['eps']:
+        for eps in cfg['attack']['attack_params']['eps']:
             print('----- Current epsilon:', eps, 
                 '\n----- Current alpha:', alpha)
             
-            attack_params = dict(cfg['attack']['attacks_params'])
+            attack_params = dict(cfg['attack']['attack_params'])
             attack_params['model'] = attack_model
             attack_params['criterion'] = criterion
             attack_params['estimator'] = estimator
@@ -155,18 +155,17 @@ def main(cfg: DictConfig):
 
             trainer_params = dict(cfg['training_params'])
             trainer_params['logger'] = SummaryWriter(cfg['save_path'] + '/tensorboard')
+            
+            trainer_params['attack_name'] = cfg['attack']['name']
+            trainer_params['attack_params'] =  attack_params
 
-            disc_trainer = DiscTrainer.initialize_with_params(
-                **trainer_params, 
-                attack_name = cfg['attack']['name'], 
-                attack_params = attack_params
-                )
+            disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
             
             disc_trainer.train_model(train_loader, test_loader)
 
             if not cfg['test_run']:
                 model_save_name = f'{cfg["model_id_attack"]}'
-                new_save_path = cfg['save_path'] + '/' + f'{cfg["attack"]["short_name"]}_eps={eps}_nsteps={cfg["attack"]["attacks_params"]["n_steps"]}'
+                new_save_path = cfg['save_path'] + '/' + f'{cfg["attack"]["short_name"]}_eps={eps}_nsteps={cfg["attack"]["attack_params"]["n_steps"]}'
                 
                 disc_trainer.save_result(new_save_path, model_save_name)
                 save_config(new_save_path, CONFIG_NAME, CONFIG_NAME)
