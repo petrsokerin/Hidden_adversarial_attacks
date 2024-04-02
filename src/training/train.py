@@ -1,6 +1,6 @@
 import os
 from functools import partial
-from typing import Dict
+from typing import Any, Dict, List
 
 import numpy as np
 import optuna
@@ -11,6 +11,7 @@ from omegaconf import DictConfig
 from optuna.trial import Trial
 from torch.utils.data import DataLoader
 
+from src.attacks import BaseAttack
 from src.config import get_criterion, get_model, get_optimizer, get_scheduler
 from src.estimation import ClassifierEstimator
 from src.utils import (
@@ -48,15 +49,15 @@ class Trainer:
         self,
         model: torch.nn.Module,
         criterion: torch.nn.Module,
-        optimizer,
-        scheduler,
-        n_epochs=30,
-        early_stop_patience=None,
-        logger=None,
-        print_every=5,
-        device="cpu",
-        multiclass=False,
-    ):
+        optimizer: torch.optim.Optimizer,
+        scheduler: torch.optim.lr_scheduler.LRScheduler,
+        n_epochs: int = 30,
+        early_stop_patience: int = None,
+        logger: Any = None,
+        print_every: int = 5,
+        device: str = "cpu",
+        multiclass: bool = False,
+    ) -> None:
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
@@ -75,21 +76,21 @@ class Trainer:
 
     @staticmethod
     def initialize_with_params(
-        model_name="LSTM",
-        model_params=None,
-        criterion_name="BCELoss",
-        criterioin_params=None,
-        optimizer_name="Adam",
-        optimizer_params=None,
-        scheduler_name="None",
-        scheduler_params=None,
-        n_epochs=30,
-        early_stop_patience=None,
-        logger=None,
-        print_every=5,
-        device="cpu",
-        seed=0,
-        multiclass=False,
+        model_name: str = "LSTM",
+        model_params: Dict = None,
+        criterion_name: str = "BCELoss",
+        criterioin_params: Dict = None,
+        optimizer_name: str = "Adam",
+        optimizer_params: Dict = None,
+        scheduler_name: str = "None",
+        scheduler_params: Dict = None,
+        n_epochs: int = 30,
+        early_stop_patience: int = None,
+        logger: Any = None,
+        print_every: int = 5,
+        device: str = "cpu",
+        seed: int = 0,
+        multiclass: bool = False,
     ):
         fix_seed(seed)
         if model_params == "None" or not model_params:
@@ -120,10 +121,10 @@ class Trainer:
 
     @staticmethod
     def initialize_with_optimization(
-        train_loader,
-        valid_loader,
-        optuna_params,
-        const_params,
+        train_loader: DataLoader,
+        valid_loader: DataLoader,
+        optuna_params: Dict,
+        const_params: Dict,
     ):
         study = optuna.create_study(
             direction="maximize",
@@ -156,8 +157,8 @@ class Trainer:
         params_vary: DictConfig,
         optim_metric: str,
         const_params: Dict,
-        train_loader,
-        valid_loader,
+        train_loader: DataLoader,
+        valid_loader: DataLoader,
     ) -> float:
         initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
         initial_model_parameters = dict(initial_model_parameters)
@@ -173,15 +174,16 @@ class Trainer:
 
             self.logger.add_scalar(metric + "/" + mode, data[metric], epoch)
 
-    def train_model(self, train_loader, valid_loader):
-
+    def train_model(
+        self, train_loader: DataLoader, valid_loader: DataLoader
+    ) -> Dict[str, float]:
         if self.model.self_supervised:
-            print('Training self-supervised model')
+            print("Training self-supervised model")
             X_train = train_loader.dataset.X.unsqueeze(-1).numpy()
             print(self.model.device)
             self.model.train_embedding(X_train, verbose=True)
-            print('Training self-supervised part is finished')
-            
+            print("Training self-supervised part is finished")
+
         if self.early_stop_patience and self.early_stop_patience != "None":
             earl_stopper = EarlyStopper(self.early_stop_patience)
 
@@ -231,7 +233,7 @@ class Trainer:
                     break
         return test_metrics_epoch
 
-    def _train_step(self, loader):
+    def _train_step(self, loader: DataLoader) -> List[float]:
         # req_grad(self.model)
         losses = 0
 
@@ -270,7 +272,7 @@ class Trainer:
         metrics = [mean_loss] + metrics
         return metrics
 
-    def _valid_step(self, loader):
+    def _valid_step(self, loader: DataLoader) -> List[float]:
         y_all_pred = torch.tensor([])
         y_all_true = torch.tensor([])
 
@@ -303,7 +305,7 @@ class Trainer:
         metrics = [mean_loss] + metrics
         return metrics
 
-    def save_metrics_as_csv(self, path):
+    def save_metrics_as_csv(self, path: str) -> None:
         res = pd.DataFrame([])
         for split, metrics in self.dict_logging.items():
             df_metrics = pd.DataFrame(metrics)
@@ -313,7 +315,7 @@ class Trainer:
 
         res.to_csv(path, index=False)
 
-    def save_result(self, save_path, model_name):
+    def save_result(self, save_path: str, model_name: str):
         print()
         if not os.path.isdir(save_path):
             os.makedirs(save_path)
@@ -330,18 +332,18 @@ class Trainer:
 class DiscTrainer(Trainer):
     def __init__(
         self,
-        model,
-        criterion,
-        optimizer,
-        scheduler,
-        n_epochs=30,
-        early_stop_patience=None,
-        logger=None,
-        print_every=5,
-        device="cpu",
-        multiclass=False,
-        attack=None,
-    ):
+        model: torch.nn.Module,
+        attack: BaseAttack,
+        criterion: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        scheduler: torch.optim.lr_scheduler.LRScheduler,
+        n_epochs: int = 30,
+        early_stop_patience: int = None,
+        logger: Any = None,
+        print_every: int = 5,
+        device: str = "cpu",
+        multiclass: bool = False,
+    ) -> None:
         super().__init__(
             model=model,
             criterion=criterion,
@@ -424,7 +426,9 @@ class DiscTrainer(Trainer):
 
         return loader
 
-    def train_model(self, train_loader, valid_loader):
+    def train_model(
+        self, train_loader: DataLoader, valid_loader: DataLoader
+    ) -> Dict[str, float]:
         train_loader = self._generate_adversarial_data(train_loader)
         valid_loader = self._generate_adversarial_data(valid_loader)
 
