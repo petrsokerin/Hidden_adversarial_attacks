@@ -5,9 +5,9 @@ from torch import nn
 from src.models.TS2Vec_src.ts2vec import TS2Vec
 
 from .utils import Activation, build_head
+from .base_model import BaseSelfSupervisedModel
 
-
-class TS2VEC(nn.Module):
+class TS2VEC(BaseSelfSupervisedModel):
     def __init__(
         self,
         emb_size: int = 320,
@@ -27,7 +27,7 @@ class TS2VEC(nn.Module):
             output_size = 1
         else:
             output_size = n_classes
-
+        self.device = device
         self.ts2vec = TS2Vec(
             input_dims=input_dim,
             dropout=dropout_ts2vec,
@@ -46,7 +46,7 @@ class TS2VEC(nn.Module):
         )
         self.final_activation = Activation(activation_type)
 
-    def train_embedding(self, X_train: torch.Tensor, verbose=False) -> None:
+    def train_embedding(self, X_train: torch.Tensor, verbose=True) -> None:
         self.ts2vec.fit(X_train, verbose=verbose)
         self.emd_model = self.ts2vec.net
 

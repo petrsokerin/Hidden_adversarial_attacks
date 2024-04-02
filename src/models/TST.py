@@ -3,9 +3,10 @@ import tsai.models.all as mdls
 from torch import nn
 
 from .utils import Activation
+from .base_model import BaseModel
 
 
-class TST(nn.Module):
+class TST(BaseModel):
     def __init__(self, activation_type: str = "sigmoid", **kwargs) -> None:
         super().__init__()
         self.model = mdls.TST(c_in=1, c_out=1, **kwargs).float()

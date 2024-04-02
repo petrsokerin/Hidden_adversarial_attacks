@@ -46,8 +46,8 @@ class EarlyStopper:
 class Trainer:
     def __init__(
         self,
-        model,
-        criterion,
+        model: torch.nn.Module,
+        criterion: torch.nn.Module,
         optimizer,
         scheduler,
         n_epochs=30,
@@ -174,6 +174,14 @@ class Trainer:
             self.logger.add_scalar(metric + "/" + mode, data[metric], epoch)
 
     def train_model(self, train_loader, valid_loader):
+
+        if self.model.self_supervised:
+            print('Training self-supervised model')
+            X_train = train_loader.dataset.X.unsqueeze(-1).numpy()
+            print(self.model.device)
+            self.model.train_embedding(X_train, verbose=True)
+            print('Training self-supervised part is finished')
+            
         if self.early_stop_patience and self.early_stop_patience != "None":
             earl_stopper = EarlyStopper(self.early_stop_patience)
 

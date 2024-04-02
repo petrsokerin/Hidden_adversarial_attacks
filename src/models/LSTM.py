@@ -2,9 +2,10 @@ import torch
 from torch import nn
 
 from .utils import Activation
+from .base_model import BaseModel
 
 
-class LSTM(nn.Module):
+class LSTM(BaseModel):
     def __init__(
         self,
         hidden_dim: int = 50,

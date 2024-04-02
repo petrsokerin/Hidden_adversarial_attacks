@@ -1,11 +1,11 @@
 import torch
-from torch import nn
 from tsai.models.all import RNNAttention
 
+from .base_model import BaseModel
 from .utils import Activation
 
 
-class RNNA(nn.Module):
+class RNNA(BaseModel):
     def __init__(self, activation_type: str = "sigmoid", **kwargs) -> None:
         super().__init__()
         self.model = RNNAttention(

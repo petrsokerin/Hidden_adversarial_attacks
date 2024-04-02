@@ -1,11 +1,11 @@
 import torch
-from torch import nn
 from tsai.models.all import ResCNN
 
+from .base_model import BaseModel
 from .utils import Activation
 
 
-class ResidualCNN(nn.Module):
+class ResidualCNN(BaseModel):
     def __init__(self, activation_type: str = "sigmoid", **kwargs) -> None:
         super().__init__()
         self.model = ResCNN(c_in=1, c_out=1, **kwargs).float()

@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
 
+from .base_model import BaseModel
 from .s4_utils import S4Block
 from .utils import Activation
 
 
-class S4(nn.Module):
+class S4(BaseModel):
     def __init__(
         self,
         input_dim: int = 1,
