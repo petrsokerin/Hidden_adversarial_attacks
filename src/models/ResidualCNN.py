@@ -1,18 +1,17 @@
-import torch.nn.functional as F
-from torch import nn
-
+import torch
 from tsai.models.all import ResCNN
 
-class ResidualCNN(nn.Module):
-    def __init__(self, **kwargs):
-        super().__init__() 
-        self.model = ResCNN(c_in=1, c_out=1, **kwargs).float()
+from .base_model import BaseModel
+from .utils import Activation
 
-    def forward(self, x):
-        x = x.transpose(1, 2)
-        #x = torch.unsqueeze(x, 1).float()
-        # = x.view([-1, 1, 500]).float() # 50 если slice=true
-        
-        preds = self.model(x)
-        output =  F.sigmoid(preds)
-        return output
+
+class ResidualCNN(BaseModel):
+    def __init__(self, activation_type: str = "sigmoid", **kwargs) -> None:
+        super().__init__()
+        self.model = ResCNN(c_in=1, c_out=1, **kwargs).float()
+        self.final_activation = Activation(activation_type)
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        X = X.transpose(1, 2)
+        output = self.model(X)
+        return self.final_activation(output)

@@ -1,7 +1,4 @@
 import warnings
-
-warnings.filterwarnings('ignore')
-
 import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
@@ -14,8 +11,9 @@ from src.data import load_data, transform_data, MyDataset
 from src.training.train import Trainer
 from src.utils import fix_seed, save_config
 
-CONFIG_NAME = 'train_classifier_config'
+warnings.filterwarnings('ignore')
 
+CONFIG_NAME = 'train_classifier_config'
 
 @hydra.main(config_path='config/my_configs', config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
