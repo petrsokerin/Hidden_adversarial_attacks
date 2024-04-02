@@ -11,7 +11,14 @@ from omegaconf import DictConfig
 from optuna.trial import Trial
 from torch.utils.data import DataLoader
 
-from src.config import get_criterion, get_model, get_optimizer, get_scheduler, get_attack
+from src.attacks import BaseIterativeAttack
+from src.config import (
+    get_attack,
+    get_criterion,
+    get_model,
+    get_optimizer,
+    get_scheduler,
+)
 from src.estimation import ClassifierEstimator
 from src.utils import (
     collect_default_params,
@@ -78,7 +85,7 @@ class Trainer:
         model_name: str = "LSTM",
         model_params: Dict = None,
         criterion_name: str = "BCELoss",
-        criterioin_params: Dict = None,
+        criterion_params: Dict = None,
         optimizer_name: str = "Adam",
         optimizer_params: Dict = None,
         scheduler_name: str = "None",
@@ -94,15 +101,15 @@ class Trainer:
         fix_seed(seed)
         if model_params == "None" or not model_params:
             model_params = {}
-        if criterioin_params == "None" or not criterioin_params:
-            criterioin_params = {}
+        if criterion_params == "None" or not criterion_params:
+            criterion_params = {}
         if optimizer_params == "None" or not optimizer_params:
             optimizer_params = {}
         if scheduler_params == "None" or not scheduler_params:
             scheduler_params = {}
 
         model = get_model(model_name, model_params, device=device)
-        criterion = get_criterion(criterion_name, criterioin_params)
+        criterion = get_criterion(criterion_name, criterion_params)
         optimizer = get_optimizer(optimizer_name, model.parameters(), optimizer_params)
         scheduler = get_scheduler(scheduler_name, optimizer, scheduler_params)
         return Trainer(
@@ -314,7 +321,7 @@ class Trainer:
 
         res.to_csv(path, index=False)
 
-    def save_result(self, save_path: str, model_name: str):
+    def save_result(self, save_path: str, model_name: str) -> None:
         print()
         if not os.path.isdir(save_path):
             os.makedirs(save_path)
@@ -324,15 +331,12 @@ class Trainer:
 
         self.save_metrics_as_csv(full_path + "_metrics.csv")
 
-        # with open(full_path+'_metrics.pickle', 'wb') as f:
-        #     pickle.dump(self.dict_logging, f)
-
 
 class DiscTrainer(Trainer):
     def __init__(
         self,
         model: torch.nn.Module,
-        attack: BaseAttack,
+        attack: BaseIterativeAttack,
         criterion: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler.LRScheduler,
@@ -360,23 +364,23 @@ class DiscTrainer(Trainer):
 
     @staticmethod
     def initialize_with_params(
-        model_name="LSTM",
-        model_params=None,
-        attack_name = 'FGSM',
-        attack_params = None,
-        criterion_name='BCELoss',
-        criterioin_params=None,
-        optimizer_name="Adam",
-        optimizer_params=None,
-        scheduler_name="None",
-        scheduler_params=None,
-        n_epochs=30,
-        early_stop_patience=None,
-        logger=None,
-        print_every=5,
-        device="cpu",
-        seed=0,
-        multiclass=False,
+        model_name: str = "LSTM",
+        model_params: Dict = None,
+        attack_name: str = "FGSM",
+        attack_params: Dict = None,
+        criterion_name: str = "BCELoss",
+        criterion_params: Dict = None,
+        optimizer_name: str = "Adam",
+        optimizer_params: Dict = None,
+        scheduler_name: str = "None",
+        scheduler_params: Dict = None,
+        n_epochs: int = 30,
+        early_stop_patience: int = None,
+        logger: Any = None,
+        print_every: int = 5,
+        device: str = "cpu",
+        seed: int = 0,
+        multiclass: bool = False,
     ):
         fix_seed(seed)
         if model_params == "None" or not model_params:
@@ -390,19 +394,17 @@ class DiscTrainer(Trainer):
 
         model = get_model(model_name, model_params, device=device)
         criterion = get_criterion(criterion_name, criterioin_params)
-        optimizer = get_optimizer(
-            optimizer_name, model.parameters(), optimizer_params)
-        scheduler = get_scheduler(
-            scheduler_name, optimizer, scheduler_params)
-        
+        optimizer = get_optimizer(optimizer_name, model.parameters(), optimizer_params)
+        scheduler = get_scheduler(scheduler_name, optimizer, scheduler_params)
+
         attack = get_attack(attack_name, attack_params)
-        
+
         return DiscTrainer(
-            model = model,
-            attack = attack,
-            criterion = criterion,
-            optimizer = optimizer,
-            scheduler = scheduler,
+            model=model,
+            attack=attack,
+            criterion=criterion,
+            optimizer=optimizer,
+            scheduler=scheduler,
             n_epochs=n_epochs,
             early_stop_patience=early_stop_patience,
             logger=logger,
@@ -411,7 +413,7 @@ class DiscTrainer(Trainer):
             multiclass=multiclass,
         )
 
-    def _generate_adversarial_data(self, loader):
+    def _generate_adversarial_data(self, loader: DataLoader) -> DataLoader:
         X_orig = torch.tensor(loader.dataset.X)
         X_adv = self.attack.apply_attack(loader).squeeze(-1)
 
