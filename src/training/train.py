@@ -11,8 +11,7 @@ from omegaconf import DictConfig
 from optuna.trial import Trial
 from torch.utils.data import DataLoader
 
-from src.attacks import BaseAttack
-from src.config import get_criterion, get_model, get_optimizer, get_scheduler
+from src.config import get_criterion, get_model, get_optimizer, get_scheduler, get_attack
 from src.estimation import ClassifierEstimator
 from src.utils import (
     collect_default_params,
@@ -363,7 +362,9 @@ class DiscTrainer(Trainer):
     def initialize_with_params(
         model_name="LSTM",
         model_params=None,
-        criterion_name="BCELoss",
+        attack_name = 'FGSM',
+        attack_params = None,
+        criterion_name='BCELoss',
         criterioin_params=None,
         optimizer_name="Adam",
         optimizer_params=None,
@@ -376,7 +377,6 @@ class DiscTrainer(Trainer):
         device="cpu",
         seed=0,
         multiclass=False,
-        attack=None,
     ):
         fix_seed(seed)
         if model_params == "None" or not model_params:
@@ -390,21 +390,25 @@ class DiscTrainer(Trainer):
 
         model = get_model(model_name, model_params, device=device)
         criterion = get_criterion(criterion_name, criterioin_params)
-        optimizer = get_optimizer(optimizer_name, model.parameters(), optimizer_params)
-        scheduler = get_scheduler(scheduler_name, optimizer, scheduler_params)
-
+        optimizer = get_optimizer(
+            optimizer_name, model.parameters(), optimizer_params)
+        scheduler = get_scheduler(
+            scheduler_name, optimizer, scheduler_params)
+        
+        attack = get_attack(attack_name, attack_params)
+        
         return DiscTrainer(
-            model=model,
-            criterion=criterion,
-            optimizer=optimizer,
-            scheduler=scheduler,
+            model = model,
+            attack = attack,
+            criterion = criterion,
+            optimizer = optimizer,
+            scheduler = scheduler,
             n_epochs=n_epochs,
             early_stop_patience=early_stop_patience,
             logger=logger,
             print_every=print_every,
             device=device,
             multiclass=multiclass,
-            attack=attack,
         )
 
     def _generate_adversarial_data(self, loader):
