@@ -186,7 +186,6 @@ class Trainer:
         if self.model.self_supervised:
             print("Training self-supervised model")
             X_train = train_loader.dataset.X.unsqueeze(-1).numpy()
-            print(self.model.device)
             self.model.train_embedding(X_train, verbose=True)
             print("Training self-supervised part is finished")
 
@@ -322,7 +321,6 @@ class Trainer:
         res.to_csv(path, index=False)
 
     def save_result(self, save_path: str, model_name: str) -> None:
-        print()
         if not os.path.isdir(save_path):
             os.makedirs(save_path)
 
