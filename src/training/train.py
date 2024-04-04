@@ -332,7 +332,7 @@ class Trainer:
             os.makedirs(save_path)
 
         full_path = save_path + "/" + model_name
-        torch.save(self.model.state_dict(), full_path + ".pth")
+        torch.save(self.model.state_dict(), full_path + ".pt")
 
         self.save_metrics_as_csv(full_path + "_metrics.csv")
 

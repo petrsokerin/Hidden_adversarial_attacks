@@ -36,7 +36,7 @@ def main(cfg: DictConfig):
     attack_model_path = os.path.join(
         cfg["model_folder"],
         cfg["attack_model"]["name"],
-        f"model_{cfg['model_id_attack']}_{cfg['dataset']}.pth",
+        f"model_{cfg['model_id_attack']}_{cfg['dataset']}.pt",
     )
 
     attack_model = get_model(
