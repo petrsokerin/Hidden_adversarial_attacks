@@ -39,7 +39,7 @@ training_params:
   model_name: ${model.name}
   model_params: ${model.params}
   criterion_name: BCELoss
-  criterioin_params: null
+  criterion_params: null
   optimizer_name: Adam
   optimizer_params:
     lr: 0.001
