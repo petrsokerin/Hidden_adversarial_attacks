@@ -1,11 +1,11 @@
-dataset: Coffee #GunPoint  
-slice: False
+dataset: FordA #GunPoint  
+slice: True
 save_path: checkpoints/${dataset}/${model.name}${exp_name}/
 test_run: False # If true results will be not saved!!!!
-exp_name: '_NEW'
+exp_name: '_NEW_CODE'
 
-model_id_start: 5
-model_id_finish: 6
+model_id_start: 0
+model_id_finish: 3
 batch_size: 128
 cuda: 'cuda:3'
 print_every: 1
@@ -24,16 +24,16 @@ training_params:
   criterion_params: None
   optimizer_name: Adam
   optimizer_params:
-    lr: 0.0001
+    lr: 0.001
   scheduler_name: StepLR
   scheduler_params: 
-    step_size: 40
+    step_size: 10
     gamma: 0.5
-  n_epochs: 100
+  n_epochs: 25
   early_stop_patience: None
 
 
-enable_optimization: True
+enable_optimization: False
 optuna_optimizer:
   n_trials: 5
   sampler:

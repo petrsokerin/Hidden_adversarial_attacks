@@ -1,8 +1,8 @@
-dataset: FordA
-slice: True
-use_disc_check: True
+dataset: PowerCons
+slice: False
+use_disc_check: False
 test_run: False # If true results will be not saved!!!!
-exp_name: '_LSTM_NEW'
+exp_name: '_NEW_CODE'
 
 model_folder: checkpoints/${dataset}
 disc_path: results/${dataset}/${attack_model.name}/discriminator/fgsm_attack
@@ -11,15 +11,15 @@ save_path: results/${dataset}/${attack_model.name}/attack/${attack.short_name}${
 model_id_attack: 0
 
 defaults:
-  - model@attack_model: LSTM
-  - model@disc_model_reg: LSTM
-  - model@disc_model_check: LSTM
-  - attack: FGSMDisc
+  - model@attack_model: S4
+  - model@disc_model_reg: S4
+  - model@disc_model_check: S4
+  - attack: FGSM
 
 criterion_name: BCELoss
 criterion_params: null
 
-batch_size: 64
+batch_size: 128
 cuda: 'cuda:1'
 
 metric_effect: F1
