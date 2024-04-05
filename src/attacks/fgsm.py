@@ -2,12 +2,12 @@ from typing import List
 
 import torch
 
+from src.attacks.base_attacks import BaseIterativeAttack
+from src.attacks.procedures import BatchIterativeAttack
+from src.attacks.regularizers import reg_disc, reg_neigh
+from src.attacks.utils import boltzman_loss
 from src.estimation import BaseEstimator
-from .utils import boltzman_loss
 
-from .base_attacks import BaseIterativeAttack
-from .procedures import BatchIterativeAttack
-from .regularizers import reg_disc, reg_neigh
 
 class FGSMAttack(BaseIterativeAttack, BatchIterativeAttack):
     def __init__(
@@ -83,7 +83,7 @@ class FGSMRegDiscAttack(FGSMAttack):
         use_sigmoid: bool = False,
         *args,
         **kwargs,
-     ) -> None:
+    ) -> None:
         super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
         self.alpha = alpha
         self.disc_models = disc_models
@@ -98,7 +98,8 @@ class FGSMRegDiscAttack(FGSMAttack):
 
         X_adv = self.get_adv_data(X, loss)
         return X_adv
-    
+
+
 class FGSMRegDiscSmoothMaxAttack(FGSMAttack):
     def __init__(
         self,
@@ -112,7 +113,7 @@ class FGSMRegDiscSmoothMaxAttack(FGSMAttack):
         use_sigmoid: bool = False,
         *args,
         **kwargs,
-     ) -> None:
+    ) -> None:
         super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
         self.beta = beta
         self.disc_models = disc_models

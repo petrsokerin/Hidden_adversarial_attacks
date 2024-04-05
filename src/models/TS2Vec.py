@@ -1,11 +1,11 @@
 import torch
 import torch.nn.functional as F
-from torch import nn
 
 from src.models.TS2Vec_src.ts2vec import TS2Vec
 
-from .utils import Activation, build_head
 from .base_model import BaseSelfSupervisedModel
+from .utils import Activation, build_head
+
 
 class TS2VEC(BaseSelfSupervisedModel):
     def __init__(

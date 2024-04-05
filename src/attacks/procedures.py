@@ -37,7 +37,9 @@ class BatchIterativeAttack:
         X_orig = X_orig.detach().numpy()
         X_adv = X_adv.detach().numpy()
 
-        metrics_line = self.estimator.estimate(y_true, y_pred_classes, y_pred_orig_classes, X_orig, X_adv)
+        metrics_line = self.estimator.estimate(
+            y_true, y_pred_classes, y_pred_orig_classes, X_orig, X_adv
+        )
         metrics_line = [step_id] + list(metrics_line)
         metrics_names = ["step_id"] + self.metrics_names
         df_line = pd.DataFrame(metrics_line, index=metrics_names).T
@@ -57,9 +59,9 @@ class BatchIterativeAttack:
 
         return y_pred_all_objects
 
-    def prepare_data_to_attack(self, X: torch.Tensor, y: torch.Tensor) -> Tuple[
-        torch.Tensor
-    ]:
+    def prepare_data_to_attack(
+        self, X: torch.Tensor, y: torch.Tensor
+    ) -> Tuple[torch.Tensor]:
         X.grad = None
         X.requires_grad = True
 
@@ -134,12 +136,26 @@ class BatchIterativeAttack:
             y_pred_orig = self.get_model_predictions(loader)
             y_pred_orig = y_pred_orig.cpu().detach()
             X_orig = loader.dataset.X.unsqueeze(-1)
-            self.log_step(y_true=y_true, y_pred=y_pred_orig, y_pred_orig=y_pred_orig, X_orig=X_orig, X_adv=X_orig, step_id=0)
+            self.log_step(
+                y_true=y_true,
+                y_pred=y_pred_orig,
+                y_pred_orig=y_pred_orig,
+                X_orig=X_orig,
+                X_adv=X_orig,
+                step_id=0,
+            )
 
         for step_id in tqdm(range(1, self.n_steps + 1)):
             if self.logging:
                 X_adv, _, y_pred = self.run_iteration_log(loader)
-                self.log_step(y_true=y_true, y_pred=y_pred, y_pred_orig=y_pred_orig, X_orig=X_orig, X_adv=X_adv, step_id=step_id)
+                self.log_step(
+                    y_true=y_true,
+                    y_pred=y_pred,
+                    y_pred_orig=y_pred_orig,
+                    X_orig=X_orig,
+                    X_adv=X_adv,
+                    step_id=step_id,
+                )
             else:
                 X_adv, _ = self.run_iteration(loader)
 

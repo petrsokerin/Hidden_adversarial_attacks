@@ -10,15 +10,13 @@ from omegaconf import DictConfig
 from optuna.trial import Trial
 from torch.utils.data import DataLoader
 
-from src.utils import (
-    collect_default_params,
-    get_optimization_dict,
-    update_dict_params,
-)
+from src.utils import collect_default_params, get_optimization_dict, update_dict_params
 
 
 class BaseIterativeAttack(ABC):
-    def __init__(self, model: torch.nn.Module, n_steps: int = 50, *args, **kwargs) -> None:
+    def __init__(
+        self, model: torch.nn.Module, n_steps: int = 50, *args, **kwargs
+    ) -> None:
         self.model = model
         self.device = next(model.parameters()).device
         self.n_steps = n_steps
