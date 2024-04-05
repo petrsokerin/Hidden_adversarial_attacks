@@ -47,7 +47,9 @@ def get_model(
         raise ValueError(f"Model with name {model_name} is not implemented")
 
 
-def get_criterion(criterion_name: str, criterion_params: Dict = None) -> torch.nn.Module:
+def get_criterion(
+    criterion_name: str, criterion_params: Dict = None
+) -> torch.nn.Module:
     if criterion_params is None:
         criterion_params = dict()
     try:
@@ -56,7 +58,9 @@ def get_criterion(criterion_name: str, criterion_params: Dict = None) -> torch.n
         raise ValueError(f"Criterion with name {criterion_name} is not implemented")
 
 
-def get_optimizer(optimizer_name: str, model_params: Dict, optimizer_params: Iterable = None):
+def get_optimizer(
+    optimizer_name: str, model_params: Dict, optimizer_params: Iterable = None
+):
     if optimizer_params is None:
         optimizer_params = dict()
     try:
@@ -65,7 +69,9 @@ def get_optimizer(optimizer_name: str, model_params: Dict, optimizer_params: Ite
         raise ValueError(f"Optimizer with name {optimizer_name} is not implemented")
 
 
-def get_scheduler(scheduler_name: str, optimizer: torch.optim.Optimizer, scheduler_params: Dict = None) -> torch.optim.lr_scheduler.LRScheduler:
+def get_scheduler(
+    scheduler_name: str, optimizer: torch.optim.Optimizer, scheduler_params: Dict = None
+) -> torch.optim.lr_scheduler.LRScheduler:
     if scheduler_params is None:
         scheduler_params = dict()
     try:

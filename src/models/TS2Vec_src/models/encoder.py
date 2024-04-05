@@ -1,7 +1,7 @@
+import numpy as np
 import torch
 from torch import nn
-import torch.nn.functional as F
-import numpy as np
+
 from .dilated_conv import DilatedConvEncoder
 
 
@@ -18,7 +18,7 @@ def generate_continuous_mask(B, T, n=5, l=0.1):
     for i in range(B):
         for _ in range(n):
             t = np.random.randint(T - l + 1)
-            res[i, t:t + l] = False
+            res[i, t : t + l] = False
     return res
 
 
@@ -27,7 +27,15 @@ def generate_binomial_mask(B, T, p=0.5):
 
 
 class TSEncoder(nn.Module):
-    def __init__(self, input_dims, output_dims, hidden_dims=64, depth=10, mask_mode='binomial', dropout=0.1):
+    def __init__(
+        self,
+        input_dims,
+        output_dims,
+        hidden_dims=64,
+        depth=10,
+        mask_mode="binomial",
+        dropout=0.1,
+    ):
         super().__init__()
         self.input_dims = input_dims
         self.output_dims = output_dims
@@ -35,9 +43,7 @@ class TSEncoder(nn.Module):
         self.mask_mode = mask_mode
         self.input_fc = nn.Linear(input_dims, hidden_dims)
         self.feature_extractor = DilatedConvEncoder(
-            hidden_dims,
-            [hidden_dims] * depth + [output_dims],
-            kernel_size=3
+            hidden_dims, [hidden_dims] * depth + [output_dims], kernel_size=3
         )
         self.repr_dropout = nn.Dropout(p=dropout)
 
@@ -51,17 +57,17 @@ class TSEncoder(nn.Module):
             if self.training:
                 mask = self.mask_mode
             else:
-                mask = 'all_true'
+                mask = "all_true"
 
-        if mask == 'binomial':
+        if mask == "binomial":
             mask = generate_binomial_mask(x.size(0), x.size(1)).to(x.device)
-        elif mask == 'continuous':
+        elif mask == "continuous":
             mask = generate_continuous_mask(x.size(0), x.size(1)).to(x.device)
-        elif mask == 'all_true':
+        elif mask == "all_true":
             mask = x.new_full((x.size(0), x.size(1)), True, dtype=torch.bool)
-        elif mask == 'all_false':
+        elif mask == "all_false":
             mask = x.new_full((x.size(0), x.size(1)), False, dtype=torch.bool)
-        elif mask == 'mask_last':
+        elif mask == "mask_last":
             mask = x.new_full((x.size(0), x.size(1)), True, dtype=torch.bool)
             mask[:, -1] = False
 

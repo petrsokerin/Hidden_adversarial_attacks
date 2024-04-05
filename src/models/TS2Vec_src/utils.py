@@ -1,18 +1,18 @@
-import os
-import numpy as np
 import pickle
-import torch
 import random
 from datetime import datetime
 
+import numpy as np
+import torch
+
 
 def pkl_save(name, var):
-    with open(name, 'wb') as f:
+    with open(name, "wb") as f:
         pickle.dump(var, f)
 
 
 def pkl_load(name):
-    with open(name, 'rb') as f:
+    with open(name, "rb") as f:
         return pickle.load(f)
 
 
@@ -38,7 +38,7 @@ def pad_nan_to_target(array, target_length, axis=0, both_side=False):
         npad[axis] = (pad_size // 2, pad_size - pad_size // 2)
     else:
         npad[axis] = (0, pad_size)
-    return np.pad(array, pad_width=npad, mode='constant', constant_values=np.nan)
+    return np.pad(array, pad_width=npad, mode="constant", constant_values=np.nan)
 
 
 def split_with_nan(x, sections, axis=0):
@@ -59,7 +59,7 @@ def centerize_vary_length_series(x):
     prefix_zeros = np.argmax(~np.isnan(x).all(axis=-1), axis=1)
     suffix_zeros = np.argmax(~np.isnan(x[:, ::-1]).all(axis=-1), axis=1)
     offset = (prefix_zeros + suffix_zeros) // 2 - prefix_zeros
-    rows, column_indices = np.ogrid[:x.shape[0], :x.shape[1]]
+    rows, column_indices = np.ogrid[: x.shape[0], : x.shape[1]]
     offset[offset < 0] += x.shape[1]
     column_indices = column_indices - offset[:, np.newaxis]
     return x[rows, column_indices]
@@ -68,32 +68,29 @@ def centerize_vary_length_series(x):
 def data_dropout(arr, p):
     B, T = arr.shape[0], arr.shape[1]
     mask = np.full(B * T, False, dtype=np.bool)
-    ele_sel = np.random.choice(
-        B * T,
-        size=int(B * T * p),
-        replace=False
-    )
+    ele_sel = np.random.choice(B * T, size=int(B * T * p), replace=False)
     mask[ele_sel] = True
     res = arr.copy()
     res[mask.reshape(B, T)] = np.nan
     return res
 
 
-def name_with_datetime(prefix='default'):
+def name_with_datetime(prefix="default"):
     now = datetime.now()
-    return prefix + '_' + now.strftime("%Y%m%d_%H%M%S")
+    return prefix + "_" + now.strftime("%Y%m%d_%H%M%S")
 
 
 def init_dl_program(
-        device_name,
-        seed=None,
-        use_cudnn=True,
-        deterministic=False,
-        benchmark=False,
-        use_tf32=False,
-        max_threads=None
+    device_name,
+    seed=None,
+    use_cudnn=True,
+    deterministic=False,
+    benchmark=False,
+    use_tf32=False,
+    max_threads=None,
 ):
     import torch
+
     if max_threads is not None:
         torch.set_num_threads(max_threads)  # intraop
         if torch.get_num_interop_threads() != max_threads:
@@ -119,7 +116,7 @@ def init_dl_program(
     for t in reversed(device_name):
         t_device = torch.device(t)
         devices.append(t_device)
-        if t_device.type == 'cuda':
+        if t_device.type == "cuda":
             assert torch.cuda.is_available()
             torch.cuda.set_device(t_device)
             if seed is not None:
@@ -130,7 +127,7 @@ def init_dl_program(
     torch.backends.cudnn.deterministic = deterministic
     torch.backends.cudnn.benchmark = benchmark
 
-    if hasattr(torch.backends.cudnn, 'allow_tf32'):
+    if hasattr(torch.backends.cudnn, "allow_tf32"):
         torch.backends.cudnn.allow_tf32 = use_tf32
         torch.backends.cuda.matmul.allow_tf32 = use_tf32
 

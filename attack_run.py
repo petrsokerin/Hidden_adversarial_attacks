@@ -1,3 +1,4 @@
+import os
 import warnings
 
 import hydra
@@ -6,7 +7,7 @@ import torch
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 
-from src.config import *
+from src.config import get_attack, get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
 from src.utils import save_experiment
@@ -14,6 +15,7 @@ from src.utils import save_experiment
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "attack_run_config"
+
 
 @hydra.main(config_path="config/my_configs", config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
@@ -36,7 +38,7 @@ def main(cfg: DictConfig):
     attack_model_path = os.path.join(
         cfg["model_folder"],
         cfg["attack_model"]["name"],
-        f"model_{cfg['model_id_attack']}_{cfg['dataset']}.pth",
+        f"model_{cfg['model_id_attack']}_{cfg['dataset']}.pt",
     )
 
     attack_model = get_model(
@@ -79,6 +81,7 @@ def main(cfg: DictConfig):
                 train_mode=cfg["disc_model_reg"]["attack_train_mode"],
             )
 
+        attack = get_attack(cfg["attack"]["name"], const_params)
         attack = attack.initialize_with_optimization(
             test_loader, cfg["optuna_optimizer"], const_params
         )

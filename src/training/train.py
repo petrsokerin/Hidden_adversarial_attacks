@@ -79,7 +79,7 @@ class Trainer:
         self.print_every = print_every
 
         self.logger = logger
-        self.dict_logging = {}
+        self.dict_logging = dict()
 
     @staticmethod
     def initialize_with_params(
@@ -332,7 +332,7 @@ class Trainer:
             os.makedirs(save_path)
 
         full_path = save_path + "/" + model_name
-        torch.save(self.model.state_dict(), full_path + ".pth")
+        torch.save(self.model.state_dict(), full_path + ".pt")
 
         self.save_metrics_as_csv(full_path + "_metrics.csv")
 
@@ -447,9 +447,7 @@ class DiscTrainer(Trainer):
         best_params = study.best_params.copy()
         print("BEST", best_params)
         best_params = update_dict_params(default_params, best_params)
-        best_params = update_params_with_attack_params(
-            const_params, best_params
-        )
+        best_params = update_params_with_attack_params(const_params, best_params)
         print("Best parameters are - %s", best_params)
         return DiscTrainer.initialize_with_params(**best_params)
 

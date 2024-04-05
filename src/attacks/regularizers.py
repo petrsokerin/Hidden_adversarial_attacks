@@ -3,9 +3,8 @@ from typing import List
 import torch
 import torch.nn.functional as F
 
+from src.attacks.utils import boltzmann
 from src.utils import req_grad
-
-from .utils import boltzmann
 
 
 def reg_neigh(X: torch.Tensor, alpha: float) -> torch.Tensor:
