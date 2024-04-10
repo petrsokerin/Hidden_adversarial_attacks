@@ -42,7 +42,7 @@ def main(cfg: DictConfig):
     )
 
     train_loader = DataLoader(
-        MyDataset(X_train, y_train, augmentator),
+        MyDataset(X_train, y_train),
         batch_size=cfg["batch_size"],
         shuffle=True,
     )
@@ -58,7 +58,7 @@ def main(cfg: DictConfig):
     attack_model_path = os.path.join(
         cfg["model_folder"],
         cfg["attack_model"]["name"],
-        f"model_{cfg['model_id_attack']}_{cfg['dataset']}.pth",
+        f"model_{cfg['model_id_attack']}_{cfg['dataset']}.pt",
     )
 
     attack_model = get_model(
@@ -117,7 +117,7 @@ def main(cfg: DictConfig):
             disc_trainer = DiscTrainer.initialize_with_optimization(
                 train_loader, test_loader, cfg["optuna_optimizer"], const_params
             )
-            disc_trainer.train_model(train_loader, test_loader)
+            disc_trainer.train_model(train_loader, test_loader, augmentator)
 
             if not cfg["test_run"]:
                 model_save_name = f"{model_id}"
@@ -167,7 +167,7 @@ def main(cfg: DictConfig):
 
                     disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
 
-                    disc_trainer.train_model(train_loader, test_loader)
+                    disc_trainer.train_model(train_loader, test_loader, augmentator)
 
                     if not cfg["test_run"]:
                         model_save_name = f"{model_id}"

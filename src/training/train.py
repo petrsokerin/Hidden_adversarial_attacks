@@ -470,10 +470,10 @@ class DiscTrainer(Trainer):
         last_epoch_metrics = model.train_model(train_loader, valid_loader)
         return last_epoch_metrics[optim_metric]
 
-    def _generate_adversarial_data(self, loader: DataLoader) -> DataLoader:
+    def _generate_adversarial_data(self, loader: DataLoader, transform=None) -> DataLoader:
         X_orig = torch.tensor(loader.dataset.X)
         X_adv = self.attack.apply_attack(loader).squeeze(-1)
-
+        
         assert X_orig.shape == X_adv.shape
 
         disc_labels_zeros = torch.zeros_like(loader.dataset.y)
@@ -483,16 +483,16 @@ class DiscTrainer(Trainer):
         new_y = torch.concat([disc_labels_zeros, disc_labels_ones], dim=0)
 
         dataset_class = loader.dataset.__class__
-        dataset = dataset_class(new_x, new_y)
+        dataset = dataset_class(new_x, new_y, transform)
 
         loader = DataLoader(dataset, batch_size=loader.batch_size, shuffle=True)
 
         return loader
 
     def train_model(
-        self, train_loader: DataLoader, valid_loader: DataLoader
+        self, train_loader: DataLoader, valid_loader: DataLoader, transform
     ) -> Dict[str, float]:
-        train_loader = self._generate_adversarial_data(train_loader)
+        train_loader = self._generate_adversarial_data(train_loader, transform)
         valid_loader = self._generate_adversarial_data(valid_loader)
 
         return super().train_model(train_loader, valid_loader)
