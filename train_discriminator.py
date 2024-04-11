@@ -54,6 +54,7 @@ def main(cfg: DictConfig):
     )
 
     device = torch.device(cfg["cuda"] if torch.cuda.is_available() else "cpu")
+    print('Script DEVICE', device)
 
     attack_model_path = os.path.join(
         cfg["model_folder"],
@@ -161,6 +162,8 @@ def main(cfg: DictConfig):
 
                     trainer_params = dict(cfg["training_params"])
                     trainer_params["logger"] = logger
+                    trainer_params["device"] = device
+                    trainer_params["seed"] = model_id
 
                     trainer_params["attack_name"] = cfg["attack"]["name"]
                     trainer_params["attack_params"] = attack_params
