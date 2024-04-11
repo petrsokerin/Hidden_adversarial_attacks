@@ -520,7 +520,7 @@ class DiscTrainer(Trainer):
         if self.early_stop_patience and self.early_stop_patience != "None":
             earl_stopper = EarlyStopper(self.early_stop_patience)
 
-        metric_names = ["loss"] + self.estimator.get_metrics_names()
+        metric_names = ["loss"] + self.estimator.get_metrics_names() + ["eps"]
         self.dict_logging = {
             "train": {metric: [] for metric in metric_names},
             "test": {metric: [] for metric in metric_names},
@@ -534,6 +534,7 @@ class DiscTrainer(Trainer):
 
         for epoch in range(self.n_epochs):
             train_metrics_epoch = self._train_step(adv_train_loader)
+            train_metrics_epoch = list(train_metrics_epoch) + [cur_eps]
             train_metrics_epoch = {
                 met_name: met_val
                 for met_name, met_val in zip(metric_names, train_metrics_epoch)
@@ -542,6 +543,7 @@ class DiscTrainer(Trainer):
             self._logging(train_metrics_epoch, epoch, mode="train")
 
             test_metrics_epoch = self._valid_step(adv_valid_loader)
+            test_metrics_epoch = list(test_metrics_epoch) + [cur_eps]
             test_metrics_epoch = {
                 met_name: met_val
                 for met_name, met_val in zip(metric_names, test_metrics_epoch)
@@ -574,7 +576,7 @@ class DiscTrainer(Trainer):
 
                 if cur_eps != self.attack.eps and epoch != self.n_epochs + 1:
                     cur_eps = self.attack.eps
-                    print("----- New epsilon", cur_eps)
+                    print("----- New epsilon", round(cur_eps, 3))
                     adv_train_loader = self._generate_adversarial_data(
                         train_loader, transform
                     )
