@@ -30,8 +30,8 @@ class ClassifierEstimator(BaseEstimator):
             "precision": roc_auc_score,
             "recall": average_precision_score,
             "f1": f1_score,
-            "balance_true": lambda y_true, y_pred: np.mean(y_true),
-            "balance_pred": lambda y_true, y_pred: np.mean(y_pred),
+            "balance_true": lambda y_true, y_pred: np.mean(y_true).item(),
+            "balance_pred": lambda y_true, y_pred: np.mean(y_pred).item(),
         }
         self.metrics_names = list(self.metrics.keys())
 
