@@ -555,20 +555,22 @@ class DiscTrainer(Trainer):
                 )
                 print(print_line)
 
+
+            if self.early_stop_patience and self.early_stop_patience != "None":
+                res_early_stop = earl_stopper.early_stop(test_metrics_epoch["loss"])
+                if res_early_stop:
+                    break
+
             if self.scheduler:
                 self.scheduler.step()
 
             if self.attack_scheduler:
                 self.attack = self.attack_scheduler.step()
 
-                if cur_eps != self.attack.eps:
+                if cur_eps != self.attack.eps and epoch != self.n_epoch + 1:
                     cur_eps = self.attack.eps
                     print('----- New epsilon', cur_eps)
                     adv_train_loader = self._generate_adversarial_data(train_loader, transform)
                     adv_valid_loader = self._generate_adversarial_data(valid_loader)
 
-            if self.early_stop_patience and self.early_stop_patience != "None":
-                res_early_stop = earl_stopper.early_stop(test_metrics_epoch["loss"])
-                if res_early_stop:
-                    break
         return test_metrics_epoch
