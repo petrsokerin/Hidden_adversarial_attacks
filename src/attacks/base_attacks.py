@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from copy import copy
 from functools import partial
 from pyclbr import Class
 from typing import Dict
@@ -10,7 +11,12 @@ from omegaconf import DictConfig
 from optuna.trial import Trial
 from torch.utils.data import DataLoader
 
-from src.utils import collect_default_params, get_optimization_dict, update_dict_params
+from src.utils import (
+    collect_default_params,
+    get_optimization_dict,
+    update_dict_params,
+    update_params_with_attack_params,
+)
 
 
 class BaseIterativeAttack(ABC):
@@ -56,8 +62,7 @@ class BaseIterativeAttack(ABC):
         default_params = collect_default_params(optuna_params["hyperparameters_vary"])
         best_params = study.best_params.copy()
         best_params = update_dict_params(default_params, best_params)
-
-        best_params.update(const_params)
+        best_params = update_params_with_attack_params(const_params, best_params)
 
         print("Best parameters are - %s", best_params)
         return attack_class(**dict(best_params))
@@ -71,7 +76,7 @@ class BaseIterativeAttack(ABC):
         attack_class: Class,
         optim_metric: str = "F_EFF_CONC",
     ) -> float:
-        params = const_params
+        params = copy(const_params)
 
         initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
         initial_model_parameters = dict(initial_model_parameters)
