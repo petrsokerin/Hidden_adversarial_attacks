@@ -25,20 +25,42 @@ class BaseEstimator(ABC):
 
 class ClassifierEstimator(BaseEstimator):
     def __init__(self) -> None:
-        self.metrics = {
+        self.sklearn_metrics = {
             "accuracy": accuracy_score,
             "precision": roc_auc_score,
             "recall": average_precision_score,
             "f1": f1_score,
-            "balance_true": lambda y_true, y_pred: np.mean(y_true),
-            "balance_pred": lambda y_true, y_pred: np.mean(y_pred),
         }
-        self.metrics_names = list(self.metrics.keys())
+        self.metrics_names = list(self.sklearn_metrics.keys()) + [
+            "balance_true",
+            "balance_pred",
+            "uncertainty",
+        ]
 
-    def estimate(self, y_true: np.ndarray, y_pred: np.ndarray) -> List[float]:
+    @staticmethod
+    def balance(y):
+        return np.mean(y)
+
+    @staticmethod
+    def uncertainty(y_pred_probs: np.ndarray) -> float:
+        prob_1 = y_pred_probs
+        prob_0 = 1 - prob_1
+        max_prob = np.max(np.stack([prob_1, prob_0], axis=1), axis=1)
+
+        assert max_prob.shape == y_pred_probs.shape
+
+        return np.mean(max_prob)
+
+    def estimate(
+        self, y_true: np.ndarray, y_pred: np.ndarray, y_pred_probs: np.ndarray
+    ) -> List[float]:
         metrics_res = []
-        for _, metric_func in self.metrics.items():
+        for _, metric_func in self.sklearn_metrics.items():
             metrics_res.append(metric_func(y_true, y_pred))
+
+        metrics_res.append(self.balance(y_true))
+        metrics_res.append(self.balance(y_pred))
+        metrics_res.append(self.uncertainty(y_pred_probs))
         return metrics_res
 
 

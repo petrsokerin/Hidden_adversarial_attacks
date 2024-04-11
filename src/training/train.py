@@ -252,6 +252,7 @@ class Trainer:
         losses = 0
 
         y_all_pred = torch.tensor([])
+        y_all_pred_prob = torch.tensor([])
         y_all_true = torch.tensor([])
 
         self.model.train(True)
@@ -274,20 +275,23 @@ class Trainer:
                 y_pred = torch.round(y_out)
 
             y_all_true = torch.cat((y_all_true, labels.cpu().detach()), dim=0)
+            y_all_pred_prob = torch.cat((y_all_pred_prob, y_out.cpu().detach()), dim=0)
             y_all_pred = torch.cat((y_all_pred, y_pred.cpu().detach()), dim=0)
 
         mean_loss = losses.cpu().detach().numpy() / len(loader)
 
         y_all_pred = y_all_pred.numpy().reshape([-1, 1])
+        y_all_pred_prob = y_all_pred_prob.numpy().reshape([-1, 1])
         y_all_true = y_all_true.numpy().reshape([-1, 1])
 
-        metrics = self.estimator.estimate(y_all_true, y_all_pred)
+        metrics = self.estimator.estimate(y_all_true, y_all_pred, y_all_pred_prob)
 
         metrics = [mean_loss] + metrics
         return metrics
 
     def _valid_step(self, loader: DataLoader) -> List[float]:
         y_all_pred = torch.tensor([])
+        y_all_pred_prob = torch.tensor([])
         y_all_true = torch.tensor([])
 
         losses = 0
@@ -308,14 +312,17 @@ class Trainer:
                     y_pred = torch.round(y_out)
 
             y_all_true = torch.cat((y_all_true, labels.cpu().detach()), dim=0)
+            y_all_pred_prob = torch.cat((y_all_pred_prob, y_out.cpu().detach()), dim=0)
             y_all_pred = torch.cat((y_all_pred, y_pred.cpu().detach()), dim=0)
 
         mean_loss = losses.cpu().detach().numpy() / len(loader)
 
         y_all_pred = y_all_pred.numpy().reshape([-1, 1])
+        y_all_pred_prob = y_all_pred_prob.numpy().reshape([-1, 1])
         y_all_true = y_all_true.numpy().reshape([-1, 1])
 
-        metrics = self.estimator.estimate(y_all_true, y_all_pred)
+        metrics = self.estimator.estimate(y_all_true, y_all_pred, y_all_pred_prob)
+
         metrics = [mean_loss] + metrics
         return metrics
 
@@ -501,7 +508,6 @@ class DiscTrainer(Trainer):
 
         return loader
 
-
     def train_model(
         self, train_loader: DataLoader, valid_loader: DataLoader, transform
     ) -> Dict[str, float]:
@@ -555,7 +561,6 @@ class DiscTrainer(Trainer):
                 )
                 print(print_line)
 
-
             if self.early_stop_patience and self.early_stop_patience != "None":
                 res_early_stop = earl_stopper.early_stop(test_metrics_epoch["loss"])
                 if res_early_stop:
@@ -569,8 +574,10 @@ class DiscTrainer(Trainer):
 
                 if cur_eps != self.attack.eps and epoch != self.n_epochs + 1:
                     cur_eps = self.attack.eps
-                    print('----- New epsilon', cur_eps)
-                    adv_train_loader = self._generate_adversarial_data(train_loader, transform)
+                    print("----- New epsilon", cur_eps)
+                    adv_train_loader = self._generate_adversarial_data(
+                        train_loader, transform
+                    )
                     adv_valid_loader = self._generate_adversarial_data(valid_loader)
 
         return test_metrics_epoch
