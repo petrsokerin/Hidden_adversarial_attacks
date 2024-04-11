@@ -44,9 +44,13 @@ training_params:
   optimizer_params:
     lr: 0.001
   scheduler_name: StepLR
-  scheduler_params: 
+  scheduler_params:
     step_size: 10
     gamma: 0.5
+  attack_scheduler_name: StepAttackScheduler
+  attack_scheduler_params:
+    attack_step_size: 1
+    attack_gamma: 0.99
   n_epochs: 40
   print_every: ${print_every}
   early_stop_patience: null
@@ -62,39 +66,39 @@ optuna_optimizer:
     _target_: optuna.pruners.MedianPruner
   optim_metric: f1
   hyperparameters_vary:
-# ATTACK 
+# ATTACK
     attack_name:
       optuna_type: const
       value: ${attack.name}
     attack_params: ${attack.hyperparameters_vary}
-# MODEL 
-    model_name: 
+# MODEL
+    model_name:
       optuna_type: const
       value: ${model.name}
     model_params: ${model.hyperparameters_vary}
-    criterion_name: 
+    criterion_name:
       optuna_type: const
       value: BCELoss
     criterion_params:
       optuna_type: const
       value: None
-    optimizer_name: 
+    optimizer_name:
       optuna_type: choice
-      choices: 
+      choices:
         - Adam
         - AdamW
     optimizer_params:
-      lr: 
+      lr:
         optuna_type: float
         low: 0.0001
-        high: 0.01 
+        high: 0.01
         log: True
-    scheduler_name: 
+    scheduler_name:
       optuna_type: const
       value: StepLR
-    scheduler_params: 
+    scheduler_params:
       optuna_type: const
-      value: 
+      value:
         step_size: 10
         gamma: 0.5
     n_epochs:

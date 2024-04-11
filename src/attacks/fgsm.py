@@ -123,7 +123,8 @@ class FGSMRegDiscSmoothMaxAttack(FGSMAttack):
     def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         loss = self.get_loss(X, y_true)
 
-        reg_value = - reg_disc(X, self.disc_models, self.use_sigmoid)
+        reg_value = -reg_disc(X, self.disc_models, self.use_sigmoid)
+        print(loss.item(), reg_value.item())
         loss_bolzman = boltzman_loss(loss, reg_value, beta=self.beta)
         X_adv = self.get_adv_data(X, loss_bolzman)
         return X_adv

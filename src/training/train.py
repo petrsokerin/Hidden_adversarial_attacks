@@ -12,8 +12,10 @@ from optuna.trial import Trial
 from torch.utils.data import DataLoader
 
 from src.attacks import BaseIterativeAttack
+from src.attacks.attack_scheduler import AttackScheduler
 from src.config import (
     get_attack,
+    get_attack_scheduler,
     get_criterion,
     get_model,
     get_optimizer,
@@ -345,6 +347,7 @@ class DiscTrainer(Trainer):
         criterion: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler.LRScheduler,
+        attack_scheduler: AttackScheduler,
         n_epochs: int = 30,
         early_stop_patience: int = None,
         logger: Any = None,
@@ -366,6 +369,7 @@ class DiscTrainer(Trainer):
         )
 
         self.attack = attack
+        self.attack_scheduler = attack_scheduler
 
     @staticmethod
     def initialize_with_params(
@@ -379,6 +383,8 @@ class DiscTrainer(Trainer):
         optimizer_params: Dict = None,
         scheduler_name: str = "None",
         scheduler_params: Dict = None,
+        attack_scheduler_name: str = "None",
+        attack_scheduler_params: Dict = None,
         n_epochs: int = 30,
         early_stop_patience: int = None,
         logger: Any = None,
@@ -403,6 +409,9 @@ class DiscTrainer(Trainer):
         scheduler = get_scheduler(scheduler_name, optimizer, scheduler_params)
 
         attack = get_attack(attack_name, attack_params)
+        attack_scheduler = get_attack_scheduler(
+            attack_scheduler_name, attack, attack_scheduler_params
+        )
 
         return DiscTrainer(
             model=model,
@@ -410,6 +419,7 @@ class DiscTrainer(Trainer):
             criterion=criterion,
             optimizer=optimizer,
             scheduler=scheduler,
+            attack_scheduler=attack_scheduler,
             n_epochs=n_epochs,
             early_stop_patience=early_stop_patience,
             logger=logger,
@@ -470,10 +480,12 @@ class DiscTrainer(Trainer):
         last_epoch_metrics = model.train_model(train_loader, valid_loader)
         return last_epoch_metrics[optim_metric]
 
-    def _generate_adversarial_data(self, loader: DataLoader, transform=None) -> DataLoader:
+    def _generate_adversarial_data(
+        self, loader: DataLoader, transform=None
+    ) -> DataLoader:
         X_orig = torch.tensor(loader.dataset.X)
         X_adv = self.attack.apply_attack(loader).squeeze(-1)
-        
+
         assert X_orig.shape == X_adv.shape
 
         disc_labels_zeros = torch.zeros_like(loader.dataset.y)
@@ -496,3 +508,68 @@ class DiscTrainer(Trainer):
         valid_loader = self._generate_adversarial_data(valid_loader)
 
         return super().train_model(train_loader, valid_loader)
+
+    def train_model(
+        self, train_loader: DataLoader, valid_loader: DataLoader, transform
+    ) -> Dict[str, float]:
+        if self.model.self_supervised:
+            print("Training self-supervised model")
+            X_train = train_loader.dataset.X.unsqueeze(-1).numpy()
+            self.model.train_embedding(X_train, verbose=True)
+            print("Training self-supervised part is finished")
+
+        if self.early_stop_patience and self.early_stop_patience != "None":
+            earl_stopper = EarlyStopper(self.early_stop_patience)
+
+        metric_names = ["loss"] + self.estimator.get_metrics_names()
+        self.dict_logging = {
+            "train": {metric: [] for metric in metric_names},
+            "test": {metric: [] for metric in metric_names},
+        }
+
+        fill_line = "Epoch {} train loss: {}; acc_train {}; test loss: {}; acc_test {}; f1_test {}; balance {}"
+
+        train_loader = self._generate_adversarial_data(train_loader, transform)
+        valid_loader = self._generate_adversarial_data(valid_loader)
+        for epoch in range(self.n_epochs):
+            train_metrics_epoch = self._train_step(train_loader)
+            train_metrics_epoch = {
+                met_name: met_val
+                for met_name, met_val in zip(metric_names, train_metrics_epoch)
+            }
+
+            self._logging(train_metrics_epoch, epoch, mode="train")
+
+            test_metrics_epoch = self._valid_step(valid_loader)
+            test_metrics_epoch = {
+                met_name: met_val
+                for met_name, met_val in zip(metric_names, test_metrics_epoch)
+            }
+
+            self._logging(test_metrics_epoch, epoch, mode="test")
+
+            if epoch % self.print_every == 0:
+                print_line = fill_line.format(
+                    epoch + 1,
+                    round(train_metrics_epoch["loss"], 3),
+                    round(train_metrics_epoch["accuracy"], 3),
+                    round(test_metrics_epoch["loss"], 3),
+                    round(test_metrics_epoch["accuracy"], 3),
+                    round(test_metrics_epoch["f1"], 3),
+                    round(test_metrics_epoch["balance_pred"], 3),
+                )
+                print(print_line)
+
+            if self.scheduler:
+                self.scheduler.step()
+
+            if self.attack_scheduler:
+                self.attack = self.attack_scheduler.step()
+                # train_loader = self._generate_adversarial_data(train_loader, transform)
+                # valid_loader = self._generate_adversarial_data(valid_loader)
+
+            if self.early_stop_patience and self.early_stop_patience != "None":
+                res_early_stop = earl_stopper.early_stop(test_metrics_epoch["loss"])
+                if res_early_stop:
+                    break
+        return test_metrics_epoch
