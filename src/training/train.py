@@ -529,10 +529,11 @@ class DiscTrainer(Trainer):
 
         fill_line = "Epoch {} train loss: {}; acc_train {}; test loss: {}; acc_test {}; f1_test {}; balance {}"
 
-        train_loader = self._generate_adversarial_data(train_loader, transform)
-        valid_loader = self._generate_adversarial_data(valid_loader)
+        adv_train_loader = self._generate_adversarial_data(train_loader, transform)
+        adv_valid_loader = self._generate_adversarial_data(valid_loader)
+        
         for epoch in range(self.n_epochs):
-            train_metrics_epoch = self._train_step(train_loader)
+            train_metrics_epoch = self._train_step(adv_train_loader)
             train_metrics_epoch = {
                 met_name: met_val
                 for met_name, met_val in zip(metric_names, train_metrics_epoch)
@@ -540,7 +541,7 @@ class DiscTrainer(Trainer):
 
             self._logging(train_metrics_epoch, epoch, mode="train")
 
-            test_metrics_epoch = self._valid_step(valid_loader)
+            test_metrics_epoch = self._valid_step(adv_valid_loader)
             test_metrics_epoch = {
                 met_name: met_val
                 for met_name, met_val in zip(metric_names, test_metrics_epoch)
