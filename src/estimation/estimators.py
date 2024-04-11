@@ -34,12 +34,12 @@ class ClassifierEstimator(BaseEstimator):
         self.metrics_names = list(self.sklearn_metrics.keys()) + [
             "balance_true",
             "balance_pred",
-            "uncertainty",
+            "certainty",
         ]
 
     @staticmethod
     def balance(y):
-        return np.mean(y)
+        return np.mean(y).item()
 
     @staticmethod
     def uncertainty(y_pred_probs: np.ndarray) -> float:
@@ -49,7 +49,7 @@ class ClassifierEstimator(BaseEstimator):
 
         assert max_prob.shape == y_pred_probs.shape
 
-        return np.mean(max_prob)
+        return np.mean(max_prob).item()
 
     def estimate(
         self, y_true: np.ndarray, y_pred: np.ndarray, y_pred_probs: np.ndarray

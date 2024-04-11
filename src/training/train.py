@@ -1,3 +1,4 @@
+from abc import ABC
 import os
 from functools import partial
 from typing import Any, Dict, List
@@ -53,6 +54,7 @@ class EarlyStopper:
         return False
 
 
+
 class Trainer:
     def __init__(
         self,
@@ -82,6 +84,8 @@ class Trainer:
 
         self.logger = logger
         self.dict_logging = dict()
+
+        self.disc_trainer = False
 
     @staticmethod
     def initialize_with_params(
@@ -207,7 +211,7 @@ class Trainer:
             "test": {metric: [] for metric in metric_names},
         }
 
-        fill_line = "Epoch {} train loss: {}; acc_train {}; test loss: {}; acc_test {}; f1_test {}; balance {}"
+        fill_line = "Epoch {} train loss: {}; acc_train {}; test loss: {}; acc_test {}; f1_test {}; balance {}; uncertainty {}"
 
         for epoch in range(self.n_epochs):
             train_metrics_epoch = self._train_step(train_loader)
@@ -235,6 +239,7 @@ class Trainer:
                     round(test_metrics_epoch["accuracy"], 3),
                     round(test_metrics_epoch["f1"], 3),
                     round(test_metrics_epoch["balance_pred"], 3),
+                    round(test_metrics_epoch["uncertainty"], 3),
                 )
                 print(print_line)
 
@@ -526,7 +531,7 @@ class DiscTrainer(Trainer):
             "test": {metric: [] for metric in metric_names},
         }
 
-        fill_line = "Epoch {} train loss: {}; acc_train {}; test loss: {}; acc_test {}; f1_test {}; balance {}"
+        fill_line = "Epoch {} train loss: {}; acc_train {}; test loss: {}; acc_test {}; f1_test {}; balance {}; uncertainty {}"
 
         adv_train_loader = self._generate_adversarial_data(train_loader, transform)
         adv_valid_loader = self._generate_adversarial_data(valid_loader)
@@ -560,6 +565,7 @@ class DiscTrainer(Trainer):
                     round(test_metrics_epoch["accuracy"], 3),
                     round(test_metrics_epoch["f1"], 3),
                     round(test_metrics_epoch["balance_pred"], 3),
+                    round(test_metrics_epoch["uncertainty"], 3),
                 )
                 print(print_line)
 
