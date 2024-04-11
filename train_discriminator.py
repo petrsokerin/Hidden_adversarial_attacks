@@ -161,6 +161,7 @@ def main(cfg: DictConfig):
 
                     trainer_params = dict(cfg["training_params"])
                     trainer_params["logger"] = logger
+                    trainer_params["device"] = device
 
                     trainer_params["attack_name"] = cfg["attack"]["name"]
                     trainer_params["attack_params"] = attack_params
