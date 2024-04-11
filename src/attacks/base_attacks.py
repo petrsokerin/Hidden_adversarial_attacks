@@ -35,7 +35,6 @@ class BaseIterativeAttack(ABC):
         const_params: Dict,
     ) -> object:
         attack_class = self.__class__
-        print(attack_class)
 
         study = optuna.create_study(
             direction="maximize",
