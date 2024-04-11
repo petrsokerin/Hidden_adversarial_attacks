@@ -501,13 +501,13 @@ class DiscTrainer(Trainer):
 
         return loader
 
-    def train_model(
-        self, train_loader: DataLoader, valid_loader: DataLoader, transform
-    ) -> Dict[str, float]:
-        train_loader = self._generate_adversarial_data(train_loader, transform)
-        valid_loader = self._generate_adversarial_data(valid_loader)
+    # def train_model(
+    #     self, train_loader: DataLoader, valid_loader: DataLoader, transform
+    # ) -> Dict[str, float]:
+    #     train_loader = self._generate_adversarial_data(train_loader, transform)
+    #     valid_loader = self._generate_adversarial_data(valid_loader)
 
-        return super().train_model(train_loader, valid_loader)
+    #     return super().train_model(train_loader, valid_loader)
 
     def train_model(
         self, train_loader: DataLoader, valid_loader: DataLoader, transform
@@ -531,6 +531,7 @@ class DiscTrainer(Trainer):
 
         adv_train_loader = self._generate_adversarial_data(train_loader, transform)
         adv_valid_loader = self._generate_adversarial_data(valid_loader)
+        cur_eps = self.attack.eps
         
         for epoch in range(self.n_epochs):
             train_metrics_epoch = self._train_step(adv_train_loader)
@@ -566,8 +567,11 @@ class DiscTrainer(Trainer):
 
             if self.attack_scheduler:
                 self.attack = self.attack_scheduler.step()
-                # train_loader = self._generate_adversarial_data(train_loader, transform)
-                # valid_loader = self._generate_adversarial_data(valid_loader)
+
+                if cur_eps != self.attack.eps:
+                    cur_eps = self.attack.eps
+                    adv_train_loader = self._generate_adversarial_data(train_loader, transform)
+                    adv_valid_loader = self._generate_adversarial_data(valid_loader)
 
             if self.early_stop_patience and self.early_stop_patience != "None":
                 res_early_stop = earl_stopper.early_stop(test_metrics_epoch["loss"])
