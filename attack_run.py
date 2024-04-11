@@ -90,7 +90,7 @@ def main(cfg: DictConfig):
         attack_metrics = attack.get_metrics()
         attack_metrics["eps"] = attack.eps
 
-        alpha = attack.alpha if attack.alpha else 0
+        alpha = attack.alpha if getattr(attack, 'alpha', lambda: None)() else 0
 
         if not cfg["test_run"]:
             print("Saving")
