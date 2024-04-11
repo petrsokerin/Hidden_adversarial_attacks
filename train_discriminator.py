@@ -54,7 +54,6 @@ def main(cfg: DictConfig):
     )
 
     device = torch.device(cfg["cuda"] if torch.cuda.is_available() else "cpu")
-    print('Script DEVICE', device)
 
     attack_model_path = os.path.join(
         cfg["model_folder"],
