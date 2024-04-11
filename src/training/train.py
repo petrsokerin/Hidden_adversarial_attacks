@@ -501,13 +501,6 @@ class DiscTrainer(Trainer):
 
         return loader
 
-    # def train_model(
-    #     self, train_loader: DataLoader, valid_loader: DataLoader, transform
-    # ) -> Dict[str, float]:
-    #     train_loader = self._generate_adversarial_data(train_loader, transform)
-    #     valid_loader = self._generate_adversarial_data(valid_loader)
-
-    #     return super().train_model(train_loader, valid_loader)
 
     def train_model(
         self, train_loader: DataLoader, valid_loader: DataLoader, transform
@@ -532,7 +525,7 @@ class DiscTrainer(Trainer):
         adv_train_loader = self._generate_adversarial_data(train_loader, transform)
         adv_valid_loader = self._generate_adversarial_data(valid_loader)
         cur_eps = self.attack.eps
-        
+
         for epoch in range(self.n_epochs):
             train_metrics_epoch = self._train_step(adv_train_loader)
             train_metrics_epoch = {
@@ -570,6 +563,7 @@ class DiscTrainer(Trainer):
 
                 if cur_eps != self.attack.eps:
                     cur_eps = self.attack.eps
+                    print('----- New epsilon', cur_eps)
                     adv_train_loader = self._generate_adversarial_data(train_loader, transform)
                     adv_valid_loader = self._generate_adversarial_data(valid_loader)
 
