@@ -1,7 +1,6 @@
-from abc import ABC
 import os
 from functools import partial
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import optuna
@@ -52,7 +51,6 @@ class EarlyStopper:
             if self.counter >= self.patience:
                 return True
         return False
-
 
 
 class Trainer:
@@ -187,11 +185,49 @@ class Trainer:
         last_epoch_metrics = model.train_model(train_loader, valid_loader)
         return last_epoch_metrics[optim_metric]
 
-    def _logging(self, data, epoch, mode="train"):
-        for metric in self.dict_logging[mode].keys():
-            self.dict_logging[mode][metric].append(data[metric])
+    def _init_logging(self, metric_names: List[str]) -> None:
+        self.metric_names = metric_names
+        self.dict_logging = {
+            "train": {metric: [] for metric in self.metric_names},
+            "test": {metric: [] for metric in self.metric_names},
+        }
+        self.print_line = "Epoch {} train loss: {}; acc_train {}; test loss: {}; acc_test {}; f1_test {}; balance {}; certainty {}"
 
-            self.logger.add_scalar(metric + "/" + mode, data[metric], epoch)
+    def _logging(
+        self, train_metrics: List[float], test_metrics: List[float], epoch: int
+    ) -> None:
+        train_metrics = {
+            met_name: met_val
+            for met_name, met_val in zip(self.metric_names, train_metrics)
+        }
+
+        test_metrics = {
+            met_name: met_val
+            for met_name, met_val in zip(self.metric_names, test_metrics)
+        }
+
+        mode = "train"
+        for metric in self.dict_logging[mode].keys():
+            self.dict_logging[mode][metric].append(train_metrics[metric])
+            self.logger.add_scalar(metric + "/" + mode, train_metrics[metric], epoch)
+
+        mode = "test"
+        for metric in self.dict_logging[mode].keys():
+            self.dict_logging[mode][metric].append(test_metrics[metric])
+            self.logger.add_scalar(metric + "/" + mode, test_metrics[metric], epoch)
+
+        if epoch % self.print_every == 0:
+            print_line = self.print_line.format(
+                epoch + 1,
+                round(train_metrics["loss"], 3),
+                round(train_metrics["accuracy"], 3),
+                round(test_metrics["loss"], 3),
+                round(test_metrics["accuracy"], 3),
+                round(test_metrics["f1"], 3),
+                round(test_metrics["balance_pred"], 3),
+                round(test_metrics["certainty"], 3),
+            )
+            print(print_line)
 
     def train_model(
         self, train_loader: DataLoader, valid_loader: DataLoader
@@ -205,119 +241,69 @@ class Trainer:
         if self.early_stop_patience and self.early_stop_patience != "None":
             earl_stopper = EarlyStopper(self.early_stop_patience)
 
-        metric_names = ["loss"] + self.estimator.get_metrics_names()
-        self.dict_logging = {
-            "train": {metric: [] for metric in metric_names},
-            "test": {metric: [] for metric in metric_names},
-        }
-
-        fill_line = "Epoch {} train loss: {}; acc_train {}; test loss: {}; acc_test {}; f1_test {}; balance {}; uncertainty {}"
+        self._init_logging(["loss"] + self.estimator.get_metrics_names())
 
         for epoch in range(self.n_epochs):
-            train_metrics_epoch = self._train_step(train_loader)
-            train_metrics_epoch = {
-                met_name: met_val
-                for met_name, met_val in zip(metric_names, train_metrics_epoch)
-            }
+            train_metrics_epoch = self._run_epoch(train_loader, mode="train")
+            test_metrics_epoch = self._run_epoch(valid_loader, mode="valid")
 
-            self._logging(train_metrics_epoch, epoch, mode="train")
+            self._logging(train_metrics_epoch, test_metrics_epoch, epoch)
 
-            test_metrics_epoch = self._valid_step(valid_loader)
-            test_metrics_epoch = {
-                met_name: met_val
-                for met_name, met_val in zip(metric_names, test_metrics_epoch)
-            }
-
-            self._logging(test_metrics_epoch, epoch, mode="test")
-
-            if epoch % self.print_every == 0:
-                print_line = fill_line.format(
-                    epoch + 1,
-                    round(train_metrics_epoch["loss"], 3),
-                    round(train_metrics_epoch["accuracy"], 3),
-                    round(test_metrics_epoch["loss"], 3),
-                    round(test_metrics_epoch["accuracy"], 3),
-                    round(test_metrics_epoch["f1"], 3),
-                    round(test_metrics_epoch["balance_pred"], 3),
-                    round(test_metrics_epoch["uncertainty"], 3),
-                )
-                print(print_line)
+            if self.early_stop_patience and self.early_stop_patience != "None":
+                res_early_stop = earl_stopper.early_stop(test_metrics_epoch[0])
+                if res_early_stop:
+                    break
 
             if self.scheduler:
                 self.scheduler.step()
 
-            if self.early_stop_patience and self.early_stop_patience != "None":
-                res_early_stop = earl_stopper.early_stop(test_metrics_epoch["loss"])
-                if res_early_stop:
-                    break
         return test_metrics_epoch
 
-    def _train_step(self, loader: DataLoader) -> List[float]:
-        # req_grad(self.model)
-        losses = 0
+    def _train_step(self, X: torch.Tensor, labels: torch.Tensor) -> Tuple[torch.Tensor]:
+        self.optimizer.zero_grad()
 
+        y_preds = self.model(X)
+        loss = self.criterion(y_preds, labels)
+
+        loss.backward()
+        self.optimizer.step()
+
+        return loss, y_preds
+
+    def _valid_step(self, X: torch.Tensor, labels: torch.Tensor) -> Tuple[torch.Tensor]:
+        with torch.no_grad():
+            y_preds = self.model(X)
+            loss = self.criterion(y_preds, labels)
+        return loss, y_preds
+
+    def _run_epoch(self, loader: DataLoader, mode: str = "train") -> List[float]:
+        losses = 0
         y_all_pred = torch.tensor([])
         y_all_pred_prob = torch.tensor([])
         y_all_true = torch.tensor([])
 
         self.model.train(True)
-        for x, labels in loader:
-            self.optimizer.zero_grad()
-            x = x.to(self.device)
+        for X, labels in loader:
+            X = X.to(self.device)
             labels = labels.to(self.device)
 
-            y_out = self.model(x)
-
-            loss = self.criterion(y_out, labels)
-
-            loss.backward()
-            self.optimizer.step()
-            losses += loss
+            if mode == "train":
+                loss, y_preds = self._train_step(X, labels)
+            elif mode == "valid":
+                loss, y_preds = self._valid_step(X, labels)
+            else:
+                raise ValueError("mode should be train or valid")
 
             if self.multiclass:
-                y_pred = torch.argmax(y_out, axis=1)
+                y_pred = torch.argmax(y_preds, axis=1)
             else:
-                y_pred = torch.round(y_out)
+                y_pred = torch.round(y_preds)
 
+            losses += loss
             y_all_true = torch.cat((y_all_true, labels.cpu().detach()), dim=0)
-            y_all_pred_prob = torch.cat((y_all_pred_prob, y_out.cpu().detach()), dim=0)
-            y_all_pred = torch.cat((y_all_pred, y_pred.cpu().detach()), dim=0)
-
-        mean_loss = losses.cpu().detach().numpy() / len(loader)
-
-        y_all_pred = y_all_pred.numpy().reshape([-1, 1])
-        y_all_pred_prob = y_all_pred_prob.numpy().reshape([-1, 1])
-        y_all_true = y_all_true.numpy().reshape([-1, 1])
-
-        metrics = self.estimator.estimate(y_all_true, y_all_pred, y_all_pred_prob)
-
-        metrics = [mean_loss] + metrics
-        return metrics
-
-    def _valid_step(self, loader: DataLoader) -> List[float]:
-        y_all_pred = torch.tensor([])
-        y_all_pred_prob = torch.tensor([])
-        y_all_true = torch.tensor([])
-
-        losses = 0
-        self.model.eval()
-        for x, labels in loader:
-            with torch.no_grad():
-                x = x.to(self.device)
-                labels = labels.reshape(-1, 1).to(self.device)
-
-                y_out = self.model(x)
-
-                loss = self.criterion(y_out, labels)
-                losses += loss
-
-                if self.multiclass:
-                    y_pred = torch.argmax(y_out, axis=1)
-                else:
-                    y_pred = torch.round(y_out)
-
-            y_all_true = torch.cat((y_all_true, labels.cpu().detach()), dim=0)
-            y_all_pred_prob = torch.cat((y_all_pred_prob, y_out.cpu().detach()), dim=0)
+            y_all_pred_prob = torch.cat(
+                (y_all_pred_prob, y_preds.cpu().detach()), dim=0
+            )
             y_all_pred = torch.cat((y_all_pred, y_pred.cpu().detach()), dim=0)
 
         mean_loss = losses.cpu().detach().numpy() / len(loader)
@@ -525,52 +511,23 @@ class DiscTrainer(Trainer):
         if self.early_stop_patience and self.early_stop_patience != "None":
             earl_stopper = EarlyStopper(self.early_stop_patience)
 
-        metric_names = ["loss"] + self.estimator.get_metrics_names() + ["eps"]
-        self.dict_logging = {
-            "train": {metric: [] for metric in metric_names},
-            "test": {metric: [] for metric in metric_names},
-        }
-
-        fill_line = "Epoch {} train loss: {}; acc_train {}; test loss: {}; acc_test {}; f1_test {}; balance {}; uncertainty {}"
-
         adv_train_loader = self._generate_adversarial_data(train_loader, transform)
         adv_valid_loader = self._generate_adversarial_data(valid_loader)
         cur_eps = self.attack.eps
 
+        self._init_logging(["loss"] + self.estimator.get_metrics_names() + ["eps"])
+
         for epoch in range(self.n_epochs):
-            train_metrics_epoch = self._train_step(adv_train_loader)
+            train_metrics_epoch = self._run_epoch(adv_train_loader, mode="train")
+            test_metrics_epoch = self._run_epoch(adv_valid_loader, mode="valid")
+
             train_metrics_epoch = list(train_metrics_epoch) + [cur_eps]
-            train_metrics_epoch = {
-                met_name: met_val
-                for met_name, met_val in zip(metric_names, train_metrics_epoch)
-            }
-
-            self._logging(train_metrics_epoch, epoch, mode="train")
-
-            test_metrics_epoch = self._valid_step(adv_valid_loader)
             test_metrics_epoch = list(test_metrics_epoch) + [cur_eps]
-            test_metrics_epoch = {
-                met_name: met_val
-                for met_name, met_val in zip(metric_names, test_metrics_epoch)
-            }
 
-            self._logging(test_metrics_epoch, epoch, mode="test")
-
-            if epoch % self.print_every == 0:
-                print_line = fill_line.format(
-                    epoch + 1,
-                    round(train_metrics_epoch["loss"], 3),
-                    round(train_metrics_epoch["accuracy"], 3),
-                    round(test_metrics_epoch["loss"], 3),
-                    round(test_metrics_epoch["accuracy"], 3),
-                    round(test_metrics_epoch["f1"], 3),
-                    round(test_metrics_epoch["balance_pred"], 3),
-                    round(test_metrics_epoch["uncertainty"], 3),
-                )
-                print(print_line)
+            self._logging(train_metrics_epoch, test_metrics_epoch, epoch)
 
             if self.early_stop_patience and self.early_stop_patience != "None":
-                res_early_stop = earl_stopper.early_stop(test_metrics_epoch["loss"])
+                res_early_stop = earl_stopper.early_stop(test_metrics_epoch[0])
                 if res_early_stop:
                     break
 
