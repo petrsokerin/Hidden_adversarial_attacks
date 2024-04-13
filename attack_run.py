@@ -111,9 +111,7 @@ def main(cfg: DictConfig):
 
         for alpha in alphas:  # tqdm(alphas):
             attack_metrics = pd.DataFrame()
-            for eps in cfg["attack"]["attack_params"][
-                "eps"
-            ]:  # tqdm(cfg['attack']['attack_params']['eps']):
+            for eps in cfg["attack"]["attack_params"]["eps"]:
                 attack_params = dict(cfg["attack"]["attack_params"])
                 attack_params["model"] = attack_model
                 attack_params["criterion"] = criterion
