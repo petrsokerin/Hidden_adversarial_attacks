@@ -44,6 +44,19 @@ class FGSMAttack(BaseIterativeAttack, BatchIterativeAttack):
         return X_adv
 
 
+class FGSMRandomAttack(FGSMAttack):
+    def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        signs = torch.sign(torch.randn(X.shape)).to(X.device)
+        X_adv = X.data + self.eps * signs
+        return X_adv
+
+class RandomAttack(FGSMAttack):
+    def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        signs = torch.normal(0, self.eps, size=X.shape).to(X.device)
+        X_adv = X.data + signs
+        return X_adv
+
+
 class FGSMRegNeighAttack(FGSMAttack):
     def __init__(
         self,
@@ -99,7 +112,6 @@ class FGSMRegDiscAttack(FGSMAttack):
         X_adv = self.get_adv_data(X, loss)
         return X_adv
 
-
 class FGSMRegDiscSmoothMaxAttack(FGSMAttack):
     def __init__(
         self,
@@ -128,3 +140,60 @@ class FGSMRegDiscSmoothMaxAttack(FGSMAttack):
         loss_bolzman = boltzman_loss(loss, reg_value, beta=self.beta)
         X_adv = self.get_adv_data(X, loss_bolzman)
         return X_adv
+
+
+class DefenseRegDiscAttack(FGSMAttack):
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        criterion: torch.nn.Module,
+        disc_models: List[torch.nn.Module],
+        estimator,
+        eps: float = 0.03,
+        n_steps: int = 10,
+        use_sigmoid: bool = False,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
+        self.disc_models = disc_models
+        self.use_sigmoid = use_sigmoid
+        self.is_regularized = True
+
+    def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+
+        reg_value = reg_disc(X, self.disc_models, self.use_sigmoid)
+        loss = - reg_value
+
+        X_adv = self.get_adv_data(X, loss)
+        return X_adv
+
+# class FGSMDefenceAttack(FGSMRegDiscAttack):
+#     def __init__(
+#         self,
+#         model: torch.nn.Module,
+#         criterion: torch.nn.Module,
+#         disc_models: List[torch.nn.Module],
+#         estimator,
+#         eps: float = 0.03,
+#         alpha: float = 0.0,
+#         n_steps_attack: int = 10,
+#         n_steps_attack: int = 10,
+#         use_sigmoid: bool = False,
+#         *args,
+#         **kwargs,
+#     ) -> None:
+#         super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
+#         self.alpha = alpha
+#         self.disc_models = disc_models
+#         self.use_sigmoid = use_sigmoid
+#         self.is_regularized = True
+
+#     def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+#         loss = self.get_loss(X, y_true)
+
+#         reg_value = reg_disc(X, self.disc_models, self.use_sigmoid)
+#         loss = loss - self.alpha * reg_value
+
+#         X_adv = self.get_adv_data(X, loss)
+#         return X_adv
