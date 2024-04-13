@@ -48,13 +48,13 @@ RUN mkdir $HOME/.cache $HOME/.config \
 # Set up the Conda environment
 ENV CONDA_AUTO_UPDATE_CONDA=false \
     PATH=$HOME/miniconda/bin:$PATH
-COPY environment.yml /app/environment.yml
+COPY requirements.txt /app/requirements.txt
 RUN curl -sLo ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py39_23.1.0-1-Linux-x86_64.sh \
  && chmod +x ~/miniconda.sh \
  && ~/miniconda.sh -b -p ~/miniconda \
  && rm ~/miniconda.sh \
- # && conda env create --file=environment.yml \
- && rm /app/environment.yml \
+ && pip install -r requirements.txt \
+ && rm /app/requirements.txt \
  && conda clean -ya
 
 CMD jupyter notebook --allow-root --ip='0.0.0.0' --port=8890 --NotebookApp.token='' --NotebookApp.password=''
