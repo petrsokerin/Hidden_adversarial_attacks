@@ -15,7 +15,7 @@ bash build
 For creating container run:
 
 ```
-bash docker_srcipts/launch_container
+bash launch_container
 ```
 
 All the requirements are listed in `requirements.txt`
