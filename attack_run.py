@@ -90,7 +90,7 @@ def main(cfg: DictConfig):
         attack_metrics = attack.get_metrics()
         attack_metrics["eps"] = attack.eps
 
-        alpha = attack.alpha if getattr(attack, 'alpha', None) else 0
+        alpha = attack.alpha if getattr(attack, "alpha", None) else 0
 
         if not cfg["test_run"]:
             print("Saving")
@@ -109,7 +109,7 @@ def main(cfg: DictConfig):
         if "alpha" in cfg["attack"]["attack_params"]:
             alphas = cfg["attack"]["attack_params"]["alpha"]
 
-        for alpha in alphas:  # tqdm(alphas):
+        for alpha in alphas:
             attack_metrics = pd.DataFrame()
             for eps in cfg["attack"]["attack_params"]["eps"]:
                 attack_params = dict(cfg["attack"]["attack_params"])
