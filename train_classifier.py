@@ -48,8 +48,6 @@ def main(cfg: DictConfig):
         shuffle=False,
     )
 
-    print("Size:", len(X_train), len(X_test))
-
     device = torch.device(cfg["cuda"] if torch.cuda.is_available() else "cpu")
 
     for model_id in range(cfg["model_id_start"], cfg["model_id_finish"]):
@@ -63,6 +61,7 @@ def main(cfg: DictConfig):
             "print_every": cfg["print_every"],
             "device": device,
             "seed": model_id,
+            "train_self_supervised": cfg['train_self_supervised']
         }
         if cfg["enable_optimization"]:
             trainer = Trainer.initialize_with_optimization(

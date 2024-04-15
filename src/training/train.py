@@ -66,6 +66,7 @@ class Trainer:
         print_every: int = 5,
         device: str = "cpu",
         multiclass: bool = False,
+        train_self_supervised: bool = True,
     ) -> None:
         self.model = model
         self.criterion = criterion
@@ -79,6 +80,7 @@ class Trainer:
         self.device = device
         self.multiclass = multiclass
         self.print_every = print_every
+        self.train_self_supervised = train_self_supervised
 
         self.logger = logger
         self.dict_logging = dict()
@@ -232,7 +234,7 @@ class Trainer:
     def train_model(
         self, train_loader: DataLoader, valid_loader: DataLoader
     ) -> Dict[str, float]:
-        if self.model.self_supervised:
+        if self.model.self_supervised and self.train_self_supervised:
             print("Training self-supervised model")
             X_train = train_loader.dataset.X.unsqueeze(-1).numpy()
             self.model.train_embedding(X_train, verbose=True)
@@ -502,7 +504,7 @@ class DiscTrainer(Trainer):
     def train_model(
         self, train_loader: DataLoader, valid_loader: DataLoader, transform
     ) -> Dict[str, float]:
-        if self.model.self_supervised:
+        if self.model.self_supervised and self.train_self_supervised:
             print("Training self-supervised model")
             X_train = train_loader.dataset.X.unsqueeze(-1).numpy()
             self.model.train_embedding(X_train, verbose=True)
