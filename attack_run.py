@@ -51,8 +51,8 @@ def main(cfg: DictConfig):
 
     criterion = get_criterion(cfg["criterion_name"], cfg["criterion_params"])
 
-    disc_check_list = (
-        get_disc_list(
+    if cfg["use_disc_check"]:
+        disc_check_list = get_disc_list(
             model_name=cfg["disc_model_check"]["name"],
             model_params=cfg["disc_model_check"]["params"],
             list_disc_params=cfg["list_check_model_params"],
@@ -60,10 +60,10 @@ def main(cfg: DictConfig):
             path=cfg["disc_path"],
             train_mode=False,
         )
-        if cfg["use_disc_check"]
-        else None
-    )
-    estimator = AttackEstimator(disc_check_list, cfg["metric_effect"])
+    else:
+        disc_check_list = None
+
+    estimator = AttackEstimator(disc_check_list, cfg["metric_effect"], cfg['estimator_batch_size'])
 
     if cfg["enable_optimization"]:
         const_params = dict(cfg["attack"]["attack_params"])
@@ -90,7 +90,7 @@ def main(cfg: DictConfig):
         attack_metrics = attack.get_metrics()
         attack_metrics["eps"] = attack.eps
 
-        alpha = attack.alpha if attack.alpha else 0
+        alpha = attack.alpha if getattr(attack, "alpha", None) else 0
 
         if not cfg["test_run"]:
             print("Saving")
@@ -109,11 +109,9 @@ def main(cfg: DictConfig):
         if "alpha" in cfg["attack"]["attack_params"]:
             alphas = cfg["attack"]["attack_params"]["alpha"]
 
-        for alpha in alphas:  # tqdm(alphas):
+        for alpha in alphas:
             attack_metrics = pd.DataFrame()
-            for eps in cfg["attack"]["attack_params"][
-                "eps"
-            ]:  # tqdm(cfg['attack']['attack_params']['eps']):
+            for eps in cfg["attack"]["attack_params"]["eps"]:
                 attack_params = dict(cfg["attack"]["attack_params"])
                 attack_params["model"] = attack_model
                 attack_params["criterion"] = criterion

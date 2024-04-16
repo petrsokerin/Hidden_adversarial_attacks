@@ -48,15 +48,14 @@ class BatchIterativeAttack:
     def get_model_predictions(self, loader: DataLoader) -> torch.Tensor:
         y_pred_all_objects = torch.tensor(
             []
-        )  # logging predictions adversarial if realize_attack or original
-
-        for X, y_true in loader:
-            X, y_true = self.prepare_data_to_attack(X, y_true)
-            y_pred = self.model(X)
-            y_pred_all_objects = torch.cat(
-                (y_pred_all_objects, y_pred.cpu().detach()), dim=0
-            )
-
+        )
+        with torch.no_grad():
+            for X, y_true in loader:
+                X, y_true = self.prepare_data_to_attack(X, y_true)
+                y_pred = self.model(X)
+                y_pred_all_objects = torch.cat(
+                    (y_pred_all_objects, y_pred.cpu().detach()), dim=0
+                )
         return y_pred_all_objects
 
     def prepare_data_to_attack(

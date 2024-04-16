@@ -42,7 +42,7 @@ def main(cfg: DictConfig):
     )
 
     train_loader = DataLoader(
-        MyDataset(X_train, y_train, augmentator),
+        MyDataset(X_train, y_train),
         batch_size=cfg["batch_size"],
         shuffle=True,
     )
@@ -58,7 +58,7 @@ def main(cfg: DictConfig):
     attack_model_path = os.path.join(
         cfg["model_folder"],
         cfg["attack_model"]["name"],
-        f"model_{cfg['model_id_attack']}_{cfg['dataset']}.pth",
+        f"model_{cfg['model_id_attack']}_{cfg['dataset']}.pt",
     )
 
     attack_model = get_model(
@@ -71,8 +71,8 @@ def main(cfg: DictConfig):
 
     criterion = get_criterion(cfg["criterion_name"], cfg["criterion_params"])
 
-    disc_check_list = (
-        get_disc_list(
+    if cfg["use_disc_check"]:
+        disc_check_list = get_disc_list(
             model_name=cfg["disc_model_check"]["name"],
             model_params=cfg["disc_model_check"]["params"],
             list_disc_params=cfg["list_check_model_params"],
@@ -80,9 +80,8 @@ def main(cfg: DictConfig):
             path=cfg["disc_path"],
             train_mode=False,
         )
-        if cfg["use_disc_check"]
-        else None
-    )
+    else:
+        disc_check_list = None
 
     estimator = AttackEstimator(disc_check_list, cfg["metric_effect"])
 
@@ -104,20 +103,18 @@ def main(cfg: DictConfig):
                     train_mode=cfg["disc_model_reg"]["attack_train_mode"],
                 )
 
-            # attack = get_attack(cfg['attack']['name'], attack_const_params)
-            # attack = attack.initialize_with_optimization(test_loader, cfg['optuna_optimizer'], attack_const_params)
-
             const_params = {
                 "attack_params": attack_const_params,
                 "logger": logger,
                 "print_every": cfg["print_every"],
                 "device": device,
                 "seed": model_id,
+                "train_self_supervised": cfg['train_self_supervised']
             }
             disc_trainer = DiscTrainer.initialize_with_optimization(
                 train_loader, test_loader, cfg["optuna_optimizer"], const_params
             )
-            disc_trainer.train_model(train_loader, test_loader)
+            disc_trainer.train_model(train_loader, test_loader, augmentator)
 
             if not cfg["test_run"]:
                 model_save_name = f"{model_id}"
@@ -161,13 +158,16 @@ def main(cfg: DictConfig):
 
                     trainer_params = dict(cfg["training_params"])
                     trainer_params["logger"] = logger
+                    trainer_params["device"] = device
+                    trainer_params["seed"] = model_id
+                    trainer_params["train_self_supervised"] = cfg['train_self_supervised']
 
                     trainer_params["attack_name"] = cfg["attack"]["name"]
                     trainer_params["attack_params"] = attack_params
 
                     disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
 
-                    disc_trainer.train_model(train_loader, test_loader)
+                    disc_trainer.train_model(train_loader, test_loader, augmentator)
 
                     if not cfg["test_run"]:
                         model_save_name = f"{model_id}"

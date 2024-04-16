@@ -1,6 +1,6 @@
-dataset: PowerCons
-slice: False
-use_disc_check: False
+dataset: FordA
+slice: True
+use_disc_check: True
 test_run: False # If true results will be not saved!!!!
 exp_name: '_NEW_CODE'
 
@@ -11,15 +11,16 @@ save_path: results/${dataset}/${attack_model.name}/attack/${attack.short_name}${
 model_id_attack: 0
 
 defaults:
-  - model@attack_model: S4
-  - model@disc_model_reg: S4
-  - model@disc_model_check: S4
-  - attack: FGSM
+  - model@attack_model: LSTM
+  - model@disc_model_reg: LSTM
+  - model@disc_model_check: LSTM
+  - attack: FGSMDiscSmoothMax
 
 criterion_name: BCELoss
 criterion_params: null
 
 batch_size: 128
+estimator_batch_size: 32
 cuda: 'cuda:1'
 
 metric_effect: F1

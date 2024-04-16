@@ -196,6 +196,26 @@ class Augmentator:
             X = TSTensor(X.unsqueeze(0).transpose(1, 2))
             X = method.encodes(X).data.transpose(1, 2).squeeze(0)
         return X
+    
+
+class OnlyXDataset(Dataset):
+    def __init__(
+        self,
+        X: torch.Tensor,
+        transform: Callable = None,
+    ) -> None:
+        super().__init__()
+        self.X = X
+        self.transform = transform
+
+    def __len__(self) -> int:
+        return len(self.X)
+
+    def __getitem__(self, idx: Any) -> Tuple[torch.Tensor]:
+        X = torch.tensor(self.X[idx], dtype=torch.float32)
+        if self.transform:
+            X = self.transform(X)
+        return X
 
 
 class MyDataset(Dataset):

@@ -1,22 +1,24 @@
-dataset: Coffee
-slice: False
+dataset: FordA
+slice: True
 use_disc_check: False
-test_run: False # If true results will be not saved!!!!
-exp_name: '_NEW'
+test_run: False  # If true results will be not saved!!!!
+exp_name: '_multi_eps'
 
 model_folder: checkpoints/${dataset}
 disc_path: results/${dataset}/${attack_model.name}/discriminator/fgsm_attack
 save_path: results/${dataset}/${attack_model.name}/discriminator/${attack.short_name}${exp_name}
-model_id_attack: 5
+model_id_attack: 0
 
-model_ids: [0, 1]
+model_ids: [0]
+
+train_self_supervised: False
 
 defaults:
-  - model: ResidualCNN
-  - model@attack_model: ResidualCNN
-  - model@disc_model_reg: ResidualCNN
-  - model@disc_model_check: ResidualCNN
-  - attack: FGSM
+  - model: TS2VEC
+  - model@attack_model: TS2VEC
+  - model@disc_model_reg: TS2VEC
+  - model@disc_model_check: TS2VEC
+  - attack_disc@attack: FGSM
 
 criterion_name: BCELoss
 criterion_params: null
@@ -24,16 +26,16 @@ criterion_params: null
 metric_effect: F1
 
 batch_size: 64
-cuda: 'cuda:1'
+cuda: 'cuda:2'
 print_every: 1
 
 list_check_model_params:
   # - model_id : 0
   #   model_name: fgsm_attack_eps=0.03_nsteps=10
 
-transform_data: []
-# # - _target_: tsai.data.transforms.TSRandomResizedCrop
-# #   magnitude: 0.1
+transform_data:
+- _target_: tsai.data.transforms.TSRandomResizedCrop
+  magnitude: 0.1
 
 training_params:
   model_name: ${model.name}
@@ -44,15 +46,19 @@ training_params:
   optimizer_params:
     lr: 0.001
   scheduler_name: StepLR
-  scheduler_params: 
+  scheduler_params:
     step_size: 10
     gamma: 0.5
-  n_epochs: 40
+  attack_scheduler_name: StepAttackScheduler
+  attack_scheduler_params:
+    attack_step_size: 5
+    attack_gamma: 0.7
+  n_epochs: 20
   print_every: ${print_every}
-  early_stop_patience: null
+  early_stop_patience: 100
 
 
-enable_optimization: True
+enable_optimization: False
 optuna_optimizer:
   n_trials: 3
   sampler:
@@ -62,39 +68,39 @@ optuna_optimizer:
     _target_: optuna.pruners.MedianPruner
   optim_metric: f1
   hyperparameters_vary:
-# ATTACK 
+# ATTACK
     attack_name:
       optuna_type: const
       value: ${attack.name}
     attack_params: ${attack.hyperparameters_vary}
-# MODEL 
-    model_name: 
+# MODEL
+    model_name:
       optuna_type: const
       value: ${model.name}
     model_params: ${model.hyperparameters_vary}
-    criterion_name: 
+    criterion_name:
       optuna_type: const
       value: BCELoss
     criterion_params:
       optuna_type: const
       value: None
-    optimizer_name: 
+    optimizer_name:
       optuna_type: choice
-      choices: 
+      choices:
         - Adam
         - AdamW
     optimizer_params:
-      lr: 
+      lr:
         optuna_type: float
         low: 0.0001
-        high: 0.01 
+        high: 0.01
         log: True
-    scheduler_name: 
+    scheduler_name:
       optuna_type: const
       value: StepLR
-    scheduler_params: 
+    scheduler_params:
       optuna_type: const
-      value: 
+      value:
         step_size: 10
         gamma: 0.5
     n_epochs:

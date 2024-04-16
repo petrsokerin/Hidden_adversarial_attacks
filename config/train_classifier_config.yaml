@@ -1,17 +1,18 @@
-dataset: FordA #GunPoint  
-slice: True
-save_path: checkpoints/${dataset}/${model.name}${exp_name}/
-test_run: False # If true results will be not saved!!!!
-exp_name: '_NEW_CODE'
+dataset: FordA #GunPoint
+slice: False
+save_path: checkpoints/${dataset}/${model.name}
+test_run: True # If true results will be not saved!!!!
 
 model_id_start: 0
 model_id_finish: 3
 batch_size: 128
-cuda: 'cuda:3'
+cuda: 'cuda:2'
 print_every: 1
 
+train_self_supervised: True
+
 defaults:
- - model: LSTM
+ - model: TS2VEC
 
 transform_data: []
 # - _target_: tsai.data.transforms.TSRandomResizedCrop
@@ -26,16 +27,15 @@ training_params:
   optimizer_params:
     lr: 0.001
   scheduler_name: StepLR
-  scheduler_params: 
+  scheduler_params:
     step_size: 10
     gamma: 0.5
-  n_epochs: 25
+  n_epochs: 10
   early_stop_patience: None
-
 
 enable_optimization: False
 optuna_optimizer:
-  n_trials: 5
+  n_trials: 2
   sampler:
     _target_: optuna.samplers.TPESampler
     seed: 0
@@ -43,42 +43,38 @@ optuna_optimizer:
     _target_: optuna.pruners.MedianPruner
   optim_metric: f1
   hyperparameters_vary:
-    model_name: 
+    model_name:
       optuna_type: const
       value: ${model.name}
     model_params: ${model.hyperparameters_vary}
-    criterion_name: 
+    criterion_name:
       optuna_type: const
       value: BCELoss
     criterion_params:
       optuna_type: const
       value: None
-    optimizer_name: 
+    optimizer_name:
       optuna_type: choice
-      choices: 
+      choices:
         - Adam
         - AdamW
     optimizer_params:
-      lr: 
+      lr:
         optuna_type: float
         low: 0.0001
-        high: 0.01 
+        high: 0.01
         log: True
-    scheduler_name: 
+    scheduler_name:
       optuna_type: const
       value: StepLR
-    scheduler_params: 
+    scheduler_params:
       optuna_type: const
-      value: 
+      value:
         step_size: 10
         gamma: 0.5
     n_epochs:
-      optuna_type: int
-      low: 5
-      high: 15
+      optuna_type: const
+      value: 3
     early_stop_patience:
       optuna_type: const
       value: None
-      
-
-

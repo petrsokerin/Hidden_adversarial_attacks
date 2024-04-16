@@ -3,12 +3,15 @@ from typing import Dict, List
 
 import numpy as np
 import torch
+from torch.utils.data import DataLoader
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
     f1_score,
     roc_auc_score,
 )
+
+from src.data import OnlyXDataset
 
 
 class BaseEstimator(ABC):
@@ -25,26 +28,48 @@ class BaseEstimator(ABC):
 
 class ClassifierEstimator(BaseEstimator):
     def __init__(self) -> None:
-        self.metrics = {
+        self.sklearn_metrics = {
             "accuracy": accuracy_score,
             "precision": roc_auc_score,
             "recall": average_precision_score,
             "f1": f1_score,
-            "balance_true": lambda y_true, y_pred: np.mean(y_true),
-            "balance_pred": lambda y_true, y_pred: np.mean(y_pred),
         }
-        self.metrics_names = list(self.metrics.keys())
+        self.metrics_names = list(self.sklearn_metrics.keys()) + [
+            "balance_true",
+            "balance_pred",
+            "certainty",
+        ]
 
-    def estimate(self, y_true: np.ndarray, y_pred: np.ndarray) -> List[float]:
+    @staticmethod
+    def balance(y):
+        return np.mean(y).item()
+
+    @staticmethod
+    def uncertainty(y_pred_probs: np.ndarray) -> float:
+        prob_1 = y_pred_probs
+        prob_0 = 1 - prob_1
+        max_prob = np.max(np.stack([prob_1, prob_0], axis=1), axis=1)
+
+        assert max_prob.shape == y_pred_probs.shape
+
+        return np.mean(max_prob).item()
+
+    def estimate(
+        self, y_true: np.ndarray, y_pred: np.ndarray, y_pred_probs: np.ndarray
+    ) -> List[float]:
         metrics_res = []
-        for _, metric_func in self.metrics.items():
+        for _, metric_func in self.sklearn_metrics.items():
             metrics_res.append(metric_func(y_true, y_pred))
+
+        metrics_res.append(self.balance(y_true))
+        metrics_res.append(self.balance(y_pred))
+        metrics_res.append(self.uncertainty(y_pred_probs))
         return metrics_res
 
 
 class AttackEstimator(BaseEstimator):
     def __init__(
-        self, disc_models: List[torch.nn.Module] = None, metric_effect: str = "F1"
+        self, disc_models: List[torch.nn.Module] = None, metric_effect: str = "F1", batch_size: int = None
     ) -> None:
         self.metrics = {
             "ACC": accuracy_score,
@@ -53,6 +78,7 @@ class AttackEstimator(BaseEstimator):
             "F1": f1_score,
         }
         self.metric_effect = metric_effect
+        self.batch_size = batch_size
 
         self.metrics_names = list(self.metrics.keys()) + ["EFF", "L1", "ACC_ORIG_ADV"]
 
@@ -71,15 +97,28 @@ class AttackEstimator(BaseEstimator):
 
         metric_res["EFF"] = 1 - metric_res[self.metric_effect]
         return metric_res
+    
+    def calculate_hiddeness_one_model(self, X: torch.Tensor, disc_model: torch.nn.Module) -> torch.Tensor:
+        if self.batch_size:
+            loader = DataLoader(OnlyXDataset(X), batch_size=self.batch_size, shuffle=False)
+            y_all_preds = torch.tensor([])
+            for X_batch in loader:
+                y_pred = disc_model(X_batch)
+                y_all_preds = torch.concat([y_all_preds, y_pred], axis=0)
+            return y_all_preds
+        else:
+            return disc_model(X)
 
     def calculate_hiddeness(self, X: np.ndarray) -> Dict[str, float]:
         model_device = next(self.disc_models[0].parameters()).device
         X = torch.tensor(X).to(model_device)
 
         hid_list = list()
-        for disc_model in self.disc_models:
-            hid = torch.mean(disc_model(X)).detach().cpu().numpy()
-            hid_list.append(hid)
+        with torch.no_grad():
+            for disc_model in self.disc_models:
+                disc_predictions = disc_model(X)
+                hid = torch.mean(disc_predictions).detach().cpu().numpy()
+                hid_list.append(hid)
 
         hid = max(hid_list)
         conc = 1 - hid

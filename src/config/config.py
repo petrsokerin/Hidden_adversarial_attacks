@@ -5,6 +5,7 @@ from typing import Dict, Iterable, List
 import torch
 
 from src import attacks, estimation, models
+from src.attacks import attack_scheduler
 
 
 def get_estimator(
@@ -79,7 +80,24 @@ def get_scheduler(
             optimizer, **scheduler_params
         )
     except AttributeError:
-        raise ValueError(f"Optimizer with name {scheduler_name} is not implemented")
+        raise ValueError(f"Scheduler with name {scheduler_name} is not implemented")
+
+
+def get_attack_scheduler(
+    attack_scheduler_name: str,
+    attack: attacks.BaseIterativeAttack,
+    attack_scheduler_params: Dict = None,
+) -> attack_scheduler.AttackScheduler:
+    if attack_scheduler_params is None:
+        attack_scheduler_params = dict()
+    try:
+        return getattr(attack_scheduler, attack_scheduler_name)(
+            attack, **attack_scheduler_params
+        )
+    except AttributeError:
+        raise ValueError(
+            f"Attack Scheduler with name {attack_scheduler_name} is not implemented"
+        )
 
 
 def save_config(path: str, config_load_name: str, config_save_name: str) -> None:
