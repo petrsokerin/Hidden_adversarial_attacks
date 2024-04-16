@@ -3,12 +3,15 @@ from typing import Dict, List
 
 import numpy as np
 import torch
+from torch.utils.data import DataLoader
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
     f1_score,
     roc_auc_score,
 )
+
+from src.data import OnlyXDataset
 
 
 class BaseEstimator(ABC):
@@ -66,7 +69,7 @@ class ClassifierEstimator(BaseEstimator):
 
 class AttackEstimator(BaseEstimator):
     def __init__(
-        self, disc_models: List[torch.nn.Module] = None, metric_effect: str = "F1"
+        self, disc_models: List[torch.nn.Module] = None, metric_effect: str = "F1", batch_size: int = None
     ) -> None:
         self.metrics = {
             "ACC": accuracy_score,
@@ -75,6 +78,7 @@ class AttackEstimator(BaseEstimator):
             "F1": f1_score,
         }
         self.metric_effect = metric_effect
+        self.batch_size = batch_size
 
         self.metrics_names = list(self.metrics.keys()) + ["EFF", "L1", "ACC_ORIG_ADV"]
 
@@ -93,15 +97,28 @@ class AttackEstimator(BaseEstimator):
 
         metric_res["EFF"] = 1 - metric_res[self.metric_effect]
         return metric_res
+    
+    def calculate_hiddeness_one_model(self, X: torch.Tensor, disc_model: torch.nn.Module) -> torch.Tensor:
+        if self.batch_size:
+            loader = DataLoader(OnlyXDataset(X), batch_size=self.batch_size, shuffle=False)
+            y_all_preds = torch.tensor([])
+            for X_batch in loader:
+                y_pred = disc_model(X_batch)
+                y_all_preds = torch.concat([y_all_preds, y_pred], axis=0)
+            return y_all_preds
+        else:
+            return disc_model(X)
 
     def calculate_hiddeness(self, X: np.ndarray) -> Dict[str, float]:
         model_device = next(self.disc_models[0].parameters()).device
         X = torch.tensor(X).to(model_device)
 
         hid_list = list()
-        for disc_model in self.disc_models:
-            hid = torch.mean(disc_model(X)).detach().cpu().numpy()
-            hid_list.append(hid)
+        with torch.no_grad():
+            for disc_model in self.disc_models:
+                disc_predictions = disc_model(X)
+                hid = torch.mean(disc_predictions).detach().cpu().numpy()
+                hid_list.append(hid)
 
         hid = max(hid_list)
         conc = 1 - hid

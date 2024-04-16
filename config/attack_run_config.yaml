@@ -20,6 +20,7 @@ criterion_name: BCELoss
 criterion_params: null
 
 batch_size: 128
+estimator_batch_size: 32
 cuda: 'cuda:1'
 
 metric_effect: F1
