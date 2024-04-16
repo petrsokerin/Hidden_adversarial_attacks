@@ -545,7 +545,7 @@ class DiscTrainer(Trainer):
             if self.attack_scheduler:
                 self.attack = self.attack_scheduler.step()
 
-                if cur_eps != self.attack.eps and epoch != self.n_epochs + 1:
+                if cur_eps != self.attack.eps and epoch + 1 != self.n_epochs:
                     cur_eps = self.attack.eps
                     print("----- New epsilon", round(cur_eps, 3))
                     adv_train_loader = self._generate_adversarial_data(
