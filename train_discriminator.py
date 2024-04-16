@@ -71,8 +71,8 @@ def main(cfg: DictConfig):
 
     criterion = get_criterion(cfg["criterion_name"], cfg["criterion_params"])
 
-    disc_check_list = (
-        get_disc_list(
+    if cfg["use_disc_check"]:
+        disc_check_list = get_disc_list(
             model_name=cfg["disc_model_check"]["name"],
             model_params=cfg["disc_model_check"]["params"],
             list_disc_params=cfg["list_check_model_params"],
@@ -80,9 +80,8 @@ def main(cfg: DictConfig):
             path=cfg["disc_path"],
             train_mode=False,
         )
-        if cfg["use_disc_check"]
-        else None
-    )
+    else:
+        disc_check_list = None
 
     estimator = AttackEstimator(disc_check_list, cfg["metric_effect"])
 
@@ -103,9 +102,6 @@ def main(cfg: DictConfig):
                     path=cfg["disc_path"],
                     train_mode=cfg["disc_model_reg"]["attack_train_mode"],
                 )
-
-            # attack = get_attack(cfg['attack']['name'], attack_const_params)
-            # attack = attack.initialize_with_optimization(test_loader, cfg['optuna_optimizer'], attack_const_params)
 
             const_params = {
                 "attack_params": attack_const_params,

@@ -104,6 +104,7 @@ class Trainer:
         device: str = "cpu",
         seed: int = 0,
         multiclass: bool = False,
+        train_self_supervised: bool = True,
     ):
         fix_seed(seed)
         if model_params == "None" or not model_params:
@@ -130,6 +131,7 @@ class Trainer:
             print_every=print_every,
             device=device,
             multiclass=multiclass,
+            train_self_supervised=train_self_supervised,
         )
 
     @staticmethod
@@ -354,6 +356,7 @@ class DiscTrainer(Trainer):
         print_every: int = 5,
         device: str = "cpu",
         multiclass: bool = False,
+        train_self_supervised: bool = False,
     ) -> None:
         super().__init__(
             model=model,
@@ -366,6 +369,7 @@ class DiscTrainer(Trainer):
             print_every=print_every,
             device=device,
             multiclass=multiclass,
+            train_self_supervised=train_self_supervised,
         )
 
         self.attack = attack
@@ -392,6 +396,7 @@ class DiscTrainer(Trainer):
         device: str = "cpu",
         seed: int = 0,
         multiclass: bool = False,
+        train_self_supervised: bool = False,
     ):
         fix_seed(seed)
         if model_params == "None" or not model_params:
@@ -426,6 +431,7 @@ class DiscTrainer(Trainer):
             print_every=print_every,
             device=device,
             multiclass=multiclass,
+            train_self_supervised=train_self_supervised,
         )
 
     @staticmethod
