@@ -13,11 +13,13 @@ model_ids: [0]
 
 train_self_supervised: False
 
+estimator_batch_size: 32
+
 defaults:
-  - model: TS2VEC
-  - model@attack_model: TS2VEC
-  - model@disc_model_reg: TS2VEC
-  - model@disc_model_check: TS2VEC
+  - model: LSTM
+  - model@attack_model: LSTM
+  - model@disc_model_reg: LSTM
+  - model@disc_model_check: LSTM
   - attack_disc@attack: FGSM
 
 criterion_name: BCELoss
