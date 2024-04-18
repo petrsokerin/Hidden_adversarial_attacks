@@ -12,7 +12,7 @@ print_every: 1
 train_self_supervised: True
 
 defaults:
- - model: TS2VEC
+ - model: LSTM
 
 transform_data: []
 # - _target_: tsai.data.transforms.TSRandomResizedCrop
