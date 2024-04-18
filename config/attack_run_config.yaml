@@ -24,6 +24,7 @@ estimator_batch_size: 32
 cuda: 'cuda:1'
 
 metric_effect: F1
+metric_hid: ROC_AUC_DISC
 list_check_model_params:
   - model_id : 0
     model_name: fgsm_attack_eps=0.03_nsteps=10
@@ -39,4 +40,3 @@ optuna_optimizer:
     _target_: optuna.pruners.MedianPruner
   hyperparameters_vary:
     ${attack.hyperparameters_vary}
-    

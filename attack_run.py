@@ -63,7 +63,12 @@ def main(cfg: DictConfig):
     else:
         disc_check_list = None
 
-    estimator = AttackEstimator(disc_check_list, cfg["metric_effect"], cfg['estimator_batch_size'])
+    estimator = AttackEstimator(
+        disc_check_list,
+        cfg["metric_effect"],
+        cfg["metric_hid"],
+        batch_size=cfg["estimator_batch_size"],
+    )
 
     if cfg["enable_optimization"]:
         const_params = dict(cfg["attack"]["attack_params"])
