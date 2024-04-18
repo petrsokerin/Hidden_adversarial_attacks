@@ -15,6 +15,9 @@ train_self_supervised: False
 
 estimator_batch_size: 32
 
+metric_effect: F1
+metric_hid: ROC_AUC_DISC
+
 defaults:
   - model: LSTM
   - model@attack_model: LSTM

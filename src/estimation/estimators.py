@@ -3,13 +3,13 @@ from typing import Dict, List
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
     f1_score,
     roc_auc_score,
 )
+from torch.utils.data import DataLoader
 
 from src.data import OnlyXDataset
 
@@ -69,7 +69,11 @@ class ClassifierEstimator(BaseEstimator):
 
 class AttackEstimator(BaseEstimator):
     def __init__(
-        self, disc_models: List[torch.nn.Module] = None, metric_effect: str = "F1", batch_size: int = None
+        self,
+        disc_models: List[torch.nn.Module] = None,
+        metric_effect: str = "F1",
+        metric_hid: str = "PROB_HID",
+        batch_size: int = None,
     ) -> None:
         self.metrics = {
             "ACC": accuracy_score,
@@ -78,6 +82,7 @@ class AttackEstimator(BaseEstimator):
             "F1": f1_score,
         }
         self.metric_effect = metric_effect
+        self.metric_hid = metric_hid
         self.batch_size = batch_size
 
         self.metrics_names = list(self.metrics.keys()) + ["EFF", "L1", "ACC_ORIG_ADV"]
@@ -85,7 +90,14 @@ class AttackEstimator(BaseEstimator):
         self.calculate_hid = bool(disc_models)
         if disc_models:
             self.disc_models = disc_models
-            self.metrics_names += ["HID", "CONC", "F_EFF_CONC"]
+            self.metrics_names += [
+                "PROB_HID",
+                "ACC_DISC",
+                "F1_DISC",
+                "ROC_AUC_DISC",
+                "CONC",
+                "F_EFF_CONC",
+            ]
 
     def calculate_effectiveness(
         self, y_true: np.ndarray, y_pred: np.ndarray
@@ -97,11 +109,16 @@ class AttackEstimator(BaseEstimator):
 
         metric_res["EFF"] = 1 - metric_res[self.metric_effect]
         return metric_res
-    
-    def calculate_hiddeness_one_model(self, X: torch.Tensor, disc_model: torch.nn.Module) -> torch.Tensor:
+
+    def calculate_hid_one_model(
+        self, X: torch.Tensor, disc_model: torch.nn.Module
+    ) -> torch.Tensor:
+        device = next(disc_model.parameters()).device
         if self.batch_size:
-            loader = DataLoader(OnlyXDataset(X), batch_size=self.batch_size, shuffle=False)
-            y_all_preds = torch.tensor([])
+            loader = DataLoader(
+                OnlyXDataset(X), batch_size=self.batch_size, shuffle=False
+            )
+            y_all_preds = torch.tensor([], device=device)
             for X_batch in loader:
                 y_pred = disc_model(X_batch)
                 y_all_preds = torch.concat([y_all_preds, y_pred], axis=0)
@@ -109,20 +126,62 @@ class AttackEstimator(BaseEstimator):
         else:
             return disc_model(X)
 
-    def calculate_hiddeness(self, X: np.ndarray) -> Dict[str, float]:
+    def calculate_hiddeness(self, X_orig, X_adv: np.ndarray) -> Dict[str, float]:
         model_device = next(self.disc_models[0].parameters()).device
-        X = torch.tensor(X).to(model_device)
+        X_adv = torch.tensor(X_adv).to(model_device)
+        X_orig = torch.tensor(X_orig).to(model_device)
 
-        hid_list = list()
+        y_pred_orig_prob = np.array([])
+        y_pred_adv_prob = np.array([])
+        n_objects = X_orig.shape[0]
         with torch.no_grad():
             for disc_model in self.disc_models:
-                disc_predictions = disc_model(X)
-                hid = torch.mean(disc_predictions).detach().cpu().numpy()
-                hid_list.append(hid)
+                disc_predictions = (
+                    self.calculate_hid_one_model(X_orig, disc_model)
+                    .detach()
+                    .cpu()
+                    .numpy()
+                    .flatten()
+                )
+                y_pred_orig_prob = np.concatenate([y_pred_orig_prob, disc_predictions])
 
-        hid = max(hid_list)
-        conc = 1 - hid
-        return {"HID": hid, "CONC": conc}
+                disc_predictions = (
+                    self.calculate_hid_one_model(X_adv, disc_model)
+                    .detach()
+                    .cpu()
+                    .numpy()
+                    .flatten()
+                )
+                y_pred_adv_prob = np.concatenate([y_pred_adv_prob, disc_predictions])
+
+        y_pred_orig_prob = y_pred_orig_prob.reshape((n_objects, len(self.disc_models)))
+        y_pred_adv_prob = y_pred_adv_prob.reshape((n_objects, len(self.disc_models)))
+        assert y_pred_adv_prob.shape == (n_objects, len(self.disc_models))
+
+        prob_hid = np.max(np.mean(y_pred_adv_prob, axis=0))
+
+        y_pred_orig_prob = np.max(y_pred_orig_prob, axis=1)
+        y_pred_adv_prob = np.min(y_pred_adv_prob, axis=1)
+
+        assert len(y_pred_adv_prob) == len(X_adv)
+
+        y_pred_prob = np.concatenate([y_pred_orig_prob, y_pred_adv_prob], axis=0)
+        y_pred = np.round(y_pred_prob)
+        y_true = np.concatenate(
+            [np.zeros(y_pred_orig_prob.shape), np.ones(y_pred_adv_prob.shape)], axis=0
+        )
+        acc_disc = accuracy_score(y_true, y_pred)
+        f1_disc = f1_score(y_true, y_pred)
+        roc_auc_disc = roc_auc_score(y_true, y_pred_prob)
+
+        results = {
+            "PROB_HID": prob_hid,
+            "ACC_DISC": acc_disc,
+            "F1_DISC": f1_disc,
+            "ROC_AUC_DISC": roc_auc_disc,
+        }
+        results["CONC"] = 1 - results[self.metric_hid]
+        return results
 
     @staticmethod
     def calculate_l1(X_orig: np.ndarray, X_adv: np.ndarray) -> float:
@@ -144,13 +203,16 @@ class AttackEstimator(BaseEstimator):
         X_orig: np.ndarray,
         X_adv: np.ndarray,
     ) -> List[float]:
+        assert y_true.shape == y_pred.shape
+        assert X_orig.shape == X_adv.shape
+
         metrics = self.calculate_effectiveness(y_true, y_pred)
 
         metrics["L1"] = self.calculate_l1(X_orig, X_adv)
         metrics["ACC_ORIG_ADV"] = accuracy_score(y_pred_orig, y_pred)
 
         if self.calculate_hid:
-            metric_hid = self.calculate_hiddeness(X_adv)
+            metric_hid = self.calculate_hiddeness(X_orig, X_adv)
             metric_hid["F_EFF_CONC"] = self.calculate_f_eff_conc(
                 metrics["EFF"], metric_hid["CONC"]
             )
