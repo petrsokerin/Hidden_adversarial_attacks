@@ -3,6 +3,7 @@ results/*
 results_old/*
 data/*
 checkpoints/*
+*credentials*
 .ipynb_checkpoints/*
 **/__pycache__/**
 outputs/*
