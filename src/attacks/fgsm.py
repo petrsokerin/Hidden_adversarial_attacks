@@ -107,7 +107,7 @@ class FGSMRegDiscAttack(FGSMAttack):
         loss = self.get_loss(X, y_true)
 
         reg_value = reg_disc(X, self.disc_models, self.use_sigmoid)
-        print(loss.item(), reg_value.item())
+        # print(loss.item(), reg_value.item())
         loss = loss - self.alpha * reg_value
 
         X_adv = self.get_adv_data(X, loss)
