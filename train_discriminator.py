@@ -83,7 +83,12 @@ def main(cfg: DictConfig):
     else:
         disc_check_list = None
 
-    estimator = AttackEstimator(disc_check_list, cfg["metric_effect"])
+    estimator = AttackEstimator(
+        disc_check_list,
+        cfg["metric_effect"],
+        cfg["metric_hid"],
+        batch_size=cfg["estimator_batch_size"],
+    )
 
     for model_id in cfg["model_ids"]:
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
@@ -109,7 +114,7 @@ def main(cfg: DictConfig):
                 "print_every": cfg["print_every"],
                 "device": device,
                 "seed": model_id,
-                "train_self_supervised": cfg['train_self_supervised']
+                "train_self_supervised": cfg["train_self_supervised"],
             }
             disc_trainer = DiscTrainer.initialize_with_optimization(
                 train_loader, test_loader, cfg["optuna_optimizer"], const_params
@@ -160,7 +165,9 @@ def main(cfg: DictConfig):
                     trainer_params["logger"] = logger
                     trainer_params["device"] = device
                     trainer_params["seed"] = model_id
-                    trainer_params["train_self_supervised"] = cfg['train_self_supervised']
+                    trainer_params["train_self_supervised"] = cfg[
+                        "train_self_supervised"
+                    ]
 
                     trainer_params["attack_name"] = cfg["attack"]["name"]
                     trainer_params["attack_params"] = attack_params

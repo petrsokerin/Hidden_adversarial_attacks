@@ -5,7 +5,7 @@ Repo for research project in My University '23.
 ## Quick Start
 
 If you want to work with project with Docker, you can use folder **docker_scripts**.
-Firstly tune file `credentials` with your variables for running docker. After you need to make docker image using command:
+Firstly copy file `credentials_example` to `credentials` and tune it with your variables for running docker. After you need to make docker image using command:
 
 ```
 cd docker_scripts
