@@ -19,23 +19,23 @@ def reg_neigh(X: torch.Tensor, alpha: float) -> torch.Tensor:
     return reg_value
 
 
-# def reg_disc(
-#     X: torch.Tensor,
-#     disc_models: List[torch.nn.Module],
-#     use_sigmoid: bool = True,
-# ) -> torch.Tensor:
-#     n_models = len(disc_models)
-#     reg_value = 0
-#     for d_model in disc_models:
-#         req_grad(d_model, state=True)
-#         if use_sigmoid:
-#             model_output = torch.mean(torch.log(F.sigmoid(d_model(X))))
-#         else:
-#             model_output = torch.mean(torch.log(d_model(X)))
-#         reg_value = reg_value + model_output
+def reg_disc(
+    X: torch.Tensor,
+    disc_models: List[torch.nn.Module],
+    use_sigmoid: bool = True,
+) -> torch.Tensor:
+    n_models = len(disc_models)
+    reg_value = 0
+    for d_model in disc_models:
+        req_grad(d_model, state=True)
+        if use_sigmoid:
+            model_output = torch.mean(torch.log(F.sigmoid(d_model(X))))
+        else:
+            model_output = torch.mean(torch.log(d_model(X)))
+        reg_value = reg_value + model_output
 
-#     reg_value = reg_value / n_models
-#     return reg_value
+    reg_value = reg_value / n_models
+    return reg_value
 
 
 def reg_boltzmann(
@@ -53,34 +53,5 @@ def reg_boltzmann(
         reg_value[i] = model_output
 
     reg_value = beta * boltzmann(reg_value, beta=beta)
-    return reg_value
-
-def reg_disc(
-    X: torch.Tensor,
-    disc_models: List[torch.nn.Module],
-    use_sigmoid: bool = True,
-    smt_meaning: float = 0.2,
-) -> torch.Tensor:
-    n_models = len(disc_models)
-    reg_value = 0
-
-    bce = torch.nn.BCELoss()
-
-    for d_model in disc_models:
-        req_grad(d_model, state=True)
-        preds = d_model(X)
-
-        if use_sigmoid:
-            model_output = -bce(F.sigmoid(preds), torch.ones_like(preds))
-        else:
-            model_output = (1 - smt_meaning) * torch.mean(torch.log(d_model(X))) + smt_meaning * torch.mean(torch.log(1 - d_model(X)))
-            #model_output = -bce(preds, torch.ones_like(preds))
-
-            # if model_output_old <= - 100:
-            #     raise ValueError('find!!!!!!!!')
-            # print(model_output_old.item(), model_output.item())
-        reg_value = reg_value + model_output
-
-    reg_value = reg_value / n_models
     return reg_value
 
