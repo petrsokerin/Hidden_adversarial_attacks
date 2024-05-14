@@ -45,10 +45,11 @@ ENV HOME=/home/$DOCKER_NAME
 RUN mkdir $HOME/.cache $HOME/.config \
  && chmod -R 777 $HOME
 
+COPY requirements.txt /app/requirements.txt
 # Set up the Conda environment
 ENV CONDA_AUTO_UPDATE_CONDA=false \
     PATH=$HOME/miniconda/bin:$PATH
-COPY requirements.txt /app/requirements.txt
+
 RUN curl -sLo ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py39_23.1.0-1-Linux-x86_64.sh \
  && chmod +x ~/miniconda.sh \
  && ~/miniconda.sh -b -p ~/miniconda \
