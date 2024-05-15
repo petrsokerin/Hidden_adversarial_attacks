@@ -105,10 +105,19 @@ class FGSMRegDiscAttack(FGSMAttack):
 
     def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         loss = self.get_loss(X, y_true)
+        _ = loss
 
         reg_value = reg_disc(X, self.disc_models, self.use_sigmoid)
         #print(loss.item(), reg_value.item())
         loss = loss - self.alpha * reg_value
+
+        loss_grad = torch.autograd.grad(loss, X, retain_graph=True)[0]
+        reg_grad = torch.autograd.grad(reg_value, X, retain_graph=True)[0]
+        loss_grad_norm = torch.norm(loss_grad) + 0.0001
+        reg_grad_norm = torch.norm(reg_grad) + 0.0001
+        
+        # print('Class grad norm: ', loss_grad_norm.item(), 'Disc grad norm: ',  reg_grad_norm.item())
+        # print('Class loss: ', _.item(), 'Disc loss: ', reg_value.item())
 
         X_adv = self.get_adv_data(X, loss)
         return X_adv
@@ -140,19 +149,23 @@ class FGSMRegDiscNormAttack(FGSMAttack):
 
     def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         loss = self.get_loss(X, y_true)
+        loss_print = loss
 
         reg_value = reg_disc(X, self.disc_models, self.use_sigmoid)
         # print(loss.item(), reg_value.item())
 
         loss_grad = torch.autograd.grad(loss, X, retain_graph=True)[0]
         reg_grad = torch.autograd.grad(reg_value, X, retain_graph=True)[0]
-        loss_grad_norm = torch.norm(loss_grad, dim=0) + 0.0001
-        reg_grad_norm = torch.norm(reg_grad, dim=0) + 0.0001
+        loss_grad_norm = torch.norm(loss_grad, dim=0) + 1e-7
+        reg_grad_norm = torch.norm(reg_grad, dim=0) + 1e-7
 
-        # print(loss_grad.flatten()[:3], reg_grad.flatten()[:3])
-        # print((loss_grad / loss_grad_norm).flatten()[:3], (reg_grad / reg_grad_norm).flatten()[:3])
+        loss_grad_normilized = loss_grad / loss_grad_norm
+        reg_grad_normilized = reg_grad / reg_grad_norm
 
-        loss_grad = loss_grad / loss_grad_norm - self.alpha * reg_grad / reg_grad_norm
+        # print('Class grad: ', loss_grad_norm.abs().mean().item(), 'Disc grad: ',  reg_grad_norm.abs().mean().item())
+        # print('Class loss: ', loss_print.item(), 'Disc loss: ', reg_value.item())
+
+        loss_grad = loss_grad_normilized - self.alpha * reg_grad_normilized
         X_adv = self.get_adv_data(X, loss_grad)
 
         return X_adv
@@ -182,7 +195,6 @@ class FGSMRegDiscSmoothMaxAttack(FGSMAttack):
         loss = self.get_loss(X, y_true)
 
         reg_value = -reg_disc(X, self.disc_models, self.use_sigmoid)
-        #print(loss.item(), reg_value.item())
         loss_bolzman = boltzman_loss(loss, reg_value, beta=self.beta)
         X_adv = self.get_adv_data(X, loss_bolzman)
         return X_adv
@@ -213,33 +225,3 @@ class DefenseRegDiscAttack(FGSMAttack):
 
         X_adv = self.get_adv_data(X, loss)
         return X_adv
-
-# class FGSMDefenceAttack(FGSMRegDiscAttack):
-#     def __init__(
-#         self,
-#         model: torch.nn.Module,
-#         criterion: torch.nn.Module,
-#         disc_models: List[torch.nn.Module],
-#         estimator,
-#         eps: float = 0.03,
-#         alpha: float = 0.0,
-#         n_steps_attack: int = 10,
-#         n_steps_attack: int = 10,
-#         use_sigmoid: bool = False,
-#         *args,
-#         **kwargs,
-#     ) -> None:
-#         super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
-#         self.alpha = alpha
-#         self.disc_models = disc_models
-#         self.use_sigmoid = use_sigmoid
-#         self.is_regularized = True
-
-#     def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
-#         loss = self.get_loss(X, y_true)
-
-#         reg_value = reg_disc(X, self.disc_models, self.use_sigmoid)
-#         loss = loss - self.alpha * reg_value
-
-#         X_adv = self.get_adv_data(X, loss)
-#         return X_adv
