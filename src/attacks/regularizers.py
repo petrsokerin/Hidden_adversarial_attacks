@@ -48,9 +48,10 @@ def reg_boltzmann(
         if use_sigmoid:
             model_output = torch.mean(torch.log(F.sigmoid(d_model(X))))
         else:
-            model_output = torch.mean(torch.log(d_model(X)))
+            model_output = torch.mean()
 
         reg_value[i] = model_output
 
     reg_value = beta * boltzmann(reg_value, beta=beta)
     return reg_value
+
