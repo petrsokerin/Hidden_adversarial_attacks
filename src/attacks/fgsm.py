@@ -111,11 +111,11 @@ class FGSMRegDiscAttack(FGSMAttack):
         #print(loss.item(), reg_value.item())
         loss = loss - self.alpha * reg_value
 
-        loss_grad = torch.autograd.grad(loss, X, retain_graph=True)[0]
-        reg_grad = torch.autograd.grad(reg_value, X, retain_graph=True)[0]
-        loss_grad_norm = torch.norm(loss_grad) + 0.0001
-        reg_grad_norm = torch.norm(reg_grad) + 0.0001
-        
+        # loss_grad = torch.autograd.grad(loss, X, retain_graph=True)[0]
+        # reg_grad = torch.autograd.grad(reg_value, X, retain_graph=True)[0]
+        # loss_grad_norm = torch.norm(loss_grad) + 0.0001
+        # reg_grad_norm = torch.norm(reg_grad) + 0.0001
+
         # print('Class grad norm: ', loss_grad_norm.item(), 'Disc grad norm: ',  reg_grad_norm.item())
         # print('Class loss: ', _.item(), 'Disc loss: ', reg_value.item())
 
