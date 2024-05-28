@@ -85,7 +85,7 @@ class AttackEstimator(BaseEstimator):
         self.metric_hid = metric_hid
         self.batch_size = batch_size
 
-        self.metrics_names = list(self.metrics.keys()) + ["EFF", "L1", "ACC_ORIG_ADV"]
+        self.metrics_names = list(self.metrics.keys()) + ["EFF", "L1", "ACC_CORRECT", "ACC_ORIG_ADV"]
 
         self.calculate_hid = bool(disc_models)
         if disc_models:
@@ -98,6 +98,12 @@ class AttackEstimator(BaseEstimator):
                 "CONC",
                 "F_EFF_CONC",
             ]
+
+    @staticmethod
+    def accuracy_correct_predicted(y_true: np.ndarray, y_pred: np.ndarray, y_pred_orig: np.ndarray):
+        orig_correct_mask= y_pred_orig == y_true
+        return accuracy_score(y_true[orig_correct_mask], y_pred[orig_correct_mask])
+
 
     def calculate_effectiveness(
         self, y_true: np.ndarray, y_pred: np.ndarray
@@ -210,6 +216,7 @@ class AttackEstimator(BaseEstimator):
 
         metrics["L1"] = self.calculate_l1(X_orig, X_adv)
         metrics["ACC_ORIG_ADV"] = accuracy_score(y_pred_orig, y_pred)
+        metrics['ACC_CORRECT'] =  self.accuracy_correct_predicted(y_true, y_pred, y_pred_orig)
 
         if self.calculate_hid:
             metric_hid = self.calculate_hiddeness(X_orig, X_adv)
