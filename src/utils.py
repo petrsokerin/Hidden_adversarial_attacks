@@ -11,6 +11,7 @@ import torch
 from omegaconf import DictConfig
 from optuna.trial import Trial
 from src.data import load_data
+from src.estimation.utils import calculate_roughness
 
 
 def save_config(path, config_name: str, config_save_name: str) -> None:
@@ -214,13 +215,6 @@ def fix_seed(seed: int) -> None:
 
     # Set deterministic behavior for cudnn
     torch.backends.cudnn.deterministic = True
-
-
-def calculate_roughness(data):
-    second_diffs = np.diff(np.diff(data, axis=1), axis=1)
-    smoothness = np.abs(second_diffs).mean()
-
-    return float(smoothness)
 
 
 def calc_stats(data):

@@ -12,7 +12,7 @@ from sklearn.metrics import (
 from torch.utils.data import DataLoader
 
 from src.data import OnlyXDataset
-from src.utils import calculate_roughness
+from src.estimation.utils import calculate_roughness
 
 
 class BaseEstimator(ABC):
