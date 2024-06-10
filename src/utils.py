@@ -229,7 +229,7 @@ def calc_stats(data):
     stats['max'] = float(data.max())
     stats['mean'] = float(data.mean())
     stats['min'] = float(data.min())
-    stats['smoothness'] = calculate_roughness(data)
+    stats['roughness'] = calculate_roughness(data)
 
     return stats
 
