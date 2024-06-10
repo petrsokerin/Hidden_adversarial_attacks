@@ -1,17 +1,17 @@
 name: RNNA
 
 params:
-  seq_len: 50
+  seq_len: ${dataset.seq_len}
   c_in: 1 # по умолчанию
   c_out: 1 # по умолчанию
-  hidden_size: 128
+  hidden_size: 256
   rnn_layers: 1 
   bias: True 
   rnn_dropout: 0
   bidirectional: False  
   encoder_layers: 3 
-  n_heads: 16
-  d_ff: 256 
+  n_heads: 4
+  d_ff: 128 
   encoder_dropout: 0.1 
   act: 'gelu'
   fc_dropout: 0.0
