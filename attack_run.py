@@ -23,8 +23,8 @@ def main(cfg: DictConfig):
         print("ATTENTION!!!! Results will not be saved. Set param test_run=False")
 
     # load data
-    print("Dataset", cfg["dataset"])
-    X_train, y_train, X_test, y_test = load_data(cfg["dataset"])
+    print("Dataset", cfg["dataset"]['name'])
+    X_train, y_train, X_test, y_test = load_data(cfg["dataset"]['name'])
     X_train, X_test, y_train, y_test = transform_data(
         X_train, X_test, y_train, y_test, slice_data=cfg["slice"]
     )
@@ -38,7 +38,7 @@ def main(cfg: DictConfig):
     attack_model_path = os.path.join(
         cfg["model_folder"],
         cfg["attack_model"]["name"],
-        f"model_{cfg['model_id_attack']}_{cfg['dataset']}.pt",
+        f"model_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt",
     )
 
     attack_model = get_model(
@@ -104,7 +104,7 @@ def main(cfg: DictConfig):
                 config_name=CONFIG_NAME,
                 path=cfg["save_path"],
                 is_regularized=attack.is_regularized,
-                dataset=cfg["dataset"],
+                dataset=cfg["dataset"]['name'],
                 model_id=cfg["model_id_attack"],
                 alpha=alpha,
             )
@@ -147,7 +147,7 @@ def main(cfg: DictConfig):
                     config_name=CONFIG_NAME,
                     path=cfg["save_path"],
                     is_regularized=attack.is_regularized,
-                    dataset=cfg["dataset"],
+                    dataset=cfg["dataset"]['name'],
                     model_id=cfg["model_id_attack"],
                     alpha=alpha,
                 )

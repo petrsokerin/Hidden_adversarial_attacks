@@ -2,6 +2,7 @@ import copy
 import os
 import random
 import shutil
+import yaml
 from typing import Any, Dict, Mapping
 
 import numpy as np
@@ -9,6 +10,7 @@ import pandas as pd
 import torch
 from omegaconf import DictConfig
 from optuna.trial import Trial
+from src.data import load_data
 
 
 def save_config(path, config_name: str, config_save_name: str) -> None:
@@ -212,3 +214,41 @@ def fix_seed(seed: int) -> None:
 
     # Set deterministic behavior for cudnn
     torch.backends.cudnn.deterministic = True
+
+
+def calculate_roughness(data):
+    second_diffs = np.diff(np.diff(data, axis=1), axis=1)
+    smoothness = np.abs(second_diffs).mean()
+
+    return float(smoothness)
+
+
+def calc_stats(data):
+    stats = {}
+    stats['object_count'] = data.shape[0]
+    stats['max'] = float(data.max())
+    stats['mean'] = float(data.mean())
+    stats['min'] = float(data.min())
+    stats['smoothness'] = calculate_roughness(data)
+
+    return stats
+
+
+def get_dataset_stats(dataset_name, path='config/my_configs/dataset/'):
+    X_train, y_train, X_test, y_test = load_data(dataset_name)
+
+    stats = {}
+    stats['name'] = dataset_name
+    stats['num_classes'] = len(np.unique(y_train))
+    stats['seq_len'] = X_train.shape[1]
+    stats['total_object_count'] = len(y_train)+len(y_test)
+
+    train = calc_stats(X_train)
+    test = calc_stats(X_test)
+
+    stats['train'] = train
+    stats['test'] = test
+
+    with open(path + f'{dataset_name}.yaml', 'w+') as f:
+        yaml.dump(stats, f, sort_keys=False)
+

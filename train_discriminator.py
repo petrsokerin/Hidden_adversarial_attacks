@@ -28,7 +28,7 @@ def main(cfg: DictConfig):
     )
 
     # load data
-    X_train, y_train, X_test, y_test = load_data(cfg["dataset"])
+    X_train, y_train, X_test, y_test = load_data(cfg["dataset"]['name'])
 
     if len(set(y_test)) > 2:
         return None
@@ -58,7 +58,7 @@ def main(cfg: DictConfig):
     attack_model_path = os.path.join(
         cfg["model_folder"],
         cfg["attack_model"]["name"],
-        f"model_{cfg['model_id_attack']}_{cfg['dataset']}.pt",
+        f"model_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt",
     )
 
     attack_model = get_model(

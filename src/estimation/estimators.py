@@ -12,6 +12,7 @@ from sklearn.metrics import (
 from torch.utils.data import DataLoader
 
 from src.data import OnlyXDataset
+from src.utils import calculate_roughness
 
 
 class BaseEstimator(ABC):
@@ -85,7 +86,7 @@ class AttackEstimator(BaseEstimator):
         self.metric_hid = metric_hid
         self.batch_size = batch_size
 
-        self.metrics_names = list(self.metrics.keys()) + ["EFF", "L1", "ACC_ORIG_ADV"]
+        self.metrics_names = list(self.metrics.keys()) + ["EFF", "L1", "ACC_ORIG_ADV", "ROUGHNESS", "ROUGHNESS_NORM"]
 
         self.calculate_hid = bool(disc_models)
         if disc_models:
@@ -210,6 +211,8 @@ class AttackEstimator(BaseEstimator):
 
         metrics["L1"] = self.calculate_l1(X_orig, X_adv)
         metrics["ACC_ORIG_ADV"] = accuracy_score(y_pred_orig, y_pred)
+        metrics['ROUGHNESS'] = calculate_roughness(X_adv)
+        metrics['ROUGHNESS_NORM'] = metrics['ROUGHNESS']/calculate_roughness(X_orig)
 
         if self.calculate_hid:
             metric_hid = self.calculate_hiddeness(X_orig, X_adv)

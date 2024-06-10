@@ -25,7 +25,7 @@ def main(cfg: DictConfig):
     )
 
     # load data
-    X_train, y_train, X_test, y_test = load_data(cfg["dataset"])
+    X_train, y_train, X_test, y_test = load_data(cfg["dataset"]['name'])
     if len(set(y_test)) > 2:
         return None
     X_train, X_test, y_train, y_test = transform_data(
@@ -52,6 +52,7 @@ def main(cfg: DictConfig):
 
     for model_id in range(cfg["model_id_start"], cfg["model_id_finish"]):
         print("trainig model", model_id)
+
         fix_seed(model_id)
 
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
@@ -77,7 +78,7 @@ def main(cfg: DictConfig):
         logger.close()
 
         if not cfg["test_run"]:
-            model_save_name = f'model_{model_id}_{cfg["dataset"]}'
+            model_save_name = f'model_{model_id}_{cfg["dataset"]["name"]}'
             trainer.save_result(cfg["save_path"], model_save_name)
             save_config(cfg["save_path"], CONFIG_NAME, CONFIG_NAME)
 
