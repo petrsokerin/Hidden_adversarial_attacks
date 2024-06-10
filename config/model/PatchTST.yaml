@@ -1,7 +1,7 @@
 name: PatchTST
 
 params:
-  seq_len: 500
+  seq_len: ${dataset.seq_len}
   c_in: 1 
   c_out: 1 
   pred_dim: 1 
@@ -9,7 +9,7 @@ params:
   n_heads: 8
   d_model: 512 
   d_ff: 2048 
-  dropout: 0.05 
+  dropout: 0.3 
   attn_dropout: 0.0
   patch_len: 16 
   stride: 8 
@@ -33,4 +33,4 @@ hyperparameters_vary:
     high: 0.7
     step: 0.1
 
-attack_train_mode: True
+attack_train_mode: False

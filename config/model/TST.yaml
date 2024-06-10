@@ -1,17 +1,17 @@
 name: TST
 
 params:
-  seq_len: 50
+  seq_len: ${dataset.seq_len}
   c_in: 1 # по умолчанию
   c_out: 1 # по умолчанию
-  max_seq_len: None
+  max_seq_len: Null
   d_model: 128
   n_heads: 16
   d_k: 32
   d_v: 32
   d_ff: 256
   dropout: 0.1
-  activation: ‘gelu’
+  # activation: gelu
   n_layers: 3
   fc_dropout: 0
 
@@ -22,4 +22,4 @@ hyperparameters_vary:
     high: 0.7
     step: 0.1
 
-attack_train_mode: True
+attack_train_mode: False
