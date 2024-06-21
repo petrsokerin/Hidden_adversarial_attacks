@@ -1,0 +1,30 @@
+[tool.ruff]
+extend-exclude = ["*__init__.py", "src/models/TS2Vec_src/*"]
+
+
+[tool.isort]
+profile = "black"
+line_length = 90
+multi_line_output = 3
+skip_gitignore = true
+src_paths = ["./src"]
+
+[tool.mypy]
+mypy_path = "./src"
+exclude = "*__init__*"
+namespace_packages = true
+explicit_package_bases = false
+show_error_codes = true
+follow_imports = "silent"
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_any_generics = true
+check_untyped_defs = true
+no_implicit_reexport = true
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+pythonpath = "src"

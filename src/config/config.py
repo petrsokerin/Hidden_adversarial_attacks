@@ -1,51 +1,131 @@
-from typing import List
 import os
 import shutil
+from typing import Dict, Iterable, List
 
-from src.attacks import (fgsm_disc_attack, fgsm_attack, fgsm_reg_attack,
-simba_binary, simba_binary_reg, simba_binary_disc_reg, deepfool_attack, fgsm_clip_attack, only_disc_attack, ascend_smax_disc_attack, fgsm_disc_smax_attack)
-from src.utils import load_disc_model
+import torch
 
-
-def get_attack(attack_name):
-    dict_attack = {
-        'fgsm_attack': fgsm_attack, 
-        'fgsm_reg_attack': fgsm_reg_attack, 
-        'fgsm_disc_attack': fgsm_disc_attack, 
-        'simba_binary': simba_binary, 
-        'simba_binary_reg': simba_binary_reg, 
-        'simba_binary_disc_reg': simba_binary_disc_reg, 
-        'deepfool_attack': deepfool_attack,
-        'only_disc_attack': only_disc_attack,
-        'ascend_smax_disc_attack': ascend_smax_disc_attack,
-        'fgsm_disc_smax_attack': fgsm_disc_smax_attack,
-    }
-
-    if attack_name in dict_attack:
-        return dict_attack[attack_name]
-    else:
-        raise ValueError("attack name isn't correct")
+from src import attacks, estimation, models
+from src.attacks import attack_scheduler
 
 
-def save_config(path, config_load_name, config_save_name):
+def get_estimator(
+    estimator_name: str, estimator_params: Dict
+) -> estimation.BaseEstimator:
+    if estimator_params is None:
+        estimator_params = dict()
+    try:
+        return getattr(estimation, estimator_name)(**estimator_params)
+    except AttributeError:
+        raise ValueError(f"Estimator with name {estimator_name} is not implemented")
+
+
+def get_attack(attack_name: str, attack_params: Dict) -> attacks.BaseIterativeAttack:
+    if attack_params is None:
+        attack_params = dict()
+    try:
+        return getattr(attacks, attack_name)(**attack_params)
+    except AttributeError:
+        raise ValueError(f"Attack with name {attack_name} is not implemented")
+
+
+def get_model(
+    model_name: str,
+    model_params: Dict,
+    device: str = "cpu",
+    path: str = None,
+    train_mode: bool = False,
+) -> torch.nn.Module:
+    if model_params is None:
+        model_params = dict()
+    try:
+        model = getattr(models, model_name)(**model_params)
+        model = model.to(device)
+        if path:
+            model.load_state_dict(torch.load(path, map_location=torch.device(device)))
+        model.train(train_mode)
+        return model
+    except AttributeError:
+        raise ValueError(f"Model with name {model_name} is not implemented")
+
+
+def get_criterion(
+    criterion_name: str, criterion_params: Dict = None
+) -> torch.nn.Module:
+    if criterion_params is None:
+        criterion_params = dict()
+    try:
+        return getattr(torch.nn, criterion_name)(**criterion_params)
+    except AttributeError:
+        raise ValueError(f"Criterion with name {criterion_name} is not implemented")
+
+
+def get_optimizer(
+    optimizer_name: str, model_params: Dict, optimizer_params: Iterable = None
+):
+    if optimizer_params is None:
+        optimizer_params = dict()
+    try:
+        return getattr(torch.optim, optimizer_name)(model_params, **optimizer_params)
+    except AttributeError:
+        raise ValueError(f"Optimizer with name {optimizer_name} is not implemented")
+
+
+def get_scheduler(
+    scheduler_name: str, optimizer: torch.optim.Optimizer, scheduler_params: Dict = None
+) -> torch.optim.lr_scheduler.LRScheduler:
+    if scheduler_params is None:
+        scheduler_params = dict()
+    try:
+        return getattr(torch.optim.lr_scheduler, scheduler_name)(
+            optimizer, **scheduler_params
+        )
+    except AttributeError:
+        raise ValueError(f"Scheduler with name {scheduler_name} is not implemented")
+
+
+def get_attack_scheduler(
+    attack_scheduler_name: str,
+    attack: attacks.BaseIterativeAttack,
+    attack_scheduler_params: Dict = None,
+) -> attack_scheduler.AttackScheduler:
+    if attack_scheduler_params is None:
+        attack_scheduler_params = dict()
+    try:
+        return getattr(attack_scheduler, attack_scheduler_name)(
+            attack, **attack_scheduler_params
+        )
+    except AttributeError:
+        raise ValueError(
+            f"Attack Scheduler with name {attack_scheduler_name} is not implemented"
+        )
+
+
+def save_config(path: str, config_load_name: str, config_save_name: str) -> None:
     if not os.path.isdir(path):
         os.makedirs(path)
 
-    shutil.copyfile(f'config/{config_load_name}.yaml', path + f'/{config_save_name}.yaml')
+    shutil.copyfile(
+        f"config/{config_load_name}.yaml", path + f"/{config_save_name}.yaml"
+    )
 
 
-def load_disc_config(
-        disc_model,
-        path: str,
-        device: str,
-        list_disc_params: List,
-        train_mode: bool = True,
-) -> List:
+def get_disc_list(
+    model_name: str,
+    model_params: Dict,
+    list_disc_params: List[Dict],
+    device: str = "cpu",
+    path: str = None,
+    train_mode: bool = False,
+):
     list_disc_models = list()
-
     for params in list_disc_params:
-        model = load_disc_model(disc_model, device=device, path=path, **params)
-        model.train(train_mode)
-        list_disc_models.append(model)
-
+        disc_path = f"{path}/{params['model_name']}/{params['model_id']}.pt"
+        disc = get_model(
+            model_name,
+            model_params,
+            device=device,
+            path=disc_path,
+            train_mode=train_mode,
+        )
+        list_disc_models.append(disc)
     return list_disc_models

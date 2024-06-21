@@ -10,7 +10,7 @@ docker run \
  --user ${DOCKER_USER_ID}:${DOCKER_GROUP_ID} \
  --name ${CONTAINER_NAME} \
  --rm -it --init \
- -v /home/p.sokerin/${SRC}:/app \
+ -v ${HOME}/${SRC}:/app \
  --runtime=nvidia \
  ${DOCKER_NAME} bash
 
