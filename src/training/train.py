@@ -281,12 +281,15 @@ class Trainer:
         return loss, y_preds
 
     def _run_epoch(self, loader: DataLoader, mode: str = "train") -> List[float]:
+
+        if mode not in ['train', 'valid']:
+            raise ValueError("mode should be train or valid")
         losses = 0
         y_all_pred = torch.tensor([])
         y_all_pred_prob = torch.tensor([])
         y_all_true = torch.tensor([])
 
-        self.model.train(True)
+        self.model.train(mode=='train')
         for X, labels in loader:
             X = X.to(self.device)
             labels = labels.to(self.device)
@@ -295,8 +298,6 @@ class Trainer:
                 loss, y_preds = self._train_step(X, labels)
             elif mode == "valid":
                 loss, y_preds = self._valid_step(X, labels)
-            else:
-                raise ValueError("mode should be train or valid")
 
             if self.multiclass:
                 y_pred = torch.argmax(y_preds, axis=1)
