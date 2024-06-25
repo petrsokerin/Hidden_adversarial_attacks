@@ -58,7 +58,7 @@ def main(cfg: DictConfig):
             list_disc_params=cfg["list_check_model_params"],
             device=device,
             path=cfg["disc_path"],
-            train_mode=False,
+            train_mode=cfg["disc_model_check"]["attack_train_mode"],
         )
     else:
         disc_check_list = None
