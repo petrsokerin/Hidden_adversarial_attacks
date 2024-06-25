@@ -86,7 +86,7 @@ class AttackEstimator(BaseEstimator):
         self.metric_hid = metric_hid
         self.batch_size = batch_size
 
-        self.metrics_names = list(self.metrics.keys()) + ["EFF", "L1", "ACC_ORIG_ADV", "ROUGHNESS", "ROUGHNESS_NORM"]
+        self.metrics_names = list(self.metrics.keys()) + ["EFF", "L1", "ACC_CORRECT", "ACC_ORIG_ADV", "ROUGHNESS", "ROUGHNESS_NORM"]
 
         self.calculate_hid = bool(disc_models)
         if disc_models:
@@ -99,6 +99,12 @@ class AttackEstimator(BaseEstimator):
                 "CONC",
                 "F_EFF_CONC",
             ]
+
+    @staticmethod
+    def accuracy_correct_predicted(y_true: np.ndarray, y_pred: np.ndarray, y_pred_orig: np.ndarray):
+        orig_correct_mask= y_pred_orig == y_true
+        return accuracy_score(y_true[orig_correct_mask], y_pred[orig_correct_mask])
+
 
     def calculate_effectiveness(
         self, y_true: np.ndarray, y_pred: np.ndarray
@@ -125,9 +131,11 @@ class AttackEstimator(BaseEstimator):
                 y_all_preds = torch.concat([y_all_preds, y_pred], axis=0)
             return y_all_preds
         else:
-            return disc_model(X)
+            y_pred = disc_model(X)
+            return y_pred
 
-    def calculate_hiddeness(self, X_orig, X_adv: np.ndarray) -> Dict[str, float]:
+    def calculate_hiddeness(self, X_orig, X_adv: np.ndarray, step_id: int) -> Dict[str, float]:
+
         model_device = next(self.disc_models[0].parameters()).device
         X_adv = torch.tensor(X_adv).to(model_device)
         X_orig = torch.tensor(X_orig).to(model_device)
@@ -168,12 +176,19 @@ class AttackEstimator(BaseEstimator):
 
         y_pred_prob = np.concatenate([y_pred_orig_prob, y_pred_adv_prob], axis=0)
         y_pred = np.round(y_pred_prob)
-        y_true = np.concatenate(
-            [np.zeros(y_pred_orig_prob.shape), np.ones(y_pred_adv_prob.shape)], axis=0
-        )
+
+        if step_id > 0:
+            y_true = np.concatenate(
+                [np.zeros(y_pred_orig_prob.shape), np.ones(y_pred_adv_prob.shape)], axis=0
+            )
+        else:
+            y_true = np.concatenate(
+                [np.zeros(y_pred_orig_prob.shape), np.zeros(y_pred_adv_prob.shape)], axis=0
+            )
+
         acc_disc = accuracy_score(y_true, y_pred)
         f1_disc = f1_score(y_true, y_pred)
-        roc_auc_disc = roc_auc_score(y_true, y_pred_prob)
+        roc_auc_disc = roc_auc_score(y_true, y_pred_prob) if step_id > 0 else 1.0
 
         results = {
             "PROB_HID": prob_hid,
@@ -203,6 +218,7 @@ class AttackEstimator(BaseEstimator):
         y_pred_orig: np.ndarray,
         X_orig: np.ndarray,
         X_adv: np.ndarray,
+        step_id: int,
     ) -> List[float]:
         assert y_true.shape == y_pred.shape
         assert X_orig.shape == X_adv.shape
@@ -211,11 +227,12 @@ class AttackEstimator(BaseEstimator):
 
         metrics["L1"] = self.calculate_l1(X_orig, X_adv)
         metrics["ACC_ORIG_ADV"] = accuracy_score(y_pred_orig, y_pred)
+        metrics['ACC_CORRECT'] =  self.accuracy_correct_predicted(y_true, y_pred, y_pred_orig)
         metrics['ROUGHNESS'] = calculate_roughness(X_adv)
         metrics['ROUGHNESS_NORM'] = metrics['ROUGHNESS']/calculate_roughness(X_orig)
 
         if self.calculate_hid:
-            metric_hid = self.calculate_hiddeness(X_orig, X_adv)
+            metric_hid = self.calculate_hiddeness(X_orig, X_adv, step_id)
             metric_hid["F_EFF_CONC"] = self.calculate_f_eff_conc(
                 metrics["EFF"], metric_hid["CONC"]
             )
