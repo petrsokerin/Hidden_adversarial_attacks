@@ -1,6 +1,7 @@
 import copy
 import os
 import random
+from datetime import datetime
 import shutil
 import yaml
 from typing import Any, Dict, Mapping
@@ -15,10 +16,28 @@ from src.estimation.utils import calculate_roughness
 
 
 def save_config(path, config_name: str, config_save_name: str) -> None:
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
     shutil.copytree("config/my_configs", path + "/config_folder", dirs_exist_ok=True)
     shutil.copyfile(
-        f"config/my_configs/{config_name}.yaml", path + "/" + config_save_name
+        f"config/my_configs/{config_name}.yaml", path + "/" + config_save_name + '.yaml'
     )
+
+    now = datetime.now()
+    date = now.strftime("%Y-%m-%d")
+    time = now.strftime("%H:%M:%S")
+
+    # Создаем словарь с метаданными
+    metadata = {"date": date, "time": time}
+
+    # Создаем файл metadata.yaml в указанной директории
+    metadata_path = os.path.join(path, "metadata.yaml")
+    with open(metadata_path, "w") as f:
+        yaml.dump(metadata, f)
+
+
+
 
 
 def req_grad(model, state: bool = True) -> None:
@@ -31,27 +50,24 @@ def req_grad(model, state: bool = True) -> None:
         param.requires_grad_(state)
 
 
-def save_experiment(
-    aa_res_df: pd.DataFrame,
-    config_name: str,
+def save_attack_metrics(
+    attack_metrics: pd.DataFrame,
     path: str,
     is_regularized: bool,
     dataset: str,
     model_id: int,
     alpha: float,
 ) -> None:
+
     if not os.path.isdir(path):
         os.makedirs(path)
+    attack_metrics = attack_metrics.round(4)
 
     if is_regularized:
-        save_config(
-            path, config_name, f"config_{dataset}_{model_id}_alpha={alpha}.yaml"
-        )
-        aa_res_df.to_csv(path + f"/aa_res_{dataset}_{model_id}_alpha={alpha}.csv")
+        attack_metrics.to_csv(path + f"/aa_res_{dataset}_{model_id}_alpha={alpha}.csv")
 
     else:
-        save_config(path, config_name, f"config_{dataset}_{model_id}.yaml'")
-        aa_res_df.to_csv(path + f"/aa_res_{dataset}_{model_id}.csv")
+        attack_metrics.to_csv(path + f"/aa_res_{dataset}_{model_id}.csv")
 
 
 def get_optuna_param_for_type(
@@ -245,4 +261,3 @@ def get_dataset_stats(dataset_name, path='config/my_configs/dataset/'):
 
     with open(path + f'{dataset_name}.yaml', 'w+') as f:
         yaml.dump(stats, f, sort_keys=False)
-
