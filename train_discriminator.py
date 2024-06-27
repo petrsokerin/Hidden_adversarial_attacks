@@ -21,6 +21,7 @@ CONFIG_NAME = "train_disc_config"
 
 @hydra.main(config_path="config/my_configs", config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
+
     augmentator = (
         [instantiate(trans) for trans in cfg["transform_data"]]
         if cfg["transform_data"]
@@ -57,7 +58,6 @@ def main(cfg: DictConfig):
 
     attack_model_path = os.path.join(
         cfg["model_folder"],
-        cfg["attack_model"]["name"],
         f"model_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt",
     )
 
@@ -116,6 +116,7 @@ def main(cfg: DictConfig):
                 "seed": model_id,
                 "train_self_supervised": cfg["train_self_supervised"],
             }
+
             disc_trainer = DiscTrainer.initialize_with_optimization(
                 train_loader, test_loader, cfg["optuna_optimizer"], const_params
             )
@@ -126,11 +127,11 @@ def main(cfg: DictConfig):
                 new_save_path = (
                     cfg["save_path"]
                     + "/"
-                    + f'{cfg["attack"]["short_name"]}_eps={disc_trainer.attack.eps}_nsteps={cfg["attack"]["attack_params"]["n_steps"]}'
+                    + f'{cfg["attack"]["short_name"]}_eps={round(disc_trainer.attack.eps, 4)}_nsteps={cfg["attack"]["attack_params"]["n_steps"]}'
                 )
-
-                disc_trainer.save_result(new_save_path, model_save_name)
                 save_config(new_save_path, CONFIG_NAME, CONFIG_NAME)
+                disc_trainer.save_result(new_save_path, model_save_name)
+
 
         else:
             alphas = [0]
@@ -172,10 +173,6 @@ def main(cfg: DictConfig):
                     trainer_params["attack_name"] = cfg["attack"]["name"]
                     trainer_params["attack_params"] = attack_params
 
-                    disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
-
-                    disc_trainer.train_model(train_loader, test_loader, augmentator)
-
                     if not cfg["test_run"]:
                         model_save_name = f"{model_id}"
                         new_save_path = (
@@ -183,9 +180,14 @@ def main(cfg: DictConfig):
                             + "/"
                             + f'{cfg["attack"]["short_name"]}_eps={eps}_nsteps={cfg["attack"]["attack_params"]["n_steps"]}'
                         )
-
-                        disc_trainer.save_result(new_save_path, model_save_name)
                         save_config(new_save_path, CONFIG_NAME, CONFIG_NAME)
+
+                    disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
+                    disc_trainer.train_model(train_loader, test_loader, augmentator)
+
+                    if not cfg["test_run"]:
+                        disc_trainer.save_result(new_save_path, model_save_name)
+
 
 
 if __name__ == "__main__":

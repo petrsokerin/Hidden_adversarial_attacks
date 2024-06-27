@@ -18,6 +18,10 @@ CONFIG_NAME = "train_classifier_config"
 
 @hydra.main(config_path="config/my_configs", config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
+
+    if not cfg["test_run"]:
+        save_config(cfg["save_path"], CONFIG_NAME, CONFIG_NAME)
+
     augmentator = (
         [instantiate(trans) for trans in cfg["transform_data"]]
         if cfg["transform_data"]
@@ -80,7 +84,6 @@ def main(cfg: DictConfig):
         if not cfg["test_run"]:
             model_save_name = f'model_{model_id}_{cfg["dataset"]["name"]}'
             trainer.save_result(cfg["save_path"], model_save_name)
-            save_config(cfg["save_path"], CONFIG_NAME, CONFIG_NAME)
 
 
 if __name__ == "__main__":
