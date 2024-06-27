@@ -330,6 +330,7 @@ class Trainer:
             df_metrics["split"] = split
             res = pd.concat([res, df_metrics])
 
+        res = res.round(4)
         res.to_csv(path, index=False)
 
     def save_result(self, save_path: str, model_name: str) -> None:

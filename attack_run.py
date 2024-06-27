@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from src.config import get_attack, get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
-from src.utils import save_experiment
+from src.utils import save_attack_metrics, save_config
 
 warnings.filterwarnings("ignore")
 
@@ -21,10 +21,16 @@ CONFIG_NAME = "attack_run_config"
 def main(cfg: DictConfig):
     if cfg["test_run"]:
         print("ATTENTION!!!! Results will not be saved. Set param test_run=False")
+    else:
+        save_config(
+            cfg["save_path"],
+            CONFIG_NAME,
+            f"config_{cfg['dataset']['name']}_{cfg['model_id_attack']}",
+        )
 
     # load data
-    print("Dataset", cfg["dataset"]['name'])
-    X_train, y_train, X_test, y_test = load_data(cfg["dataset"]['name'])
+    print("Dataset", cfg["dataset"]["name"])
+    X_train, y_train, X_test, y_test = load_data(cfg["dataset"]["name"])
     X_train, X_test, y_train, y_test = transform_data(
         X_train, X_test, y_train, y_test, slice_data=cfg["slice"]
     )
@@ -37,7 +43,6 @@ def main(cfg: DictConfig):
 
     attack_model_path = os.path.join(
         cfg["model_folder"],
-        cfg["attack_model"]["name"] + cfg['exp_name'],
         f"model_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt",
     )
 
@@ -99,12 +104,11 @@ def main(cfg: DictConfig):
 
         if not cfg["test_run"]:
             print("Saving")
-            save_experiment(
+            save_attack_metrics(
                 attack_metrics,
-                config_name=CONFIG_NAME,
                 path=cfg["save_path"],
                 is_regularized=attack.is_regularized,
-                dataset=cfg["dataset"]['name'],
+                dataset=cfg["dataset"]["name"],
                 model_id=cfg["model_id_attack"],
                 alpha=alpha,
             )
@@ -142,12 +146,11 @@ def main(cfg: DictConfig):
 
             if not cfg["test_run"]:
                 print("Saving")
-                save_experiment(
+                save_attack_metrics(
                     attack_metrics,
-                    config_name=CONFIG_NAME,
                     path=cfg["save_path"],
                     is_regularized=attack.is_regularized,
-                    dataset=cfg["dataset"]['name'],
+                    dataset=cfg["dataset"]["name"],
                     model_id=cfg["model_id_attack"],
                     alpha=alpha,
                 )
