@@ -12,8 +12,8 @@ print_every: 1
 train_self_supervised: True
 
 defaults:
- - dataset: FordA
- - model: PatchTST
+ - dataset: Strawberry
+ - model: TST
 
 transform_data: []
 # - _target_: tsai.data.transforms.TSRandomResizedCrop 
@@ -31,7 +31,7 @@ training_params:
   scheduler_params: 
     step_size: 30
     gamma: 0.8
-  n_epochs: 30
+  n_epochs: 40
   early_stop_patience: 50
 
 

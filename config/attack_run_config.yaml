@@ -10,11 +10,11 @@ save_path: results/${dataset.name}/${attack_model.name}/attack/${attack.short_na
 model_id_attack: 100
 
 defaults:
-  - dataset: FordA
-  - model@attack_model: PatchTST
-  - model@disc_model_reg: PatchTST
-  - model@disc_model_check: PatchTST
-  - attack: FGSM
+  - dataset: Strawberry
+  - model@attack_model: TST
+  - model@disc_model_reg: TST
+  - model@disc_model_check: TST
+  - attack: FGSMDisc
 
 criterion_name: BCELoss
 criterion_params: null
