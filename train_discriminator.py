@@ -13,7 +13,7 @@ from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
 from src.training.train import DiscTrainer
 from src.utils import save_config
-from config_utils import add_config, save_compiled_config
+from src.config_utils import add_config, save_compiled_config
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "train_disc_config"
@@ -26,7 +26,7 @@ def main(cfg: DictConfig):
         if cfg["transform_data"]
         else None
     )
-    add_config(cfg, 'train_discriminator_script')
+    add_config(cfg, 'train_discriminator')
 
     # Save the compiled configuration with date and time
     save_compiled_config(COMPILED_CONFIG_PATH)

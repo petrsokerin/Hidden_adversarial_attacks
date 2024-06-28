@@ -1,9 +1,8 @@
-# config_utils.py
 import yaml
 from omegaconf import DictConfig, OmegaConf
 from datetime import datetime
 
-compiled_config = DictConfig({})  # Глобальный объект для объединения конфигураций
+compiled_config = DictConfig({})  
 
 def add_config(cfg: DictConfig, script_name: str):
     """Добавляет конфигурацию в глобальный объект compiled_config."""
@@ -16,4 +15,4 @@ def save_compiled_config(output_path: str):
     current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     compiled_config['timestamp'] = current_datetime
     with open(output_path, "w") as file:
-        yaml.dump(OmegaConf.to_container(compiled_config, resolve=True), file)
+        yaml.dump(OmegaConf.to_container(compiled_config, resolve=False), file)  

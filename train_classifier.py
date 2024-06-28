@@ -10,7 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 from src.data import MyDataset, load_data, transform_data
 from src.training.train import Trainer
 from src.utils import fix_seed, save_config
-from config_utils import add_config, save_compiled_config 
+from src.config_utils import add_config, save_compiled_config 
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "train_classifier_config"
@@ -23,7 +23,7 @@ def main(cfg: DictConfig):
         if cfg["transform_data"]
         else None
     )
-    add_config(cfg, 'train_classifier_script')
+    add_config(cfg, 'train_classifier')
 
     # Save the compiled configuration with date and time
     save_compiled_config(COMPILED_CONFIG_PATH)
