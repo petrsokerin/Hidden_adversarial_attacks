@@ -11,16 +11,20 @@ from src.config import get_attack, get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
 from src.utils import save_experiment
-
+from config_utils import add_config, save_compiled_config 
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "attack_run_config"
-
+COMPILED_CONFIG_PATH = "compiled_config.yaml"
 
 @hydra.main(config_path="config/my_configs", config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
     if cfg["test_run"]:
         print("ATTENTION!!!! Results will not be saved. Set param test_run=False")
+    add_config(cfg, 'attack_script')
+
+    # Save the compiled configuration with date and time
+    save_compiled_config(COMPILED_CONFIG_PATH)
 
     # load data
     print("Dataset", cfg["dataset"]['name'])
