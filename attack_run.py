@@ -10,23 +10,16 @@ from torch.utils.data import DataLoader
 from src.config import get_attack, get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
-from src.utils import save_experiment
-# from src.config_utils import add_config, save_compiled_config 
-# from src.config_utils import save_compiled_config 
+from src.utils import save_experiment  
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "attack_run_config"
-# COMPILED_CONFIG_PATH = "compiled_config.yaml"
+
 
 @hydra.main(config_path="config/my_configs", config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
     if cfg["test_run"]:
         print("ATTENTION!!!! Results will not be saved. Set param test_run=False")
-    # add_config(cfg, 'attack_run')
-
-    # Save the compiled configuration with date and time
-    # save_compiled_config(cfg)
-
     # load data
     print("Dataset", cfg["dataset"]['name'])
     X_train, y_train, X_test, y_test = load_data(cfg["dataset"]['name'])

@@ -4,7 +4,8 @@ import random
 import shutil
 import yaml
 from typing import Any, Dict, Mapping
-
+from datetime import datetime
+from omegaconf import OmegaConf
 import numpy as np
 import pandas as pd
 import torch
@@ -246,3 +247,19 @@ def get_dataset_stats(dataset_name, path='config/my_configs/dataset/'):
     with open(path + f'{dataset_name}.yaml', 'w+') as f:
         yaml.dump(stats, f, sort_keys=False)
 
+def save_compiled_config(cfg):
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    save_path = os.path.join(os.getcwd(), "loggs")
+    os.makedirs(save_path, exist_ok=True)
+    config_filename = f"loggs_{timestamp}.yaml"
+    config_path = os.path.join(save_path, config_filename)
+
+    # Convert OmegaConf config to dictionary and add timestamp
+    cfg_dict = OmegaConf.to_container(cfg, resolve=True)
+    cfg_dict['save_timestamp'] = timestamp
+
+    # Save the updated configuration to YAML file
+    with open(config_path, "w") as file:
+        yaml.dump(cfg_dict, file)
+
+    print(f"Compiled configuration saved to: {config_path}")
