@@ -23,10 +23,7 @@ def main(cfg: DictConfig):
         if cfg["transform_data"]
         else None
     )
-    # add_config(cfg, 'train_classifier')
 
-    # # Save the compiled configuration with date and time
-    # save_compiled_config()
     save_compiled_config(cfg)
     # load data
     X_train, y_train, X_test, y_test = load_data(cfg["dataset"]['name'])
