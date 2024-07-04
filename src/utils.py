@@ -247,12 +247,13 @@ def get_dataset_stats(dataset_name, path='config/my_configs/dataset/'):
     with open(path + f'{dataset_name}.yaml', 'w+') as f:
         yaml.dump(stats, f, sort_keys=False)
 
-def save_compiled_config(cfg):
+def save_compiled_config(cfg, path):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    save_path = os.path.join(os.getcwd(), "loggs")
-    os.makedirs(save_path, exist_ok=True)
+    # save_path = os.path.join(os.getcwd(), "loggs")
+    # save_path = os.path.join(path, "loggs")
+    os.makedirs(path, exist_ok=True)
     config_filename = f"loggs_{timestamp}.yaml"
-    config_path = os.path.join(save_path, config_filename)
+    config_path = os.path.join(path, config_filename)
 
     # Convert OmegaConf config to dictionary and add timestamp
     cfg_dict = OmegaConf.to_container(cfg, resolve=True)
