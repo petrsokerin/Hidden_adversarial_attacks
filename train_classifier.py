@@ -21,6 +21,7 @@ def main(cfg: DictConfig):
 
     if not cfg["test_run"]:
         save_config(cfg["save_path"], CONFIG_NAME, CONFIG_NAME)
+        save_compiled_config(cfg,cfg["save_path"])
 
     augmentator = (
         [instantiate(trans) for trans in cfg["transform_data"]]
@@ -28,7 +29,7 @@ def main(cfg: DictConfig):
         else None
     )
 
-    save_compiled_config(cfg)
+    # save_compiled_config(cfg)
     # load data
     X_train, y_train, X_test, y_test = load_data(cfg["dataset"]['name'])
     if len(set(y_test)) > 2:
@@ -85,6 +86,7 @@ def main(cfg: DictConfig):
         if not cfg["test_run"]:
             model_save_name = f'model_{model_id}_{cfg["dataset"]["name"]}'
             trainer.save_result(cfg["save_path"], model_save_name)
+            
 
 
 if __name__ == "__main__":

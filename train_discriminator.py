@@ -12,7 +12,7 @@ from src.config import get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
 from src.training.train import DiscTrainer
-from src.utils import save_config
+from src.utils import save_config, save_compiled_config
 
 warnings.filterwarnings("ignore")
 
@@ -180,6 +180,7 @@ def main(cfg: DictConfig):
                             + f'{cfg["attack"]["short_name"]}_eps={eps}_nsteps={cfg["attack"]["attack_params"]["n_steps"]}'
                         )
                         save_config(new_save_path, CONFIG_NAME, CONFIG_NAME)
+                        save_compiled_config(cfg, new_save_path)
 
                     disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
                     disc_trainer.train_model(train_loader, test_loader, augmentator)
