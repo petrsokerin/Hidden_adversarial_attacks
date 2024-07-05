@@ -11,14 +11,14 @@ model_id_attack: 100
 
 model_ids: [100]
 
-train_self_supervised: True
+train_self_supervised: False
 
 defaults:
-  - dataset: FordA
-  - model: PatchTST
-  - model@attack_model: PatchTST
-  - model@disc_model_reg: PatchTST
-  - model@disc_model_check: PatchTST
+  - dataset: Strawberry
+  - model: TST
+  - model@attack_model: TST
+  - model@disc_model_reg: TST
+  - model@disc_model_check: TST
   - attack: FGSM
 
 criterion_name: BCELoss
