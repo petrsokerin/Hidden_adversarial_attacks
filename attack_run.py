@@ -10,12 +10,11 @@ from torch.utils.data import DataLoader
 from src.config import get_attack, get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
-from src.utils import save_attack_metrics, save_config
+from src.utils import save_attack_metrics, save_config, save_compiled_config
 
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "attack_run_config"
-
 
 @hydra.main(config_path="config/my_configs", config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
@@ -27,7 +26,7 @@ def main(cfg: DictConfig):
             CONFIG_NAME,
             f"config_{cfg['dataset']['name']}_{cfg['model_id_attack']}",
         )
-
+        save_compiled_config(cfg,cfg["save_path"])
     # load data
     print("Dataset", cfg["dataset"]["name"])
     X_train, y_train, X_test, y_test = load_data(cfg["dataset"]["name"])
@@ -158,3 +157,6 @@ def main(cfg: DictConfig):
 
 if __name__ == "__main__":
     main()
+
+   
+

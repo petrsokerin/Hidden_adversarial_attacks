@@ -12,13 +12,13 @@ from src.config import get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
 from src.training.train import DiscTrainer
-from src.utils import save_config
+from src.utils import save_config, save_compiled_config
 
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "train_disc_config"
 
-
+torch.cuda.empty_cache()
 @hydra.main(config_path="config/my_configs", config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
@@ -27,8 +27,7 @@ def main(cfg: DictConfig):
         if cfg["transform_data"]
         else None
     )
-
-    # load data
+   
     X_train, y_train, X_test, y_test = load_data(cfg["dataset"]['name'])
 
     if len(set(y_test)) > 2:
@@ -181,6 +180,7 @@ def main(cfg: DictConfig):
                             + f'{cfg["attack"]["short_name"]}_eps={eps}_nsteps={cfg["attack"]["attack_params"]["n_steps"]}'
                         )
                         save_config(new_save_path, CONFIG_NAME, CONFIG_NAME)
+                        save_compiled_config(cfg, new_save_path)
 
                     disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
                     disc_trainer.train_model(train_loader, test_loader, augmentator)
@@ -189,6 +189,7 @@ def main(cfg: DictConfig):
                         disc_trainer.save_result(new_save_path, model_save_name)
 
 
-
+ 
 if __name__ == "__main__":
     main()
+    
