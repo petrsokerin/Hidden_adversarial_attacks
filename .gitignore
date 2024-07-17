@@ -19,3 +19,4 @@ utils/__pycache__/estimation.cpython-38.pyc
 config/my_configs/*
 smi.ipynb
 .mypy_cache/
+pictures/*
