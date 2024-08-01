@@ -254,7 +254,8 @@ class IFGSMAttack(FGSMAttack):
 
     def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         X_adv = X.clone().detach()
-        
+        step_size = self.eps / self.n
+
         for _ in range(self.n):
             X_adv.requires_grad = True
             loss_classifier = self.criterion(self.model(X_adv), y_true)
@@ -264,7 +265,7 @@ class IFGSMAttack(FGSMAttack):
             grad = torch.autograd.grad(loss_harmonic_mean, X_adv)[0]
             grad_sign = torch.sign(grad)
             
-            X_adv = X_adv + self.step_size * grad_sign
+            X_adv = X_adv + step_size * grad_sign
             X_adv = torch.max(torch.min(X_adv, X + self.eps), X - self.eps).detach()
         
         return X_adv
