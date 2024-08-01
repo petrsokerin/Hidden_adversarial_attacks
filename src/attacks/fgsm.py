@@ -209,6 +209,7 @@ class DefenseRegDiscAttack(FGSMAttack):
         estimator,
         eps: float = 0.03,
         n_steps: int = 10,
+        
         use_sigmoid: bool = False,
         *args,
         **kwargs,
@@ -225,3 +226,46 @@ class DefenseRegDiscAttack(FGSMAttack):
 
         X_adv = self.get_adv_data(X, loss)
         return X_adv
+
+class IFGSMAttack(FGSMAttack):
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        discriminator: torch.nn.Module,
+        criterion: torch.nn.Module,
+        discriminator_criterion: torch.nn.Module,
+        disc_models: List[torch.nn.Module],
+        estimator,
+        eps: float = 0.03,
+        n_steps: int = 10,
+        n = 10,
+        use_sigmoid: bool = False,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
+        self.disc_models = disc_models
+        self.use_sigmoid = use_sigmoid
+        self.is_regularized = False
+        self.discriminator_criterion = discriminator_criterion
+        self.discriminator = discriminator
+
+    # def get_disc_loss():
+
+    def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        X_adv = X.clone().detach()
+        
+        for _ in range(self.n):
+            X_adv.requires_grad = True
+            loss_classifier = self.criterion(self.model(X_adv), y_true)
+            loss_discriminator = self.discriminator_criterion(self.discriminator(X_adv), y_true)
+            # loss_harmonic_mean = 2 / (1/loss_classifier + 1/loss_discriminator)
+            loss_harmonic_mean = 2 * (loss_classifier * loss_discriminator) / (loss_classifier + loss_discriminator + 0.0001)
+            grad = torch.autograd.grad(loss_harmonic_mean, X_adv)[0]
+            grad_sign = torch.sign(grad)
+            
+            X_adv = X_adv + self.step_size * grad_sign
+            X_adv = torch.max(torch.min(X_adv, X + self.eps), X - self.eps).detach()
+        
+        return X_adv
+
