@@ -55,3 +55,11 @@ def reg_boltzmann(
     reg_value = beta * boltzmann(reg_value, beta=beta)
     return reg_value
 
+def reg_disc_loss(self, X: torch.Tensor,
+                y_true: torch.Tensor,
+                discriminator: torch.nn.Module, 
+                discriminator_criterion: torch.nn.Module ) -> torch.Tensor:
+    discriminator.zero_grad()
+    y_pred_disc = discriminator(X)
+    disc_loss = disc_criterion(y_pred_disc, y_true)
+    return disc_loss

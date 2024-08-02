@@ -227,7 +227,7 @@ class DefenseRegDiscAttack(FGSMAttack):
         X_adv = self.get_adv_data(X, loss)
         return X_adv
 
-class IFGSMAttack(FGSMAttack):
+class FGSMAttackHarmonicLoss(FGSMAttack):
     def __init__(
         self,
         model: torch.nn.Module,
@@ -238,7 +238,6 @@ class IFGSMAttack(FGSMAttack):
         estimator,
         eps: float = 0.03,
         n_steps: int = 10,
-        n = 10,
         use_sigmoid: bool = False,
         *args,
         **kwargs,
@@ -250,23 +249,17 @@ class IFGSMAttack(FGSMAttack):
         self.discriminator_criterion = discriminator_criterion
         self.discriminator = discriminator
 
-    # def get_disc_loss():
+    def get_adv_data(self, X: torch.Tensor, loss: torch.Tensor, disc_loss, e=0.0001) -> torch.Tensor:
+        loss_harmonic_mean = 2 * (loss_classifier * loss_discriminator) / (loss_classifier + loss_discriminator + e)
+        grad = torch.autograd.grad(loss_harmonic_mean, X_adv)[0]
+        grad_sign = torch.sign(grad)
+        X_adv = X_adv + self.eps * grad_sign
+
 
     def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
-        X_adv = X.clone().detach()
-        step_size = self.eps / self.n
-
-        for _ in range(self.n):
-            X_adv.requires_grad = True
-            loss_classifier = self.criterion(self.model(X_adv), y_true)
-            loss_discriminator = self.discriminator_criterion(self.discriminator(X_adv), y_true)
-            # loss_harmonic_mean = 2 / (1/loss_classifier + 1/loss_discriminator)
-            loss_harmonic_mean = 2 * (loss_classifier * loss_discriminator) / (loss_classifier + loss_discriminator + 0.0001)
-            grad = torch.autograd.grad(loss_harmonic_mean, X_adv)[0]
-            grad_sign = torch.sign(grad)
-            
-            X_adv = X_adv + step_size * grad_sign
-            X_adv = torch.max(torch.min(X_adv, X + self.eps), X - self.eps).detach()
+        loss_classifier = self.get_loss(X, y_true)
+        loss_discriminator = reg_disc_loss(X, y_true, self.discriminator, self.disc_criterion)
+        X_adv = self.get_adv_data(X, loss_classifier, loss_discriminator)
         
         return X_adv
 
