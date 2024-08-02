@@ -248,17 +248,21 @@ class FGSMAttackHarmonicLoss(FGSMAttack):
         self.is_regularized = False
         self.discriminator_criterion = discriminator_criterion
         self.discriminator = discriminator
-
+    
     def get_adv_data(self, X: torch.Tensor, loss: torch.Tensor, disc_loss, e=0.0001) -> torch.Tensor:
         loss_harmonic_mean = 2 * (loss_classifier * loss_discriminator) / (loss_classifier + loss_discriminator + e)
         grad = torch.autograd.grad(loss_harmonic_mean, X_adv)[0]
         grad_sign = torch.sign(grad)
         X_adv = X_adv + self.eps * grad_sign
 
+    def get_disc_loss(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        disc_output = reg_disc(X, self.disc_models, self.use_sigmoid)
+        disc_loss = disc_criterion(disc_output, y_true)
+        return disc_loss
 
     def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         loss_classifier = self.get_loss(X, y_true)
-        loss_discriminator = reg_disc_loss(X, y_true, self.discriminator, self.disc_criterion)
+        loss_discriminator = self.get_disc_loss(X, y_true)
         X_adv = self.get_adv_data(X, loss_classifier, loss_discriminator)
         
         return X_adv
