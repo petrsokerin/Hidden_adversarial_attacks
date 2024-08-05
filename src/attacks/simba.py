@@ -34,12 +34,12 @@ class SimBABinary(BaseIterativeAttack):
             dim=0,
         )
 
-        min_loss_indices = torch.argmin(losses, dim=0)
-        min_loss_indices = (
+        max_loss_indices = torch.argmax(losses, dim=0)
+        max_loss_indices = (
             min_loss_indices.unsqueeze(-1).unsqueeze(-1).expand(-1, x.shape[-1])
         )
 
-        x_adv = torch.gather(x_all, 0, min_loss_indices).squeeze(0)
+        x_adv = torch.gather(x_all, 0, max_loss_indices).squeeze(0)
         return x_adv
 
 
