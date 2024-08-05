@@ -209,7 +209,9 @@ class AttackEstimator(BaseEstimator):
 
     @staticmethod
     def calculate_f_eff_conc(effectiveness: float, concealability: float) -> float:
-        return 2 * effectiveness * concealability / (effectiveness + concealability)
+        num = 2 * effectiveness * concealability
+        denum = (effectiveness + concealability)
+        return  num / denum if denum != 0 else 0
 
     def estimate(
         self,
