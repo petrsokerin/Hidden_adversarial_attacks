@@ -54,7 +54,7 @@ def main(cfg: DictConfig):
     )
 
     criterion = get_criterion(cfg["criterion_name"], cfg["criterion_params"])
-
+    disc_criterion = get_criterion(cfg["criterion_name"], cfg["criterion_params"])
     if cfg["use_disc_check"]:
         disc_check_list = get_disc_list(
             model_name=cfg["disc_model_check"]["name"],

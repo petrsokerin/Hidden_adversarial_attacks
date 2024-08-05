@@ -7,7 +7,6 @@ import torch
 from src import attacks, estimation, models
 from src.attacks import attack_scheduler
 
-
 def get_estimator(
     estimator_name: str, estimator_params: Dict
 ) -> estimation.BaseEstimator:
@@ -41,6 +40,7 @@ def get_model(
         model = getattr(models, model_name)(**model_params)
         model = model.to(device)
         if path:
+            
             model.load_state_dict(torch.load(path, map_location=torch.device(device)))
         model.train(train_mode)
         return model
@@ -129,3 +129,4 @@ def get_disc_list(
         )
         list_disc_models.append(disc)
     return list_disc_models
+
