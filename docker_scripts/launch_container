@@ -9,7 +9,6 @@ docker run \
   --user ${DOCKER_USER_ID}:${DOCKER_GROUP_ID} \
   --name ${CONTAINER_NAME} \
   --rm -it --init \
-  --gpus all \
+  --gpus '"device=0,2"' \
   -v /home/${USER}/${SRC}:/app \
-  --gpus all \
   ${DOCKER_NAME} bash
