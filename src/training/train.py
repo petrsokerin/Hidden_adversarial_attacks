@@ -211,17 +211,11 @@ class Trainer:
             for met_name, met_val in zip(self.metric_names, test_metrics)
         }
 
-        mode = "train"
-        for metric in self.dict_logging[mode].keys():
-            self.dict_logging[mode][metric].append(train_metrics[metric])
-            if self.logger:
-                self.logger.add_scalar(metric + "/" + mode, train_metrics[metric], epoch)
-
-        mode = "test"
-        for metric in self.dict_logging[mode].keys():
-            self.dict_logging[mode][metric].append(test_metrics[metric])
-            if self.logger:
-                self.logger.add_scalar(metric + "/" + mode, test_metrics[metric], epoch)
+        for mode, dict_metrics in zip(['train', 'test'], [train_metrics, test_metrics]):
+            for metric in self.dict_logging[mode].keys():
+                self.dict_logging[mode][metric].append(dict_metrics[metric])
+                if self.logger:
+                    self.logger.add_scalar(metric + "/" + mode, dict_metrics[metric], epoch)
 
         if epoch % self.print_every == 0:
             print_line = self.print_line.format(
@@ -515,8 +509,12 @@ class DiscTrainer(Trainer):
         return loader
 
     def train_model(
-        self, train_loader: DataLoader, valid_loader: DataLoader, transform
+        self, train_loader: DataLoader, valid_loader: DataLoader, transform, logger=None
     ) -> Dict[str, float]:
+
+        if logger:
+            self.logger = logger
+
         if self.model.self_supervised and self.train_self_supervised:
             print("Training self-supervised model")
             X_train = train_loader.dataset.X.unsqueeze(-1).numpy()
