@@ -97,6 +97,7 @@ def main(cfg: DictConfig):
             attack_const_params["model"] = attack_model
             attack_const_params["criterion"] = criterion
             attack_const_params["estimator"] = estimator
+            attack_const_params["logger"] = None
 
             if "list_reg_model_params" in cfg["attack"]:
                 attack_const_params["disc_models"] = get_disc_list(
@@ -189,6 +190,7 @@ def main(cfg: DictConfig):
                     attack_params["estimator"] = estimator
                     attack_params["alpha"] = alpha
                     attack_params["eps"] = eps
+                    attack_params["logger"] = None
 
                     if "list_reg_model_params" in cfg["attack"]:
                         attack_params["disc_models"] = get_disc_list(
