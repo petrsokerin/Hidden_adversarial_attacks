@@ -139,7 +139,7 @@ def main(cfg: DictConfig):
             else:
                 logger = None
 
-            disc_trainer.train_model(train_loader, test_loader, augmentator)
+            disc_trainer.train_model(train_loader, test_loader, augmentator, logger)
 
             if not cfg["test_run"]:
                 new_save_path = os.path.join(cfg["save_path"], model_save_name)
