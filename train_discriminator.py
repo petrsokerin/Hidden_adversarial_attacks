@@ -7,6 +7,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from clearml import Task
 
 from src.config import get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
@@ -90,7 +91,7 @@ def main(cfg: DictConfig):
     )
 
     for model_id in cfg["model_ids"]:
-        logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
+
         if cfg["enable_optimization"]:
             attack_const_params = dict(cfg["attack"]["attack_params"])
             attack_const_params["model"] = attack_model
@@ -109,7 +110,7 @@ def main(cfg: DictConfig):
 
             const_params = {
                 "attack_params": attack_const_params,
-                "logger": logger,
+                "logger": None,
                 "print_every": cfg["print_every"],
                 "device": device,
                 "seed": model_id,
@@ -119,17 +120,31 @@ def main(cfg: DictConfig):
             disc_trainer = DiscTrainer.initialize_with_optimization(
                 train_loader, test_loader, cfg["optuna_optimizer"], const_params
             )
+
+            if not cfg["test_run"]:
+                model_save_name = 'model_{}_{}_{}_attack_{}_eps={}_nsteps={}'.format(
+                    cfg["model"]["name"],
+                    model_id,
+                    cfg["dataset"]["name"],
+                    cfg["attack"]["short_name"],
+                    round(disc_trainer.attack.eps, 4),
+                    cfg["attack"]["attack_params"]["n_steps"]
+                )
+                task = Task.init(
+                    project_name="AA_train_discriminator", 
+                    task_name=model_save_name, 
+                    tags=[cfg["model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
+                )
+                logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
+            else:
+                logger = None
+
             disc_trainer.train_model(train_loader, test_loader, augmentator)
 
             if not cfg["test_run"]:
-                model_save_name = f"{model_id}"
-                new_save_path = (
-                    cfg["save_path"]
-                    + "/"
-                    + f'{cfg["attack"]["short_name"]}_eps={round(disc_trainer.attack.eps, 4)}_nsteps={cfg["attack"]["attack_params"]["n_steps"]}'
-                )
+                new_save_path = os.path.join(cfg["save_path"], model_save_name)
                 save_config(new_save_path, CONFIG_NAME, CONFIG_NAME)
-                disc_trainer.save_result(new_save_path, model_save_name)
+                disc_trainer.save_result(new_save_path, model_save_name, task)
 
 
         else:
@@ -173,20 +188,33 @@ def main(cfg: DictConfig):
                     trainer_params["attack_params"] = attack_params
 
                     if not cfg["test_run"]:
-                        model_save_name = f"{model_id}"
-                        new_save_path = (
-                            cfg["save_path"]
-                            + "/"
-                            + f'{cfg["attack"]["short_name"]}_eps={eps}_nsteps={cfg["attack"]["attack_params"]["n_steps"]}'
+                        model_save_name = 'model_{}_{}_{}_attack_{}_eps={}_nsteps={}_alpha={}'.format(
+                            cfg["model"]["name"],
+                            model_id,
+                            cfg["dataset"]["name"],
+                            cfg["attack"]["short_name"],
+                            eps,
+                            cfg["attack"]["attack_params"]["n_steps"],
+                            alpha,
                         )
+                        task = Task.init(
+                            project_name="AA_train_discriminator", 
+                            task_name=model_save_name, 
+                            tags=[cfg["model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
+                        )
+                        logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
+                        
+                        new_save_path = os.path.join(cfg["save_path"], model_save_name)
                         save_config(new_save_path, CONFIG_NAME, CONFIG_NAME)
                         save_compiled_config(cfg, new_save_path)
+                    else:
+                        logger = None
 
                     disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
                     disc_trainer.train_model(train_loader, test_loader, augmentator)
 
                     if not cfg["test_run"]:
-                        disc_trainer.save_result(new_save_path, model_save_name)
+                        disc_trainer.save_result(new_save_path, model_save_name, task)
 
 
  
