@@ -28,7 +28,7 @@ def main(cfg: DictConfig):
         if cfg["transform_data"]
         else None
     )
-   
+
     X_train, y_train, X_test, y_test = load_data(cfg["dataset"]['name'])
 
     if len(set(y_test)) > 2:
@@ -131,8 +131,8 @@ def main(cfg: DictConfig):
                     cfg["attack"]["attack_params"]["n_steps"]
                 )
                 task = Task.init(
-                    project_name="AA_train_discriminator", 
-                    task_name=model_save_name, 
+                    project_name="AA_train_discriminator",
+                    task_name=model_save_name,
                     tags=[cfg["model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
                 )
                 logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
@@ -158,6 +158,30 @@ def main(cfg: DictConfig):
                     print(
                         "----- Current epsilon:", eps, "\n----- Current alpha:", alpha
                     )
+
+                    if not cfg["test_run"]:
+                        model_save_name = 'model_{}_{}_{}_attack_{}_eps={}_nsteps={}_alpha={}'.format(
+                            cfg["model"]["name"],
+                            model_id,
+                            cfg["dataset"]["name"],
+                            cfg["attack"]["short_name"],
+                            eps,
+                            cfg["attack"]["attack_params"]["n_steps"],
+                            alpha,
+                        )
+                        task = Task.init(
+                            project_name="AA_train_discriminator",
+                            task_name=model_save_name,
+                            tags=[cfg["model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
+                        )
+                        logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
+
+                        new_save_path = os.path.join(cfg["save_path"], model_save_name)
+                        save_config(new_save_path, CONFIG_NAME, CONFIG_NAME)
+                        save_compiled_config(cfg, new_save_path)
+
+                    else:
+                        logger = None
 
                     attack_params = dict(cfg["attack"]["attack_params"])
                     attack_params["model"] = attack_model
@@ -187,29 +211,6 @@ def main(cfg: DictConfig):
                     trainer_params["attack_name"] = cfg["attack"]["name"]
                     trainer_params["attack_params"] = attack_params
 
-                    if not cfg["test_run"]:
-                        model_save_name = 'model_{}_{}_{}_attack_{}_eps={}_nsteps={}_alpha={}'.format(
-                            cfg["model"]["name"],
-                            model_id,
-                            cfg["dataset"]["name"],
-                            cfg["attack"]["short_name"],
-                            eps,
-                            cfg["attack"]["attack_params"]["n_steps"],
-                            alpha,
-                        )
-                        task = Task.init(
-                            project_name="AA_train_discriminator", 
-                            task_name=model_save_name, 
-                            tags=[cfg["model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
-                        )
-                        logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
-                        
-                        new_save_path = os.path.join(cfg["save_path"], model_save_name)
-                        save_config(new_save_path, CONFIG_NAME, CONFIG_NAME)
-                        save_compiled_config(cfg, new_save_path)
-                    else:
-                        logger = None
-
                     disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
                     disc_trainer.train_model(train_loader, test_loader, augmentator)
 
@@ -217,7 +218,6 @@ def main(cfg: DictConfig):
                         disc_trainer.save_result(new_save_path, model_save_name, task)
 
 
- 
+
 if __name__ == "__main__":
     main()
-    
