@@ -30,7 +30,6 @@ def main(cfg: DictConfig):
         else None
     )
 
-    # save_compiled_config(cfg)
     # load data
     X_train, y_train, X_test, y_test = load_data(cfg["dataset"]['name'])
     if len(set(y_test)) > 2:
@@ -64,7 +63,11 @@ def main(cfg: DictConfig):
 
         if not cfg["test_run"]:
             model_save_name = f'model_{cfg["model"]["name"]}_{model_id}_{cfg["dataset"]["name"]}'
-            task = Task.init(project_name="AA_train_classifiers", task_name=model_save_name, tags=[cfg["model"]["name"], cfg["dataset"]["name"]])
+            task = Task.init(
+                project_name="AA_train_classifiers",
+                task_name=model_save_name,
+                tags=[cfg["model"]["name"], cfg["dataset"]["name"]]
+            )
             logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
         else:
             logger = None
@@ -77,10 +80,10 @@ def main(cfg: DictConfig):
             "train_self_supervised": cfg['train_self_supervised']
         }
         if cfg["enable_optimization"]:
+            const_params['logger'] = None
             trainer = Trainer.initialize_with_optimization(
                 train_loader, test_loader, cfg["optuna_optimizer"], const_params
             )
-
         else:
             trainer_params = dict(cfg["training_params"])
             trainer_params.update(const_params)
