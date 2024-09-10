@@ -6,6 +6,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from clearml import Task
 
 from src.data import MyDataset, load_data, transform_data
 from src.training.train import Trainer
@@ -14,7 +15,7 @@ from src.utils import fix_seed, save_config, save_compiled_config
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "train_classifier_config"
- 
+
 
 @hydra.main(config_path="config/my_configs", config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
@@ -61,7 +62,12 @@ def main(cfg: DictConfig):
 
         fix_seed(model_id)
 
-        logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
+        if not cfg["test_run"]:
+            model_save_name = f'model_{cfg["model"]["name"]}_{model_id}_{cfg["dataset"]["name"]}'
+            task = Task.init(project_name="AA_train_classifiers", task_name=model_save_name, tags=[cfg["model"]["name"], cfg["dataset"]["name"]])
+            logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
+        else:
+            logger = None
 
         const_params = {
             "logger": logger,
@@ -81,12 +87,11 @@ def main(cfg: DictConfig):
             trainer = Trainer.initialize_with_params(**trainer_params)
 
         trainer.train_model(train_loader, test_loader)
-        logger.close()
 
         if not cfg["test_run"]:
-            model_save_name = f'model_{model_id}_{cfg["dataset"]["name"]}'
-            trainer.save_result(cfg["save_path"], model_save_name)
-            
+            logger.close()
+            trainer.save_result(cfg["save_path"], model_save_name, task)
+
 
 
 if __name__ == "__main__":

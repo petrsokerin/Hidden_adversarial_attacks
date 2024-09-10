@@ -10,6 +10,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from optuna.trial import Trial
 from torch.utils.data import DataLoader
+from clearml import Task
 
 from src.attacks import BaseIterativeAttack
 from src.attacks.attack_scheduler import AttackScheduler
@@ -213,12 +214,14 @@ class Trainer:
         mode = "train"
         for metric in self.dict_logging[mode].keys():
             self.dict_logging[mode][metric].append(train_metrics[metric])
-            self.logger.add_scalar(metric + "/" + mode, train_metrics[metric], epoch)
+            if self.logger:
+                self.logger.add_scalar(metric + "/" + mode, train_metrics[metric], epoch)
 
         mode = "test"
         for metric in self.dict_logging[mode].keys():
             self.dict_logging[mode][metric].append(test_metrics[metric])
-            self.logger.add_scalar(metric + "/" + mode, test_metrics[metric], epoch)
+            if self.logger:
+                self.logger.add_scalar(metric + "/" + mode, test_metrics[metric], epoch)
 
         if epoch % self.print_every == 0:
             print_line = self.print_line.format(
@@ -333,13 +336,15 @@ class Trainer:
         res = res.round(4)
         res.to_csv(path, index=False)
 
-    def save_result(self, save_path: str, model_name: str) -> None:
+    def save_result(self, save_path: str, model_name: str, task: Task=None) -> None:
         if not os.path.isdir(save_path):
             os.makedirs(save_path)
 
-        full_path = save_path + "/" + model_name
-        torch.save(self.model.state_dict(), full_path + ".pt")
 
+        full_path = os.path.join(save_path,  model_name + ".pt")
+        torch.save(self.model.state_dict(), full_path)
+        if task:
+            task.upload_artifact(name='model_weights', artifact_object=full_path)
         self.save_metrics_as_csv(full_path + "_metrics.csv")
 
 
