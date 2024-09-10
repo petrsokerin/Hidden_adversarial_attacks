@@ -54,21 +54,19 @@ def req_grad(model, state: bool = True) -> None:
 def save_attack_metrics(
     attack_metrics: pd.DataFrame,
     path: str,
-    is_regularized: bool,
-    dataset: str,
-    model_id: int,
-    alpha: float,
+    # is_regularized: bool,
+    # dataset: str,
+    # model_id: int,
+    # alpha: float,
+    attack_name: str
 ) -> None:
-
     if not os.path.isdir(path):
         os.makedirs(path)
+
+    attack_name = attack_name + '.csv'
     attack_metrics = attack_metrics.round(4)
+    attack_metrics.to_csv(os.path.join(path, attack_name))
 
-    if is_regularized:
-        attack_metrics.to_csv(path + f"/aa_res_{dataset}_{model_id}_alpha={alpha}.csv")
-
-    else:
-        attack_metrics.to_csv(path + f"/aa_res_{dataset}_{model_id}.csv")
 
 
 def get_optuna_param_for_type(
@@ -265,7 +263,7 @@ def get_dataset_stats(dataset_name, path='config/my_configs/dataset/'):
 
 def save_compiled_config(cfg, path):
     timestamp = datetime.now().strftime("%Y:%m:%d %H:%M:%S")
-    
+
     os.makedirs(path, exist_ok=True)
     config_filename = f"config_{timestamp}.yaml"
     config_path = os.path.join(path, config_filename)
@@ -279,4 +277,3 @@ def save_compiled_config(cfg, path):
         yaml.dump(cfg_dict, file)
 
     print(f"Compiled configuration saved to: {config_path}")
-

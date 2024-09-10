@@ -15,13 +15,14 @@ class FGSMAttack(BaseIterativeAttack, BatchIterativeAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         estimator: BaseEstimator,
+        logger,
         eps: float = 0.03,
         n_steps: int = 10,
         *args,
         **kwargs,
     ) -> None:
         BaseIterativeAttack.__init__(self, model=model, n_steps=n_steps)
-        BatchIterativeAttack.__init__(self, estimator=estimator)
+        BatchIterativeAttack.__init__(self, estimator=estimator, logger=logger)
         self.criterion = criterion
         self.eps = eps
         self.is_regularized = False

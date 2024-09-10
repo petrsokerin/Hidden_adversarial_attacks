@@ -6,6 +6,8 @@ import pandas as pd
 import torch
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
+from clearml import Task
 
 from src.config import get_attack, get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
@@ -67,14 +69,13 @@ def main(cfg: DictConfig):
     else:
         disc_check_list = None
 
-    estimator = AttackEstimator(
-        disc_check_list,
-        cfg["metric_effect"],
-        cfg["metric_hid"],
-        batch_size=cfg["estimator_batch_size"],
-    )
-
     if cfg["enable_optimization"]:
+        estimator = AttackEstimator(
+            disc_check_list,
+            cfg["metric_effect"],
+            cfg["metric_hid"],
+            batch_size=cfg["estimator_batch_size"],
+        )
         const_params = dict(cfg["attack"]["attack_params"])
         const_params["model"] = attack_model
         const_params["criterion"] = criterion
@@ -94,7 +95,24 @@ def main(cfg: DictConfig):
         attack = attack.initialize_with_optimization(
             test_loader, cfg["optuna_optimizer"], const_params
         )
-        attack.apply_attack(test_loader)
+
+        if not cfg["test_run"]:
+            attack_save_name = 'model_{}_{}_{}_attack_{}_eps={}_nsteps={}_alpha={}'.format(
+                cfg["attack_model"]["name"],
+                cfg["model_id_attack"],
+                cfg["dataset"]["name"],
+                cfg["attack"]["short_name"],
+                eps,
+                cfg["attack"]["attack_params"]["n_steps"],
+                alpha,
+            )
+            task = Task.init(
+                project_name="AA_attack_run",
+                task_name=attack_save_name,
+                tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
+            )
+            logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
+        attack.apply_attack(test_loader, logger)
 
         attack_metrics = attack.get_metrics()
         attack_metrics["eps"] = attack.eps
@@ -103,14 +121,7 @@ def main(cfg: DictConfig):
 
         if not cfg["test_run"]:
             print("Saving")
-            save_attack_metrics(
-                attack_metrics,
-                path=cfg["save_path"],
-                is_regularized=attack.is_regularized,
-                dataset=cfg["dataset"]["name"],
-                model_id=cfg["model_id_attack"],
-                alpha=alpha,
-            )
+            save_attack_metrics(attack_metrics, cfg["save_path"], attack_save_name)
 
     else:
         alphas = [0]
@@ -120,12 +131,41 @@ def main(cfg: DictConfig):
         for alpha in alphas:
             attack_metrics = pd.DataFrame()
             for eps in cfg["attack"]["attack_params"]["eps"]:
+
+                if not cfg["test_run"]:
+                    attack_save_name = 'model_{}_{}_{}_attack_{}_eps={}_nsteps={}_alpha={}'.format(
+                        cfg["attack_model"]["name"],
+                        cfg["model_id_attack"],
+                        cfg["dataset"]["name"],
+                        cfg["attack"]["short_name"],
+                        eps,
+                        cfg["attack"]["attack_params"]["n_steps"],
+                        alpha,
+                    )
+                    task = Task.init(
+                        project_name="AA_attack_run",
+                        task_name=attack_save_name,
+                        tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
+                    )
+                    logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
+
+                else:
+                    logger = None
+
+                estimator = AttackEstimator(
+                    disc_check_list,
+                    cfg["metric_effect"],
+                    cfg["metric_hid"],
+                    batch_size=cfg["estimator_batch_size"],
+                )
+
                 attack_params = dict(cfg["attack"]["attack_params"])
                 attack_params["model"] = attack_model
                 attack_params["criterion"] = criterion
                 attack_params["estimator"] = estimator
                 attack_params["alpha"] = alpha
                 attack_params["eps"] = eps
+                attack_params["logger"] = logger
 
                 if "list_reg_model_params" in cfg["attack"]:
                     attack_params["disc_models"] = get_disc_list(
@@ -145,18 +185,8 @@ def main(cfg: DictConfig):
 
             if not cfg["test_run"]:
                 print("Saving")
-                save_attack_metrics(
-                    attack_metrics,
-                    path=cfg["save_path"],
-                    is_regularized=attack.is_regularized,
-                    dataset=cfg["dataset"]["name"],
-                    model_id=cfg["model_id_attack"],
-                    alpha=alpha,
-                )
+                save_attack_metrics(attack_metrics, cfg["save_path"], attack_save_name)
 
 
 if __name__ == "__main__":
     main()
-
-   
-
