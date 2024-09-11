@@ -1,12 +1,11 @@
 slice: False
 use_disc_check: True
 test_run: False # If true results will be not saved!!!!
-exp_name: '_test'
-exp_model_name: 'test'
-exp_disc_name: _test
+exp_name: '_MULTI'
+exp_model_name: '_MULTI'
 
 model_folder: checkpoints/${dataset.name}/${attack_model.name}/${exp_model_name}
-disc_path: results/${dataset.name}/${attack_model.name}/discriminator/fgsm_attack${exp_disc_name}
+disc_path: results/${dataset.name}/${attack_model.name}/discriminator/fgsm_attack_MULTI
 save_path: results/${dataset.name}/${attack_model.name}/attack/${attack.short_name}${exp_name}
 
 model_id_attack: 100
@@ -23,7 +22,7 @@ criterion_params: null
 
 batch_size: 64
 estimator_batch_size: null
-cuda: 'cuda:1'
+cuda: 'cuda:3'
 
 metric_effect: F1
 metric_hid: ROC_AUC_DISC

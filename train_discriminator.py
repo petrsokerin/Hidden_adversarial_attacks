@@ -20,7 +20,7 @@ warnings.filterwarnings("ignore")
 CONFIG_NAME = "train_disc_config"
 
 torch.cuda.empty_cache()
-@hydra.main(config_path="config/my_configs", config_name=CONFIG_NAME, version_base=None)
+@hydra.main(config_path="config", config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
     augmentator = (

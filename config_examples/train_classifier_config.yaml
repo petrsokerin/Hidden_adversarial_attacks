@@ -1,27 +1,19 @@
 slice: False
 save_path: checkpoints/${dataset.name}/${model.name}/${exp_name}/
 test_run: False # If true results will be not saved!!!!
-exp_name: 'test'
+exp_name: ''
 
-# model_id_start: 100
-# model_id_finish: 101
-model_id: 100
-
+model_id_start: 100
+model_id_finish: 101
 batch_size: 64
-cuda: 'cuda:1'
+cuda: 'cuda:3'
 print_every: 1
 
 train_self_supervised: True
 
-hydra:
-  mode: MULTIRUN
-  sweeper:
-    params:
-      ++model_id: 0,1
-
 defaults:
- - model: PatchTST
  - dataset: FordA
+ - model: PatchTST
 
 transform_data: []
 # - _target_: tsai.data.transforms.TSRandomResizedCrop
@@ -39,7 +31,7 @@ training_params:
   scheduler_params:
     step_size: 30
     gamma: 0.8
-  n_epochs: 3
+  n_epochs: 30
   early_stop_patience: 50
 
 

@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore")
 CONFIG_NAME = "train_classifier_config"
 
 
-@hydra.main(config_path="config/my_configs", config_name=CONFIG_NAME, version_base=None)
+@hydra.main(config_path="config", config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
     if not cfg["test_run"]:
@@ -56,44 +56,45 @@ def main(cfg: DictConfig):
 
     device = torch.device(cfg["cuda"] if torch.cuda.is_available() else "cpu")
 
-    for model_id in range(cfg["model_id_start"], cfg["model_id_finish"]):
-        print("trainig model", model_id)
+    model_id = cfg["model_id"]
 
-        fix_seed(model_id)
+    print("trainig model", model_id)
 
-        if not cfg["test_run"]:
-            model_save_name = f'model_{cfg["model"]["name"]}_{model_id}_{cfg["dataset"]["name"]}'
-            task = Task.init(
-                project_name="AA_train_classifiers",
-                task_name=model_save_name,
-                tags=[cfg["model"]["name"], cfg["dataset"]["name"]]
-            )
-            logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
-        else:
-            logger = None
+    fix_seed(model_id)
 
-        const_params = {
-            "logger": logger,
-            "print_every": cfg["print_every"],
-            "device": device,
-            "seed": model_id,
-            "train_self_supervised": cfg['train_self_supervised']
-        }
-        if cfg["enable_optimization"]:
-            const_params['logger'] = None
-            trainer = Trainer.initialize_with_optimization(
-                train_loader, test_loader, cfg["optuna_optimizer"], const_params
-            )
-        else:
-            trainer_params = dict(cfg["training_params"])
-            trainer_params.update(const_params)
-            trainer = Trainer.initialize_with_params(**trainer_params)
+    if not cfg["test_run"]:
+        model_save_name = f'model_{cfg["model"]["name"]}_{model_id}_{cfg["dataset"]["name"]}'
+        task = Task.init(
+            project_name="AA_train_classifiers",
+            task_name=model_save_name,
+            tags=[cfg["model"]["name"], cfg["dataset"]["name"]]
+        )
+        logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
+    else:
+        logger = None
 
-        trainer.train_model(train_loader, test_loader)
+    const_params = {
+        "logger": logger,
+        "print_every": cfg["print_every"],
+        "device": device,
+        "seed": model_id,
+        "train_self_supervised": cfg['train_self_supervised']
+    }
+    if cfg["enable_optimization"]:
+        const_params['logger'] = None
+        trainer = Trainer.initialize_with_optimization(
+            train_loader, test_loader, cfg["optuna_optimizer"], const_params
+        )
+    else:
+        trainer_params = dict(cfg["training_params"])
+        trainer_params.update(const_params)
+        trainer = Trainer.initialize_with_params(**trainer_params)
 
-        if not cfg["test_run"]:
-            logger.close()
-            trainer.save_result(cfg["save_path"], model_save_name, task)
+    trainer.train_model(train_loader, test_loader)
+
+    if not cfg["test_run"]:
+        logger.close()
+        trainer.save_result(cfg["save_path"], model_save_name, task)
 
 
 

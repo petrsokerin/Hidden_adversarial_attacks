@@ -1,9 +1,9 @@
-name: FGSMAttack
-short_name: fgsm_attack
+name: FGSMRandomAttack
+short_name: fgsm_random
 
 attack_params:
   eps: [0.03]
-  n_steps: 3
+  n_steps: 10
 
 hyperparameters_vary:
   eps:

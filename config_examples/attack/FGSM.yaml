@@ -3,7 +3,7 @@ short_name: fgsm_attack
 
 attack_params:
   eps: [0.03]
-  n_steps: 3
+  n_steps: 10
 
 hyperparameters_vary:
   eps:

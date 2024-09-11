@@ -1,13 +1,11 @@
-name: FGSMRegDiscSmoothMaxAttack
-short_name: fgsm_disc_smax_attack
+name: FGSMRegDiscNormAttack
+short_name: fgsm_disc_norm_attack
 
 attack_params:
-  eps: [0.03] #[0.005, 0.001, 0.03, 0.07, 0.1, 0.13]
+  eps: [0.01, 0.03] #[0.005, 0.001, 0.03, 0.07, 0.1, 0.13]
   n_steps: 50
-  beta: 20.025957 #[0.001, 0.1] #[10, 1, 100, 0.01, 0.0001, 0.001, 0.1]
+  alpha: [0.01, 0.1, 1, 10,] #[10, 1, 100, 0.01, 0.0001, 0.001, 0.1]
   use_sigmoid: False
-  model: LSTM
-  criterion: BCELoss
 
 list_reg_model_params:
   - model_id : 0
@@ -29,7 +27,8 @@ hyperparameters_vary:
   n_steps:
     optuna_type: const
     value: 50
-  beta:
+  alpha:
     optuna_type: float
-    low: 12
-    high: 21
+    low: 0.01
+    high: 1000
+    log: True
