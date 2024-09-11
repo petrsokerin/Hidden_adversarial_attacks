@@ -232,7 +232,6 @@ class FGSMAttackHarmonicLoss(FGSMAttack):
         self,
         model: torch.nn.Module,
         criterion: torch.nn.Module,
-        discriminator_criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
         estimator,
         eps: float = 0.03,
@@ -245,17 +244,14 @@ class FGSMAttackHarmonicLoss(FGSMAttack):
         self.disc_models = disc_models
         self.use_sigmoid = use_sigmoid
         self.is_regularized = False
-    
-    def get_adv_data(self, X: torch.Tensor, loss: torch.Tensor, disc_loss, e=0.0001) -> torch.Tensor:
-        loss_harmonic_mean = 2 * (loss_classifier * loss_discriminator) / (loss_classifier + loss_discriminator + e)
-        grad = torch.autograd.grad(loss_harmonic_mean, X_adv)[0]
-        grad_sign = torch.sign(grad)
-        X_adv = X_adv + self.eps * grad_sign
 
-    def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
-        loss_classifier = self.get_loss(X, y_true)
+
+    def step(self, X: torch.Tensor, y_true: torch.Tensor, e=0.0001) -> torch.Tensor:
+
+
+        loss = self.get_loss(X, y_true)
         loss_discriminator = reg_disc(X, self.disc_models, self.use_sigmoid)
-        X_adv = self.get_adv_data(X, loss_classifier, loss_discriminator)
+        loss_harmonic_mean = 2 * (loss * loss_discriminator) / (loss + loss_discriminator + e)
+        X_adv = self.get_adv_data(X, loss_harmonic_mean)
         
         return X_adv
-
