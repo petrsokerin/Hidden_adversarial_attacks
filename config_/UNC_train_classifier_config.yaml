@@ -1,0 +1,42 @@
+dataset: Strawberry #GunPoint
+slice: False
+save_path: checkpoints/${dataset}/${attack_model.name}
+disc_path: results/${dataset}/${attack_model.name}/discriminator/fgsm_attack_multi_eps
+test_run: True # If true results will be not saved!!!!
+
+model_id_start: 0
+model_id_finish: 3
+
+model_id_attack: 0
+
+batch_size: 128
+estimator_batch_size: 32
+cuda: 'cuda:2'
+print_every: 1
+
+train_self_supervised: True
+
+defaults:
+  - model@attack_model: ResidualCNN
+  - model@disc_model_reg: ResidualCNN
+  - model@disc_model_check: ResidualCNN
+  - attack_disc@attack: FGSM
+  - attack@defence: DefenceDisc
+
+
+transform_data: []
+# - _target_: tsai.data.transforms.TSRandomResizedCrop
+#   magnitude: 0.1
+
+training_params:
+  model_name: ${attack_model.name}
+  model_params: ${attack_model.params}
+  criterion_name: BCELoss
+  criterion_params: None
+
+
+metric_effect: F1
+metric_hid: ROC_AUC_DISC
+list_check_model_params:
+  - model_id : 0
+    model_name: fgsm_attack_eps=0.03_nsteps=10
