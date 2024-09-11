@@ -15,7 +15,7 @@ class FGSMAttack(BaseIterativeAttack, BatchIterativeAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         estimator: BaseEstimator,
-        logger,
+        logger=None,
         eps: float = 0.03,
         n_steps: int = 10,
         *args,

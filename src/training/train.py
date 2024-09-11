@@ -331,12 +331,12 @@ class Trainer:
         res.to_csv(path, index=False)
 
     def save_result(self, save_path: str, model_name: str, task: Task=None) -> None:
+
         if not os.path.isdir(save_path):
             os.makedirs(save_path)
 
-
-        full_path = os.path.join(save_path,  model_name + ".pt")
-        torch.save(self.model.state_dict(), full_path)
+        full_path = os.path.join(save_path,  model_name)
+        torch.save(self.model.state_dict(), full_path  + ".pt")
         if task:
             task.upload_artifact(name='model_weights', artifact_object=full_path)
         self.save_metrics_as_csv(full_path + "_metrics.csv")

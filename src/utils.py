@@ -16,13 +16,13 @@ from src.data import load_data
 from src.estimation.utils import calculate_roughness
 
 
-def save_config(path, config_name: str, config_save_name: str) -> None:
+def save_config(path, config_path: str, config_name: str, config_save_name: str) -> None:
     if not os.path.isdir(path):
         os.makedirs(path)
 
-    shutil.copytree("config/my_configs", path + "/config_folder", dirs_exist_ok=True)
+    shutil.copytree(config_path, path + "/config_folder", dirs_exist_ok=True)
     shutil.copyfile(
-        f"config/my_configs/{config_name}.yaml", path + "/" + config_save_name + '.yaml'
+        f"{config_path}/{config_name}.yaml", path + "/" + config_save_name + '.yaml'
     )
 
     now = datetime.now()
@@ -36,8 +36,6 @@ def save_config(path, config_name: str, config_save_name: str) -> None:
     metadata_path = os.path.join(path, "metadata.yaml")
     with open(metadata_path, "w") as f:
         yaml.dump(metadata, f)
-
-
 
 
 
@@ -217,18 +215,11 @@ def save_train_classifier(model, save_path, model_name):
 
 
 def fix_seed(seed: int) -> None:
-    # Set Python random seed
     random.seed(seed)
-
-    # Set NumPy random seed
     np.random.seed(seed)
-
-    # Set PyTorch random seed
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-
-    # Set deterministic behavior for cudnn
     torch.backends.cudnn.deterministic = True
 
 
@@ -261,11 +252,11 @@ def get_dataset_stats(dataset_name, path='config/my_configs/dataset/'):
     with open(path + f'{dataset_name}.yaml', 'w+') as f:
         yaml.dump(stats, f, sort_keys=False)
 
-def save_compiled_config(cfg, path):
+def save_compiled_config(cfg, path: str, exp_name: str):
     timestamp = datetime.now().strftime("%Y:%m:%d %H:%M:%S")
 
     os.makedirs(path, exist_ok=True)
-    config_filename = f"config_{timestamp}.yaml"
+    config_filename = f"config_{exp_name}_{timestamp}.yaml"
     config_path = os.path.join(path, config_filename)
 
     # Convert OmegaConf config to dictionary and add timestamp

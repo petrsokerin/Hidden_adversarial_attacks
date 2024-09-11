@@ -15,14 +15,28 @@ from src.utils import fix_seed, save_config, save_compiled_config
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "train_classifier_config"
+CONFIG_PATH = "config"
 
-
-@hydra.main(config_path="config", config_name=CONFIG_NAME, version_base=None)
+@hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
     if not cfg["test_run"]:
-        save_config(cfg["save_path"], CONFIG_NAME, CONFIG_NAME)
-        save_compiled_config(cfg,cfg["save_path"])
+        model_save_name = f'model_{cfg["model"]["name"]}_{cfg["model_id"]}_{cfg["dataset"]["name"]}'
+        task = Task.init(
+            project_name="AA_train_classifiers",
+            task_name=model_save_name,
+            tags=[cfg["model"]["name"], cfg["dataset"]["name"]]
+        )
+        logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
+        save_config(cfg["save_path"], CONFIG_PATH, CONFIG_NAME, CONFIG_NAME)
+        save_compiled_config(cfg, cfg["save_path"], model_save_name)
+    else:
+        logger = None
+
+
+    print("trainig model", cfg['model_id'])
+
+    fix_seed(cfg['model_id'])
 
     augmentator = (
         [instantiate(trans) for trans in cfg["transform_data"]]
@@ -56,28 +70,11 @@ def main(cfg: DictConfig):
 
     device = torch.device(cfg["cuda"] if torch.cuda.is_available() else "cpu")
 
-    model_id = cfg["model_id"]
-
-    print("trainig model", model_id)
-
-    fix_seed(model_id)
-
-    if not cfg["test_run"]:
-        model_save_name = f'model_{cfg["model"]["name"]}_{model_id}_{cfg["dataset"]["name"]}'
-        task = Task.init(
-            project_name="AA_train_classifiers",
-            task_name=model_save_name,
-            tags=[cfg["model"]["name"], cfg["dataset"]["name"]]
-        )
-        logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
-    else:
-        logger = None
-
     const_params = {
         "logger": logger,
         "print_every": cfg["print_every"],
         "device": device,
-        "seed": model_id,
+        "seed": cfg['model_id'],
         "train_self_supervised": cfg['train_self_supervised']
     }
     if cfg["enable_optimization"]:
@@ -95,7 +92,6 @@ def main(cfg: DictConfig):
     if not cfg["test_run"]:
         logger.close()
         trainer.save_result(cfg["save_path"], model_save_name, task)
-
 
 
 if __name__ == "__main__":

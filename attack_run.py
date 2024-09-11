@@ -17,18 +17,32 @@ from src.utils import save_attack_metrics, save_config, save_compiled_config
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "attack_run_config"
+CONFIG_PATH = "config"
 
-@hydra.main(config_path="config", config_name=CONFIG_NAME, version_base=None)
+@hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
     if cfg["test_run"]:
         print("ATTENTION!!!! Results will not be saved. Set param test_run=False")
+        logger = None
     else:
-        save_config(
-            cfg["save_path"],
-            CONFIG_NAME,
-            f"config_{cfg['dataset']['name']}_{cfg['model_id_attack']}",
+        attack_start_name = 'model_{}_{}_{}_attack_{}'.format(
+            cfg["attack_model"]["name"],
+            cfg["model_id_attack"],
+            cfg["dataset"]["name"],
+            cfg["attack"]["short_name"],
         )
-        save_compiled_config(cfg,cfg["save_path"])
+
+        add_attack_name = ''
+        for param in cfg['attack']['named_params']:
+            add_attack_name += '__{}={}'.format(
+                param,
+                round(cfg['attack']['attack_params'][param], 4)
+            )
+
+        save_config(cfg["save_path"], CONFIG_PATH, CONFIG_NAME, attack_start_name)
+        save_compiled_config(cfg, cfg["save_path"], attack_start_name + add_attack_name)
+
+
     # load data
     print("Dataset", cfg["dataset"]["name"])
     X_train, y_train, X_test, y_test = load_data(cfg["dataset"]["name"])
@@ -69,123 +83,62 @@ def main(cfg: DictConfig):
     else:
         disc_check_list = None
 
+
+    estimator = AttackEstimator(
+        disc_check_list,
+        cfg["metric_effect"],
+        cfg["metric_hid"],
+        batch_size=cfg["estimator_batch_size"],
+    )
+
+    attack_params = dict(cfg["attack"]["attack_params"])
+    attack_params["model"] = attack_model
+    attack_params["criterion"] = criterion
+    attack_params["estimator"] = estimator
+
+    if "list_reg_model_params" in cfg["attack"]:
+        attack_params["disc_models"] = get_disc_list(
+            model_name=cfg["disc_model_reg"]["name"],
+            model_params=cfg["disc_model_reg"]["params"],
+            list_disc_params=cfg["attack"]["list_reg_model_params"],
+            device=device,
+            path=cfg["disc_path"],
+            train_mode=cfg["disc_model_reg"]["attack_train_mode"],
+        )
+
+    attack = get_attack(cfg["attack"]["name"], attack_params)
+
     if cfg["enable_optimization"]:
-        estimator = AttackEstimator(
-            disc_check_list,
-            cfg["metric_effect"],
-            cfg["metric_hid"],
-            batch_size=cfg["estimator_batch_size"],
-        )
-        const_params = dict(cfg["attack"]["attack_params"])
-        const_params["model"] = attack_model
-        const_params["criterion"] = criterion
-        const_params["estimator"] = estimator
-
-        if "list_reg_model_params" in cfg["attack"]:
-            const_params["disc_models"] = get_disc_list(
-                model_name=cfg["disc_model_reg"]["name"],
-                model_params=cfg["disc_model_reg"]["params"],
-                list_disc_params=cfg["attack"]["list_reg_model_params"],
-                device=device,
-                path=cfg["disc_path"],
-                train_mode=cfg["disc_model_reg"]["attack_train_mode"],
-            )
-
-        attack = get_attack(cfg["attack"]["name"], const_params)
         attack = attack.initialize_with_optimization(
-            test_loader, cfg["optuna_optimizer"], const_params
+            test_loader, cfg["optuna_optimizer"], attack_params
         )
 
         if not cfg["test_run"]:
-            attack_save_name = 'model_{}_{}_{}_attack_{}_eps={}_nsteps={}_alpha={}'.format(
-                cfg["attack_model"]["name"],
-                cfg["model_id_attack"],
-                cfg["dataset"]["name"],
-                cfg["attack"]["short_name"],
-                eps,
-                cfg["attack"]["attack_params"]["n_steps"],
-                alpha,
-            )
-            task = Task.init(
-                project_name="AA_attack_run",
-                task_name=attack_save_name,
-                tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
-            )
-            logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
-        attack.apply_attack(test_loader, logger)
-
-        attack_metrics = attack.get_metrics()
-        attack_metrics["eps"] = attack.eps
-
-        alpha = attack.alpha if getattr(attack, "alpha", None) else 0
-
-        if not cfg["test_run"]:
-            print("Saving")
-            save_attack_metrics(attack_metrics, cfg["save_path"], attack_save_name)
-
-    else:
-        alphas = [0]
-        if "alpha" in cfg["attack"]["attack_params"]:
-            alphas = cfg["attack"]["attack_params"]["alpha"]
-
-        for alpha in alphas:
-            attack_metrics = pd.DataFrame()
-            for eps in cfg["attack"]["attack_params"]["eps"]:
-
-                if not cfg["test_run"]:
-                    attack_save_name = 'model_{}_{}_{}_attack_{}_eps={}_nsteps={}_alpha={}'.format(
-                        cfg["attack_model"]["name"],
-                        cfg["model_id_attack"],
-                        cfg["dataset"]["name"],
-                        cfg["attack"]["short_name"],
-                        eps,
-                        cfg["attack"]["attack_params"]["n_steps"],
-                        alpha,
-                    )
-                    task = Task.init(
-                        project_name="AA_attack_run",
-                        task_name=attack_save_name,
-                        tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
-                    )
-                    logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
-
-                else:
-                    logger = None
-
-                estimator = AttackEstimator(
-                    disc_check_list,
-                    cfg["metric_effect"],
-                    cfg["metric_hid"],
-                    batch_size=cfg["estimator_batch_size"],
+            add_attack_name = ''
+            for param in cfg['attack']['named_params']:
+                add_attack_name += '__{}={}'.format(
+                    param,
+                    round(getattr(attack, param), 4)
                 )
 
-                attack_params = dict(cfg["attack"]["attack_params"])
-                attack_params["model"] = attack_model
-                attack_params["criterion"] = criterion
-                attack_params["estimator"] = estimator
-                attack_params["alpha"] = alpha
-                attack_params["eps"] = eps
-                attack_params["logger"] = logger
+    if not cfg["test_run"]:
+        attack_save_name = attack_start_name + add_attack_name
+        task = Task.init(
+            project_name="AA_attack_run",
+            task_name=attack_save_name,
+            tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
+        )
 
-                if "list_reg_model_params" in cfg["attack"]:
-                    attack_params["disc_models"] = get_disc_list(
-                        model_name=cfg["disc_model_reg"]["name"],
-                        model_params=cfg["disc_model_reg"]["params"],
-                        list_disc_params=cfg["attack"]["list_reg_model_params"],
-                        device=device,
-                        path=cfg["disc_path"],
-                        train_mode=cfg["disc_model_reg"]["attack_train_mode"],
-                    )
+        logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
 
-                attack = get_attack(cfg["attack"]["name"], attack_params)
-                attack.apply_attack(test_loader)
-                results = attack.get_metrics()
-                results["eps"] = eps
-                attack_metrics = pd.concat([attack_metrics, results])
+    attack.apply_attack(test_loader, logger)
 
-            if not cfg["test_run"]:
-                print("Saving")
-                save_attack_metrics(attack_metrics, cfg["save_path"], attack_save_name)
+    if not cfg["test_run"]:
+        print("Saving")
+        attack_metrics = attack.get_metrics()
+        for param in cfg['attack']['named_params']:
+            attack_metrics[f'{param}_param'] = round(cfg['attack']['attack_params'][param], 4)
+        save_attack_metrics(attack_metrics, cfg["save_path"], attack_save_name)
 
 
 if __name__ == "__main__":
