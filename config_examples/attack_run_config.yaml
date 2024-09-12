@@ -10,6 +10,12 @@ save_path: results/${dataset.name}/${attack_model.name}/attack/${attack.short_na
 
 model_id_attack: 100
 
+hydra:
+  mode: RUN #MULTIRUN
+  sweeper:
+    params:
+      ++attacko_model.attack_params.eps: 0.01,0.03
+
 defaults:
   - dataset: FordA
   - model@attack_model: PatchTST
@@ -22,7 +28,7 @@ criterion_params: null
 
 batch_size: 64
 estimator_batch_size: null
-cuda: 'cuda:3'
+device: 'cuda:0'
 
 metric_effect: F1
 metric_hid: ROC_AUC_DISC

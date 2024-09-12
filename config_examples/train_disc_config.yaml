@@ -7,9 +7,9 @@ exp_model_name: '_MULTI'
 model_folder: checkpoints/${dataset.name}/${attack_model.name}/${exp_model_name}
 disc_path: results/${dataset.name}/${attack_model.name}/discriminator/fgsm_attack
 save_path: results/${dataset.name}/${attack_model.name}/discriminator/${attack.short_name}${exp_name}
-model_id_attack: 100
 
-model_ids: [100]
+model_id_attack: 100
+model_id: 100
 
 train_self_supervised: True
 
@@ -29,7 +29,7 @@ metric_hid: ROC_AUC_DISC
 
 batch_size: 64
 estimator_batch_size: null
-cuda: 'cuda:3'
+device: 'cuda:0'
 print_every: 1
 
 list_check_model_params:

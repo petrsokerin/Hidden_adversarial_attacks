@@ -3,10 +3,9 @@ save_path: checkpoints/${dataset.name}/${model.name}/${exp_name}/
 test_run: False # If true results will be not saved!!!!
 exp_name: ''
 
-model_id_start: 100
-model_id_finish: 101
+model_id: 100
 batch_size: 64
-cuda: 'cuda:3'
+device: 'cuda:0'
 print_every: 1
 
 train_self_supervised: True
