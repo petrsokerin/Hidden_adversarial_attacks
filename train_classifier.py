@@ -23,7 +23,7 @@ def main(cfg: DictConfig):
     if not cfg["test_run"]:
         model_save_name = f'model_{cfg["model"]["name"]}_{cfg["model_id"]}_{cfg["dataset"]["name"]}'
         task = Task.init(
-            project_name="AA_train_classifiers",
+            project_name=cfg['clearml_project'],
             task_name=model_save_name,
             tags=[cfg["model"]["name"], cfg["dataset"]["name"]]
         )

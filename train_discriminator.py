@@ -78,9 +78,10 @@ def main(cfg: DictConfig):
 
     device = torch.device(cfg["device"] if torch.cuda.is_available() else "cpu")
 
+
     attack_model_path = os.path.join(
         cfg["model_folder"],
-        f"model_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt",
+        f"model_{cfg['model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt",
     )
 
     attack_model = get_model(
@@ -157,7 +158,7 @@ def main(cfg: DictConfig):
     if not cfg["test_run"]:
         model_save_name = model_start_name + model_add_name
         task = Task.init(
-            project_name="AA_train_discriminator",
+            project_name=cfg['clearml_project'],
             task_name=model_save_name,
             tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
         )

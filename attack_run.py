@@ -58,7 +58,7 @@ def main(cfg: DictConfig):
 
     attack_model_path = os.path.join(
         cfg["model_folder"],
-        f"model_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt",
+        f"model_{cfg['attack_model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt"
     )
 
     attack_model = get_model(
@@ -124,7 +124,7 @@ def main(cfg: DictConfig):
     if not cfg["test_run"]:
         attack_save_name = attack_start_name + attack_add_name
         task = Task.init(
-            project_name="AA_attack_run",
+            project_name=cfg['clearml_project'],
             task_name=attack_save_name,
             tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
         )
