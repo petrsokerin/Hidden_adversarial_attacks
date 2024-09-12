@@ -11,17 +11,7 @@ attack_params:
   criterion: BCELoss
 
 list_reg_model_params:
-  - model_id : 0
-    model_name: fgsm_attack_eps=0.03_nsteps=10
-  # - model_id: 0
-  #   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=10_nsteps=10'
-  # - model_id: 1
-  #   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=1_nsteps=10'
-  # - model_id: 1
-  #   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=10_nsteps=10'
-  # - model_id: 2
-  #   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=1_nsteps=10'
-  # - model_id: 2
+  - model_ResidualCNN_100_PowerCons_attack_fgsm_attack__eps=0.03__n_steps=10
 
 hyperparameters_vary:
   eps:
