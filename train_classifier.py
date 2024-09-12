@@ -68,7 +68,7 @@ def main(cfg: DictConfig):
         shuffle=False,
     )
 
-    device = torch.device(cfg["cuda"] if torch.cuda.is_available() else "cpu")
+    device = torch.device(cfg["device"] if torch.cuda.is_available() else "cpu")
 
     const_params = {
         "logger": logger,

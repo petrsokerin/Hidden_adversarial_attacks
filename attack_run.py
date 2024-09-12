@@ -32,15 +32,15 @@ def main(cfg: DictConfig):
             cfg["attack"]["short_name"],
         )
 
-        add_attack_name = ''
+        attack_add_name = ''
         for param in cfg['attack']['named_params']:
-            add_attack_name += '__{}={}'.format(
+            attack_add_name += '__{}={}'.format(
                 param,
                 round(cfg['attack']['attack_params'][param], 4)
             )
 
         save_config(cfg["save_path"], CONFIG_PATH, CONFIG_NAME, attack_start_name)
-        save_compiled_config(cfg, cfg["save_path"], attack_start_name + add_attack_name)
+        save_compiled_config(cfg, cfg["save_path"], attack_start_name + attack_add_name)
 
 
     # load data
@@ -54,7 +54,7 @@ def main(cfg: DictConfig):
         MyDataset(X_test, y_test), batch_size=cfg["batch_size"], shuffle=False
     )
 
-    device = torch.device(cfg["cuda"] if torch.cuda.is_available() else "cpu")
+    device = torch.device(cfg["device"] if torch.cuda.is_available() else "cpu")
 
     attack_model_path = os.path.join(
         cfg["model_folder"],
@@ -114,21 +114,20 @@ def main(cfg: DictConfig):
         )
 
         if not cfg["test_run"]:
-            add_attack_name = ''
+            attack_add_name = ''
             for param in cfg['attack']['named_params']:
-                add_attack_name += '__{}={}'.format(
+                attack_add_name += '__{}={}'.format(
                     param,
                     round(getattr(attack, param), 4)
                 )
 
     if not cfg["test_run"]:
-        attack_save_name = attack_start_name + add_attack_name
+        attack_save_name = attack_start_name + attack_add_name
         task = Task.init(
             project_name="AA_attack_run",
             task_name=attack_save_name,
             tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
         )
-
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
 
     attack.apply_attack(test_loader, logger)

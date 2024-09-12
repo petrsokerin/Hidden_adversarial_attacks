@@ -188,6 +188,7 @@ class Trainer:
 
         model = Trainer.initialize_with_params(**initial_model_parameters)
         last_epoch_metrics = model.train_model(train_loader, valid_loader)
+
         return last_epoch_metrics[optim_metric]
 
     def _init_logging(self, metric_names: List[str]) -> None:
@@ -258,6 +259,8 @@ class Trainer:
             if self.scheduler:
                 self.scheduler.step()
 
+        metrics_names = ['loss'] +self.estimator.get_metrics_names()
+        test_metrics_epoch = {name: val for name, val in zip(metrics_names, test_metrics_epoch)}
         return test_metrics_epoch
 
     def _train_step(self, X: torch.Tensor, labels: torch.Tensor) -> Tuple[torch.Tensor]:
@@ -441,12 +444,14 @@ class DiscTrainer(Trainer):
         valid_loader: DataLoader,
         optuna_params: Dict,
         const_params: Dict,
+        transform = None,
     ):
         study = optuna.create_study(
             direction="maximize",
             sampler=instantiate(optuna_params["sampler"]),
             pruner=instantiate(optuna_params["pruner"]),
         )
+
         study.optimize(
             partial(
                 DiscTrainer.objective,
@@ -455,6 +460,7 @@ class DiscTrainer(Trainer):
                 const_params=const_params,
                 train_loader=train_loader,
                 valid_loader=valid_loader,
+                transform=transform,
             ),
             n_trials=optuna_params["n_trials"],
         )
@@ -476,6 +482,7 @@ class DiscTrainer(Trainer):
         const_params: Dict,
         train_loader: DataLoader,
         valid_loader: DataLoader,
+        transform = None
     ) -> float:
         initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
         initial_model_parameters = dict(initial_model_parameters)
@@ -484,7 +491,7 @@ class DiscTrainer(Trainer):
         )
 
         model = DiscTrainer.initialize_with_params(**initial_model_parameters)
-        last_epoch_metrics = model.train_model(train_loader, valid_loader)
+        last_epoch_metrics = model.train_model(train_loader, valid_loader, transform)
         return last_epoch_metrics[optim_metric]
 
     def _generate_adversarial_data(
@@ -509,7 +516,7 @@ class DiscTrainer(Trainer):
         return loader
 
     def train_model(
-        self, train_loader: DataLoader, valid_loader: DataLoader, transform, logger=None
+        self, train_loader: DataLoader, valid_loader: DataLoader, transform=None, logger=None
     ) -> Dict[str, float]:
 
         if logger:
@@ -558,4 +565,6 @@ class DiscTrainer(Trainer):
                     )
                     adv_valid_loader = self._generate_adversarial_data(valid_loader)
 
+        metrics_names = ['loss'] +self.estimator.get_metrics_names()
+        test_metrics_epoch = {name: val for name, val in zip(metrics_names, test_metrics_epoch)}
         return test_metrics_epoch

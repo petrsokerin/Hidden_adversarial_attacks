@@ -24,10 +24,31 @@ torch.cuda.empty_cache()
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
+    if cfg["test_run"]:
+        print("ATTENTION!!!! Results will not be saved. Set param test_run=False")
+        logger = None
+    else:
+        model_start_name = 'model_{}_{}_{}_attack_{}'.format(
+            cfg["attack_model"]["name"],
+            cfg["model_id_attack"],
+            cfg["dataset"]["name"],
+            cfg["attack"]["short_name"],
+        )
+
+        model_add_name = ''
+        for param in cfg['attack']['named_params']:
+            model_add_name += '__{}={}'.format(
+                param,
+                round(cfg['attack']['attack_params'][param], 4)
+            )
+
+        save_path = os.path.join(cfg["save_path"], model_start_name + model_add_name)
+        save_config(save_path, CONFIG_PATH, CONFIG_NAME, CONFIG_NAME)
+        save_compiled_config(cfg, save_path, model_start_name + model_add_name)
+
     augmentator = (
         [instantiate(trans) for trans in cfg["transform_data"]]
-        if cfg["transform_data"]
-        else None
+        if cfg["transform_data"] else None
     )
 
     X_train, y_train, X_test, y_test = load_data(cfg["dataset"]['name'])
@@ -55,7 +76,7 @@ def main(cfg: DictConfig):
         shuffle=False,
     )
 
-    device = torch.device(cfg["cuda"] if torch.cuda.is_available() else "cpu")
+    device = torch.device(cfg["device"] if torch.cuda.is_available() else "cpu")
 
     attack_model_path = os.path.join(
         cfg["model_folder"],
@@ -91,136 +112,63 @@ def main(cfg: DictConfig):
         batch_size=cfg["estimator_batch_size"],
     )
 
-    for model_id in cfg["model_ids"]:
+    attack_params = dict(cfg["attack"]["attack_params"])
+    attack_params["model"] = attack_model
+    attack_params["criterion"] = criterion
+    attack_params["estimator"] = estimator
 
-        if cfg["enable_optimization"]:
-            attack_const_params = dict(cfg["attack"]["attack_params"])
-            attack_const_params["model"] = attack_model
-            attack_const_params["criterion"] = criterion
-            attack_const_params["estimator"] = estimator
-            attack_const_params["logger"] = None
+    if "list_reg_model_params" in cfg["attack"]:
+        attack_params["disc_models"] = get_disc_list(
+            model_name=cfg["disc_model_reg"]["name"],
+            model_params=cfg["disc_model_reg"]["params"],
+            list_disc_params=cfg["attack"]["list_reg_model_params"],
+            device=device,
+            path=cfg["disc_path"],
+            train_mode=cfg["disc_model_reg"]["attack_train_mode"],
+        )
 
-            if "list_reg_model_params" in cfg["attack"]:
-                attack_const_params["disc_models"] = get_disc_list(
-                    model_name=cfg["disc_model_reg"]["name"],
-                    model_params=cfg["disc_model_reg"]["params"],
-                    list_disc_params=cfg["attack"]["list_reg_model_params"],
-                    device=device,
-                    path=cfg["disc_path"],
-                    train_mode=cfg["disc_model_reg"]["attack_train_mode"],
+    const_params = {
+            "attack_params": attack_params,
+            "print_every": cfg["print_every"],
+            "device": device,
+            "seed": cfg['model_id'],
+            "train_self_supervised": cfg["train_self_supervised"],
+    }
+
+    if cfg["enable_optimization"]:
+        disc_trainer = DiscTrainer.initialize_with_optimization(
+            train_loader, test_loader, cfg["optuna_optimizer"], const_params
+        )
+
+        if not cfg["test_run"]:
+            model_add_name = ''
+            for param in cfg['attack']['named_params']:
+                model_add_name += '__{}={}'.format(
+                    param,
+                    round(getattr(disc_trainer.attack, param), 4)
                 )
-
-            const_params = {
-                "attack_params": attack_const_params,
-                "logger": None,
-                "print_every": cfg["print_every"],
-                "device": device,
-                "seed": model_id,
-                "train_self_supervised": cfg["train_self_supervised"],
-            }
-
-            disc_trainer = DiscTrainer.initialize_with_optimization(
-                train_loader, test_loader, cfg["optuna_optimizer"], const_params
-            )
-
-            if not cfg["test_run"]:
-                model_save_name = 'model_{}_{}_{}_attack_{}_eps={}_nsteps={}'.format(
-                    cfg["model"]["name"],
-                    model_id,
-                    cfg["dataset"]["name"],
-                    cfg["attack"]["short_name"],
-                    round(disc_trainer.attack.eps, 4),
-                    cfg["attack"]["attack_params"]["n_steps"]
-                )
-                task = Task.init(
-                    project_name="AA_train_discriminator",
-                    task_name=model_save_name,
-                    tags=[cfg["model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
-                )
-                logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
-            else:
-                logger = None
-
-            disc_trainer.train_model(train_loader, test_loader, augmentator, logger)
-
-            if not cfg["test_run"]:
-                new_save_path = os.path.join(cfg["save_path"], model_save_name)
-                save_config(new_save_path, CONFIG_PATH, CONFIG_NAME, CONFIG_NAME)
-                disc_trainer.save_result(new_save_path, model_save_name, task)
+    else:
+        const_params["attack_name"] = cfg["attack"]["name"]
+        trainer_params = dict(cfg["training_params"])
+        trainer_params.update(const_params)
+        disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
 
 
-        else:
-            alphas = [0]
+    if not cfg["test_run"]:
+        model_save_name = model_start_name + model_add_name
+        task = Task.init(
+            project_name="AA_train_discriminator",
+            task_name=model_save_name,
+            tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
+        )
+        logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
 
-            if "alpha" in cfg["attack"]["attack_params"]:
-                alphas = cfg["attack"]["attack_params"]["alpha"]
+    disc_trainer.train_model(train_loader, test_loader, augmentator, logger)
 
-            for alpha in alphas:
-                for eps in cfg["attack"]["attack_params"]["eps"]:
-                    print(
-                        "----- Current epsilon:", eps, "\n----- Current alpha:", alpha
-                    )
-
-                    if not cfg["test_run"]:
-                        model_save_name = 'model_{}_{}_{}_attack_{}_eps={}_nsteps={}_alpha={}'.format(
-                            cfg["model"]["name"],
-                            model_id,
-                            cfg["dataset"]["name"],
-                            cfg["attack"]["short_name"],
-                            eps,
-                            cfg["attack"]["attack_params"]["n_steps"],
-                            alpha,
-                        )
-                        task = Task.init(
-                            project_name="AA_train_discriminator",
-                            task_name=model_save_name,
-                            tags=[cfg["model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
-                        )
-                        logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
-
-                        new_save_path = os.path.join(cfg["save_path"], model_save_name)
-                        save_config(new_save_path, CONFIG_NAME, CONFIG_NAME)
-                        save_compiled_config(cfg, new_save_path)
-
-                    else:
-                        logger = None
-
-                    attack_params = dict(cfg["attack"]["attack_params"])
-                    attack_params["model"] = attack_model
-                    attack_params["criterion"] = criterion
-                    attack_params["estimator"] = estimator
-                    attack_params["alpha"] = alpha
-                    attack_params["eps"] = eps
-                    attack_params["logger"] = None
-
-                    if "list_reg_model_params" in cfg["attack"]:
-                        attack_params["disc_models"] = get_disc_list(
-                            model_name=cfg["disc_model_reg"]["name"],
-                            model_params=cfg["disc_model_reg"]["params"],
-                            list_disc_params=cfg["attack"]["list_reg_model_params"],
-                            device=device,
-                            path=cfg["disc_path"],
-                            train_mode=cfg["disc_model_reg"]["attack_train_mode"],
-                        )
-
-                    trainer_params = dict(cfg["training_params"])
-                    trainer_params["logger"] = logger
-                    trainer_params["device"] = device
-                    trainer_params["seed"] = model_id
-                    trainer_params["train_self_supervised"] = cfg[
-                        "train_self_supervised"
-                    ]
-
-                    trainer_params["attack_name"] = cfg["attack"]["name"]
-                    trainer_params["attack_params"] = attack_params
-
-                    disc_trainer = DiscTrainer.initialize_with_params(**trainer_params)
-                    disc_trainer.train_model(train_loader, test_loader, augmentator)
-
-                    if not cfg["test_run"]:
-                        disc_trainer.save_result(new_save_path, model_save_name, task)
-
-
+    if not cfg["test_run"]:
+        print("Saving")
+        new_save_path = os.path.join(cfg["save_path"], model_save_name)
+        disc_trainer.save_result(new_save_path, model_save_name, task)
 
 if __name__ == "__main__":
     main()
