@@ -1,10 +1,11 @@
 name: FGSMRegDiscNormAttack
 short_name: fgsm_disc_norm_attack
+named_params: [eps, n_steps, alpha]
 
 attack_params:
-  eps: [0.01, 0.03] #[0.005, 0.001, 0.03, 0.07, 0.1, 0.13]
+  eps: 0.03
   n_steps: 50
-  alpha: [0.01, 0.1, 1, 10,] #[10, 1, 100, 0.01, 0.0001, 0.001, 0.1]
+  alpha: 0.01
   use_sigmoid: False
 
 list_reg_model_params:

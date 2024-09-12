@@ -1,14 +1,15 @@
 name: FGSMRegDiscAttack
 short_name: fgsm_disc_attack
+named_params: [eps, n_steps, alpha]
 
 attack_params:
-  eps: [0.01, 0.03] #[0.005, 0.001, 0.03, 0.07, 0.1, 0.13]
-  n_steps: 10
-  alpha: [0.001, 0.1] #[10, 1, 100, 0.01, 0.0001, 0.001, 0.1]
+  eps: 0.03
+  n_steps: 50
+  alpha: 0.01
   use_sigmoid: False
 
 list_reg_model_params:
-  - model_id : 0
+  - model_id : 100
     model_name: fgsm_attack_eps=0.03_nsteps=10
   # - model_id: 0
   #   model_name: 'fgsm_disc_attack2_eps=0.03_alpha=10_nsteps=10'
@@ -22,15 +23,13 @@ list_reg_model_params:
 
 hyperparameters_vary:
   eps:
-    optuna_type: float
-    low: 0.01
-    high: 0.5
-    log: True
+    optuna_type: const
+    value: 0.03
   n_steps:
     optuna_type: const
     value: 50
   alpha:
     optuna_type: float
     low: 0.01
-    high: 0.5
+    high: 1000
     log: True

@@ -27,6 +27,18 @@ params:
   store_attn: False
 
 hyperparameters_vary:
+  pred_dim:
+    optuna_type: const
+    value: 1
+  c_in:
+    optuna_type: const
+    value: 1
+  c_out:
+    optuna_type: const
+    value: 1
+  seq_len:
+    optuna_type: const
+    value: ${dataset.seq_len}
   dropout:
     optuna_type: float
     low: 0.1
