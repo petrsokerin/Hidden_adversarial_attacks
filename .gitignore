@@ -3,6 +3,7 @@ results/*
 results_old/*
 data/*
 checkpoints/*
+checkpoints_old/*
 *credentials*
 .ipynb_checkpoints/*
 **/__pycache__/**
@@ -16,6 +17,6 @@ utils/__pycache__/attacks.cpython-38.pyc
 utils/__pycache__/discrim_attack.cpython-38.pyc
 utils/__pycache__/estimation.cpython-38.pyc
 *.pyc
-config/my_configs/*
+config/*
 smi.ipynb
 .mypy_cache/

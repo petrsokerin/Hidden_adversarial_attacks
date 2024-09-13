@@ -1,9 +1,10 @@
 name: FGSMAttack
 short_name: fgsm_attack
+named_params: [eps, n_steps]
 
 attack_params:
-  eps: [0.03]
-  n_steps: 10
+  eps: 0.03
+  n_steps: 3
 
 hyperparameters_vary:
   eps:
@@ -13,4 +14,4 @@ hyperparameters_vary:
     log: True
   n_steps:
     optuna_type: const
-    value: 50
+    value: 5

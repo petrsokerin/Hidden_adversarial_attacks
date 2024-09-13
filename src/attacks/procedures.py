@@ -10,9 +10,10 @@ from src.estimation import BaseEstimator
 
 
 class BatchIterativeAttack:
-    def __init__(self, estimator: BaseEstimator = None, *args, **kwargs) -> None:
+    def __init__(self, estimator: BaseEstimator=None, logger=None, *args, **kwargs) -> None:
         self.logging = bool(estimator)
         self.estimator = estimator
+        self.logger = logger
 
         if self.logging:
             print("logging")
@@ -40,6 +41,11 @@ class BatchIterativeAttack:
         metrics_line = self.estimator.estimate(
             y_true, y_pred_classes, y_pred_orig_classes, X_orig, X_adv, step_id
         )
+
+        for metric_name, metric_val in zip(self.estimator.metrics_names, metrics_line):
+            if self.logger:
+                self.logger.add_scalar(metric_name, metric_val, step_id)
+
         metrics_line = [step_id] + list(metrics_line)
         metrics_names = ["step_id"] + self.metrics_names
         df_line = pd.DataFrame(metrics_line, index=metrics_names).T
@@ -128,7 +134,10 @@ class BatchIterativeAttack:
     def get_metrics(self) -> pd.DataFrame:
         return self.metrics
 
-    def apply_attack(self, loader: DataLoader) -> torch.Tensor:
+    def apply_attack(self, loader: DataLoader, logger=None) -> torch.Tensor:
+        if logger:
+            self.logger = logger
+
         y_true = loader.dataset.y
 
         if self.logging:
