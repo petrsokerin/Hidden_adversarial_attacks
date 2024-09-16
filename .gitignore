@@ -21,3 +21,4 @@ smi.ipynb
 .mypy_cache/
 pictures/*
 .docker/*
+config_examples/*
