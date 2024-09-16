@@ -5,13 +5,10 @@ params:
   seq_len: 500
   n_kernels: 1000
   kss: [7, 9, 11]
-  device: ${device}
+  device: 'cuda:1'
   verbose: False
 
 hyperparameters_vary:
-  c_in:
-    optuna_type: const
-    value: 1
   dropout:
     optuna_type: float
     low: 0.1

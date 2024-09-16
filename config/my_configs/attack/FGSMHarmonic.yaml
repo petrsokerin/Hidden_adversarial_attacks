@@ -1,0 +1,22 @@
+name: FGSMAttackHarmonicLoss
+short_name: fgsm_harmonic_attack
+
+attack_params:
+  eps: [0.03]
+  # alpha: [0] 
+  n_steps: 10
+  use_sigmoid: False
+
+
+list_reg_model_params:
+  - model_id : 100
+    model_name: fgsm_attack_eps=0.03_nsteps=10
+
+
+hyperparameters_vary:
+  eps:
+    optuna_type: const
+    value: 0.03
+  n_steps:
+    optuna_type: const
+    value: 50

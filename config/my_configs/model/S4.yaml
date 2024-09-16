@@ -1,9 +1,9 @@
 name: S4
 
 params:
-  input_dim: 1
+  input_dim: 1 
   hidden_dim: 128
-  output_dim: 1
+  output_dim: 1 
   dropout: 0.1
 
 hyperparameters_vary:

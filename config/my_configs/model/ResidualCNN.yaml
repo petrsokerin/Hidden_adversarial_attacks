@@ -3,11 +3,11 @@ name: ResidualCNN
 params:
   c_in: 1 # по умолчанию
   c_out: 1 # по умолчанию
-  coord: False
-  separable: False
+  coord: False 
+  separable: False 
   zero_norm: False
 
-hyperparameters_vary:
+hyperparameters_vary: 
   c_in:
     optuna_type: const
     value: 1

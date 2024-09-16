@@ -1,9 +1,8 @@
 name: DefenseRegDiscAttack
 short_name: fgsm_disc_defense
-named_params: [eps, n_steps]
 
 attack_params:
-  eps: 0.03
+  eps: [0.03] #[0.005, 0.001, 0.03, 0.07, 0.1, 0.13]
   n_steps: 10
   use_sigmoid: False
 

@@ -1,26 +1,25 @@
 slice: False
 use_disc_check: False
 test_run: False  # If true results will be not saved!!!!
-exp_name: '_test'
-exp_model_name: 'test'
-clearml_project: "AA_train_discriminator"
+exp_name: '_MULTI'
+exp_model_name: '_MULTI'
 
 model_folder: checkpoints/${dataset.name}/${attack_model.name}/${exp_model_name}
 disc_path: results/${dataset.name}/${attack_model.name}/discriminator/fgsm_attack
 save_path: results/${dataset.name}/${attack_model.name}/discriminator/${attack.short_name}${exp_name}
-
 model_id_attack: 100
-model_id: 100
 
-train_self_supervised: True
+model_ids: [100]
+
+train_self_supervised: False
 
 defaults:
-  - dataset: PowerCons
-  - model: ResidualCNN
-  - model@attack_model: ResidualCNN
-  - model@disc_model_reg: ResidualCNN
-  - model@disc_model_check: ResidualCNN
-  - attack_disc@attack: FGSM
+  - dataset: Strawberry
+  - model: TST
+  - model@attack_model: TST
+  - model@disc_model_reg: TST
+  - model@disc_model_check: TST
+  - attack: FGSM
 
 criterion_name: BCELoss
 criterion_params: null
@@ -30,7 +29,7 @@ metric_hid: ROC_AUC_DISC
 
 batch_size: 64
 estimator_batch_size: null
-device: 'cuda:0'
+cuda: 'cuda:1'
 print_every: 1
 
 list_check_model_params:
@@ -57,7 +56,7 @@ training_params:
   attack_scheduler_params:
     attack_step_size: 10
     attack_gamma: 0.8
-  n_epochs: 30
+  n_epochs: 50
   print_every: ${print_every}
   early_stop_patience: 900
 
@@ -107,14 +106,6 @@ optuna_optimizer:
       value:
         step_size: 10
         gamma: 0.5
-    attack_scheduler_name:
-      optuna_type: const
-      value: StepAttackScheduler
-    attack_scheduler_params:
-      optuna_type: const
-      value:
-        attack_step_size: 10
-        attack_gamma: 0.8
     n_epochs:
       optuna_type: const
       value: 3

@@ -1,10 +1,10 @@
-name: DefenseRegDiscAttack
-short_name: fgsm_disc_defense
-named_params: [eps, n_steps]
+name: FGSMRegDiscNormAttack
+short_name: fgsm_disc_norm_attack
 
 attack_params:
-  eps: 0.03
-  n_steps: 10
+  eps: [0.01, 0.03] #[0.005, 0.001, 0.03, 0.07, 0.1, 0.13]
+  n_steps: 50
+  alpha: [0.01, 0.1, 1, 10,] #[10, 1, 100, 0.01, 0.0001, 0.001, 0.1]
   use_sigmoid: False
 
 list_reg_model_params:
@@ -27,3 +27,8 @@ hyperparameters_vary:
   n_steps:
     optuna_type: const
     value: 50
+  alpha:
+    optuna_type: float
+    low: 0.01
+    high: 1000
+    log: True
