@@ -20,3 +20,4 @@ config/my_configs/*
 smi.ipynb
 .mypy_cache/
 pictures/*
+.docker/*
