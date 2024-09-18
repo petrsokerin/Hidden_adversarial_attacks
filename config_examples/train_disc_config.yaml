@@ -3,6 +3,7 @@ use_disc_check: False
 test_run: False  # If true results will be not saved!!!!
 exp_name: '_test'
 exp_model_name: 'test'
+log_clearml: False
 clearml_project: "AA_train_discriminator"
 
 model_folder: checkpoints/${dataset.name}/${attack_model.name}/${exp_model_name}

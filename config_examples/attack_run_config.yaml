@@ -4,6 +4,7 @@ test_run: False # If true results will be not saved!!!!
 exp_name: '_test'
 exp_model_name: 'test'
 exp_disc_name: _test
+log_clearml: False
 clearml_project: "AA_attack_run"
 
 model_folder: checkpoints/${dataset.name}/${attack_model.name}/${exp_model_name}

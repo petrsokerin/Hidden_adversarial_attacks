@@ -157,11 +157,15 @@ def main(cfg: DictConfig):
 
     if not cfg["test_run"]:
         model_save_name = model_start_name + model_add_name
-        task = Task.init(
-            project_name=cfg['clearml_project'],
-            task_name=model_save_name,
-            tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
-        )
+        exp_name = cfg['exp_name'][1:] if cfg['exp_name'][0] == '_' else cfg['exp_name']
+        if cfg['log_clearml']:
+            task = Task.init(
+                project_name=cfg['clearml_project'],
+                task_name=model_save_name,
+                tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"], exp_name]
+            )
+        else:
+            task = None
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
 
     disc_trainer.train_model(train_loader, test_loader, augmentator, logger)
