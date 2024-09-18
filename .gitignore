@@ -17,8 +17,9 @@ utils/__pycache__/attacks.cpython-38.pyc
 utils/__pycache__/discrim_attack.cpython-38.pyc
 utils/__pycache__/estimation.cpython-38.pyc
 *.pyc
-
 smi.ipynb
 .mypy_cache/
 pictures/*
 .docker/*
+train_classifier1.py
+config/my_configs/*
