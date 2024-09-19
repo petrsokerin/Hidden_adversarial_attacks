@@ -45,7 +45,7 @@ def main(cfg: DictConfig):
 
     # load data
 
-    fix_seed(cfg['model_id'])
+    fix_seed(cfg['model_id_attack'])
     print("Dataset", cfg["dataset"]["name"])
     X_train, y_train, X_test, y_test = load_data(cfg["dataset"]["name"])
     X_train, X_test, y_train, y_test = transform_data(
