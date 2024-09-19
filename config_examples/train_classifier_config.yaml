@@ -2,6 +2,7 @@ slice: False
 save_path: checkpoints/${dataset.name}/${model.name}/${exp_name}/
 test_run: False # If true results will be not saved!!!!
 exp_name: 'test'
+log_clearml: False
 clearml_project: "AA_train_classifiers"
 
 # model_id_start: 100

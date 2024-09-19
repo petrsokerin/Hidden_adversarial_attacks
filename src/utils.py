@@ -256,7 +256,7 @@ def save_compiled_config(cfg, path: str, exp_name: str):
     timestamp = datetime.now().strftime("%Y:%m:%d %H:%M:%S")
 
     os.makedirs(path, exist_ok=True)
-    config_filename = f"config_{exp_name}_{timestamp}.yaml"
+    config_filename = f"config_{exp_name}.yaml"
     config_path = os.path.join(path, config_filename)
 
     # Convert OmegaConf config to dictionary and add timestamp

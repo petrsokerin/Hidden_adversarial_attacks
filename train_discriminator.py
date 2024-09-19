@@ -13,7 +13,7 @@ from src.config import get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
 from src.training.train import DiscTrainer
-from src.utils import save_config, save_compiled_config
+from src.utils import fix_seed, save_config, save_compiled_config
 
 warnings.filterwarnings("ignore")
 
@@ -45,6 +45,8 @@ def main(cfg: DictConfig):
         save_path = os.path.join(cfg["save_path"], model_start_name + model_add_name)
         save_config(save_path, CONFIG_PATH, CONFIG_NAME, CONFIG_NAME)
         save_compiled_config(cfg, save_path, model_start_name + model_add_name)
+
+    fix_seed(cfg['model_id'])
 
     augmentator = (
         [instantiate(trans) for trans in cfg["transform_data"]]
@@ -157,11 +159,15 @@ def main(cfg: DictConfig):
 
     if not cfg["test_run"]:
         model_save_name = model_start_name + model_add_name
-        task = Task.init(
-            project_name=cfg['clearml_project'],
-            task_name=model_save_name,
-            tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
-        )
+        exp_name = cfg['exp_name'][1:] if cfg['exp_name'][0] == '_' else cfg['exp_name']
+        if cfg['log_clearml']:
+            task = Task.init(
+                project_name=cfg['clearml_project'],
+                task_name=model_save_name,
+                tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"], exp_name]
+            )
+        else:
+            task = None
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
 
     disc_trainer.train_model(train_loader, test_loader, augmentator, logger)
