@@ -12,7 +12,7 @@ from clearml import Task
 from src.config import get_attack, get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
-from src.utils import save_attack_metrics, save_config, save_compiled_config
+from src.utils import fix_seed, save_attack_metrics, save_config, save_compiled_config
 
 warnings.filterwarnings("ignore")
 
@@ -44,6 +44,8 @@ def main(cfg: DictConfig):
 
 
     # load data
+
+    fix_seed(cfg['model_id'])
     print("Dataset", cfg["dataset"]["name"])
     X_train, y_train, X_test, y_test = load_data(cfg["dataset"]["name"])
     X_train, X_test, y_train, y_test = transform_data(

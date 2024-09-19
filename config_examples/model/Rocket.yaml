@@ -2,13 +2,16 @@ name: Rocket
 
 params:
   c_in: 1
-  seq_len: 500
+  seq_len: ${dataset.seq_len}
   n_kernels: 1000
   kss: [7, 9, 11]
   device: ${device}
   verbose: False
 
 hyperparameters_vary:
+  seq_len:
+    optuna_type: const
+    value: ${dataset.seq_len}
   c_in:
     optuna_type: const
     value: 1
