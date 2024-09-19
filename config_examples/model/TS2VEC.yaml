@@ -2,10 +2,13 @@ name: TS2VEC
 
 params:
   dropout: 0.0
-  device: 2
+  device: ${device}
   n_layers: 1
 
 hyperparameters_vary:
+  device:
+    optuna_type: const
+    value: ${device}
   dropout:
     optuna_type: float
     low: 0.1
