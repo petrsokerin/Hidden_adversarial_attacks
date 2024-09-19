@@ -17,7 +17,7 @@ hydra:
   mode: RUN #MULTIRUN
   sweeper:
     params:
-      ++attacko_model.attack_params.eps: 0.01,0.03
+      ++attack.attack_params.eps: 0.01,0.03
 
 defaults:
   - dataset: PowerCons

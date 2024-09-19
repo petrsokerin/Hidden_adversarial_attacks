@@ -21,6 +21,7 @@ class FGSMAttack(BaseIterativeAttack, BatchIterativeAttack):
         *args,
         **kwargs,
     ) -> None:
+
         BaseIterativeAttack.__init__(self, model=model, n_steps=n_steps)
         BatchIterativeAttack.__init__(self, estimator=estimator, logger=logger)
         self.criterion = criterion
@@ -64,13 +65,14 @@ class FGSMRegNeighAttack(FGSMAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         estimator: BaseEstimator,
+        logger=None,
         eps: float = 0.03,
         alpha: float = 0.0,
         n_steps: float = 10,
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
+        super().__init__(model, criterion, estimator, logger, eps, n_steps=n_steps)
         self.alpha = alpha
         self.is_regularized = True
 
@@ -91,6 +93,7 @@ class FGSMRegDiscAttack(FGSMAttack):
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
         estimator,
+        logger=None,
         eps: float = 0.03,
         alpha: float = 0.0,
         n_steps: int = 10,
@@ -98,7 +101,7 @@ class FGSMRegDiscAttack(FGSMAttack):
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
+        super().__init__(model, criterion, estimator, logger, eps, n_steps=n_steps)
         self.alpha = alpha
         self.disc_models = disc_models
         self.use_sigmoid = use_sigmoid
@@ -130,6 +133,7 @@ class FGSMRegDiscNormAttack(FGSMAttack):
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
         estimator,
+        logger=None,
         eps: float = 0.03,
         alpha: float = 0.0,
         n_steps: int = 10,
@@ -137,7 +141,7 @@ class FGSMRegDiscNormAttack(FGSMAttack):
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
+        super().__init__(model, criterion, estimator, logger, eps, n_steps=n_steps)
         self.alpha = alpha
         self.disc_models = disc_models
         self.use_sigmoid = use_sigmoid
@@ -179,6 +183,7 @@ class FGSMRegDiscSmoothMaxAttack(FGSMAttack):
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
         estimator,
+        logger=None,
         eps: float = 0.03,
         beta: float = 0.0,
         n_steps: int = 10,
@@ -186,7 +191,7 @@ class FGSMRegDiscSmoothMaxAttack(FGSMAttack):
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
+        super().__init__(model, criterion, estimator, logger, eps, n_steps=n_steps)
         self.beta = beta
         self.disc_models = disc_models
         self.use_sigmoid = use_sigmoid
@@ -208,13 +213,14 @@ class DefenseRegDiscAttack(FGSMAttack):
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
         estimator,
+        logger=None,
         eps: float = 0.03,
         n_steps: int = 10,
         use_sigmoid: bool = False,
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
+        super().__init__(model, criterion, estimator, logger, eps, n_steps=n_steps)
         self.disc_models = disc_models
         self.use_sigmoid = use_sigmoid
         self.is_regularized = True
