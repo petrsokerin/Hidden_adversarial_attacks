@@ -18,7 +18,7 @@ from src.utils import save_config, save_compiled_config
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "train_disc_config"
-CONFIG_PATH = "config"
+CONFIG_PATH = "config/my_configs"
 
 torch.cuda.empty_cache()
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)

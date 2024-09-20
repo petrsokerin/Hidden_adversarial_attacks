@@ -16,20 +16,13 @@ hydra:
   mode: RUN #MULTIRUN
   sweeper:
     params:
-      ++attacko_model.attack_params.eps: 0.01,0.03
+      ++attack_model.attack_params.eps: 0.01,0.03
 
 defaults:
-<<<<<<< HEAD:config/attack_run_config.yaml
   - dataset: Strawberry
   - model@attack_model: TST
   - model@disc_model_reg: TST
   - model@disc_model_check: TST
-=======
-  - dataset: PowerCons
-  - model@attack_model: ResidualCNN
-  - model@disc_model_reg: ResidualCNN
-  - model@disc_model_check: ResidualCNN
->>>>>>> origin/optuna-trainer:config_examples/attack_run_config.yaml
   - attack: FGSMDisc
 
 criterion_name: BCELoss
