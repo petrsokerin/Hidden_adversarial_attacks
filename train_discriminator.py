@@ -34,6 +34,8 @@ def main(cfg: DictConfig):
             cfg["dataset"]["name"],
             cfg["attack"]["short_name"],
         )
+        if cfg['author'] == '':
+            raise ValueError("You need to set your name in config")
 
         model_add_name = ''
         for param in cfg['attack']['named_params']:
@@ -164,7 +166,13 @@ def main(cfg: DictConfig):
             task = Task.init(
                 project_name=cfg['clearml_project'],
                 task_name=model_save_name,
-                tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"], exp_name]
+                tags=[
+                    cfg["attack_model"]["name"],
+                    cfg["dataset"]["name"],
+                    cfg["attack"]["short_name"],
+                    exp_name,
+                    cfg['author'],
+                ]
             )
         else:
             task = None
