@@ -27,6 +27,7 @@ def main(cfg: DictConfig):
             task_name=model_save_name,
             tags=[cfg["model"]["name"], cfg["dataset"]["name"]]
         )
+        task.upload_artifact(artifact_object=f'{cfg["save_path"]}/{model_save_name}.pt', name='model_weights.pt')
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
         save_config(cfg["save_path"], CONFIG_PATH, CONFIG_NAME, CONFIG_NAME)
         save_compiled_config(cfg, cfg["save_path"], model_save_name)

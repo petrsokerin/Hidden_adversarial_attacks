@@ -23,3 +23,4 @@ pictures/*
 .docker/*
 train_classifier1.py
 config/my_configs/*
+loaded_clearml/*
