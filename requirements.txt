@@ -16,3 +16,4 @@ einops==0.7.0
 optuna==3.5.0
 clearml==1.16.4
 pre-commit==3.8.0
+seaborn

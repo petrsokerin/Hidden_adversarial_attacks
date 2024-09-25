@@ -6,6 +6,7 @@ exp_model_name: 'test'
 exp_disc_name: _test
 log_clearml: False
 clearml_project: "AA_attack_run"
+author: '' # Petr, Dima, Sophie
 
 model_folder: checkpoints/${dataset.name}/${attack_model.name}/${exp_model_name}
 disc_path: results/${dataset.name}/${attack_model.name}/discriminator/fgsm_attack${exp_disc_name}
