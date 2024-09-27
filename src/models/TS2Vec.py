@@ -18,7 +18,7 @@ class TS2VEC(BaseSelfSupervisedModel):
         fine_tune: bool = False,
         dropout: float = 0.0,
         dropout_ts2vec: float = 0.0,
-        device: str = "cpu",
+        device: str = "cuda:0",
         activation_type: str = "sigmoid",
     ) -> None:
         super().__init__()

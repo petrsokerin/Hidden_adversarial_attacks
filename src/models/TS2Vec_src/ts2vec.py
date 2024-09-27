@@ -23,7 +23,7 @@ class TS2Vec:
         hidden_dims=64,
         dropout=0.1,
         depth=10,
-        device="cuda",
+        device="cuda:0",
         lr=0.001,
         batch_size=16,
         max_train_length=None,
@@ -48,7 +48,7 @@ class TS2Vec:
         """
 
         super().__init__()
-        self.device = device
+        self.device = 'cuda:0'
         self.lr = lr
         self.batch_size = batch_size
         self.max_train_length = max_train_length

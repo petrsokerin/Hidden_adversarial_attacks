@@ -20,13 +20,31 @@ CONFIG_PATH = "config"
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
 
+    # if not cfg["test_run"]:
+    #     model_save_name = f'model_{cfg["model"]["name"]}_{cfg["model_id"]}_{cfg["dataset"]["name"]}'
+    #     task = Task.init(
+    #         project_name=cfg['clearml_project'],
+    #         task_name=model_save_name,
+    #         tags=[cfg["model"]["name"], cfg["dataset"]["name"]]
+    #     )
+    #     logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
+    #     save_config(cfg["save_path"], CONFIG_PATH, CONFIG_NAME, CONFIG_NAME)
+    #     save_compiled_config(cfg, cfg["save_path"], model_save_name)
+    # else:
+    #     logger = None
+
     if not cfg["test_run"]:
+        exp_name = cfg['exp_name'][1:] if cfg['exp_name'][0] == '_' else cfg['exp_name']
         model_save_name = f'model_{cfg["model"]["name"]}_{cfg["model_id"]}_{cfg["dataset"]["name"]}'
-        task = Task.init(
-            project_name=cfg['clearml_project'],
-            task_name=model_save_name,
-            tags=[cfg["model"]["name"], cfg["dataset"]["name"]]
-        )
+
+        if cfg['log_clearml']:
+            task = Task.init(
+                project_name=cfg['clearml_project'],
+                task_name=model_save_name,
+                tags=[cfg["model"]["name"], cfg["dataset"]["name"], exp_name]
+            )
+        else:
+            task = None
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
         save_config(cfg["save_path"], CONFIG_PATH, CONFIG_NAME, CONFIG_NAME)
         save_compiled_config(cfg, cfg["save_path"], model_save_name)

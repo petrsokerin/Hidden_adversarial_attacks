@@ -121,13 +121,27 @@ def main(cfg: DictConfig):
                     round(getattr(attack, param), 4)
                 )
 
+    # if not cfg["test_run"]:
+    #     attack_save_name = attack_start_name + attack_add_name
+    #     task = Task.init(
+    #         project_name=cfg['clearml_project'],
+    #         task_name=attack_save_name,
+    #         tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
+    #     )
+    #     logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
+
     if not cfg["test_run"]:
         attack_save_name = attack_start_name + attack_add_name
-        task = Task.init(
-            project_name=cfg['clearml_project'],
-            task_name=attack_save_name,
-            tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"]]
-        )
+        exp_name = cfg['exp_name'][1:] if cfg['exp_name'][0] == '_' else cfg['exp_name']
+        if cfg['log_clearml']:
+            task = Task.init(
+                project_name=cfg['clearml_project'],
+                task_name=attack_save_name,
+                tags=[cfg["attack_model"]["name"], cfg["dataset"]["name"], cfg["attack"]["short_name"], exp_name]
+            )
+        else:
+            task = None
+        
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
 
     attack.apply_attack(test_loader, logger)
