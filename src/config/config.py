@@ -114,12 +114,18 @@ def get_disc_list(
     model_params: Dict,
     list_disc_params: List[Dict],
     device: str = "cpu",
-    path: str = None,
+    path: str = "",
     train_mode: bool = False,
 ):
     list_disc_models = list()
-    for params in list_disc_params:
-        disc_path = f"{path}/{params['model_name']}/{params['model_id']}.pt"
+    for model_conf in list_disc_params:
+        if isinstance(model_conf, dict):
+            weight_name = model_conf['model_id']
+            model_folder_name = model_conf['model_name']
+        else:
+            weight_name = model_conf
+            model_folder_name = model_conf
+        disc_path = f"{path}/{model_folder_name}/{weight_name}.pt"
         disc = get_model(
             model_name,
             model_params,

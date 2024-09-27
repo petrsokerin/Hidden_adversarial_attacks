@@ -14,5 +14,3 @@ hyperparameters_vary:
     step: 0.1
 
 attack_train_mode: True
-  
-    
