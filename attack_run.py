@@ -12,12 +12,12 @@ from clearml import Task
 from src.config import get_attack, get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
-from src.utils import fix_seed, save_attack_metrics, save_config, save_compiled_config,weights_from_clearml_by_name
+from src.utils import fix_seed, save_attack_metrics, save_config, save_compiled_config
 
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "attack_run_config"
-CONFIG_PATH = "config/my_configs"
+CONFIG_PATH = "config"
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
@@ -61,15 +61,10 @@ def main(cfg: DictConfig):
 
     device = torch.device(cfg["device"] if torch.cuda.is_available() else "cpu")
 
-    if cfg['pretrained']:
-        project_name = 'AA_train_classifiers'
-        task_name = f"model_{cfg['attack_model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}"
-        path = weights_from_clearml_by_name(project_name=project_name, task_name=task_name)
-        attack_model_path = os.path.join(path)
-    else:
-        attack_model_path = os.path.join(
+    attack_model_path = os.path.join(
         cfg["model_folder"],
-        f"model_{cfg['attack_model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt")
+        f"model_{cfg['attack_model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt"
+    )
 
     attack_model = get_model(
         cfg["attack_model"]["name"],
@@ -80,7 +75,7 @@ def main(cfg: DictConfig):
     )
 
     criterion = get_criterion(cfg["criterion_name"], cfg["criterion_params"])
-    
+
     if cfg["use_disc_check"]:
         disc_check_list = get_disc_list(
             model_name=cfg["disc_model_check"]["name"],
