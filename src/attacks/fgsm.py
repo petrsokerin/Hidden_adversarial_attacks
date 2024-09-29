@@ -109,9 +109,19 @@ class FGSMRegDiscAttack(FGSMAttack):
 
     def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         loss = self.get_loss(X, y_true)
+        _ = loss
 
         reg_value = reg_disc(X, self.disc_models, self.use_sigmoid)
+        #print(loss.item(), reg_value.item())
         loss = loss - self.alpha * reg_value
+
+        # loss_grad = torch.autograd.grad(loss, X, retain_graph=True)[0]
+        # reg_grad = torch.autograd.grad(reg_value, X, retain_graph=True)[0]
+        # loss_grad_norm = torch.norm(loss_grad) + 0.0001
+        # reg_grad_norm = torch.norm(reg_grad) + 0.0001
+
+        # print('Class grad norm: ', loss_grad_norm.item(), 'Disc grad norm: ',  reg_grad_norm.item())
+        # print('Class loss: ', _.item(), 'Disc loss: ', reg_value.item())
 
         X_adv = self.get_adv_data(X, loss)
         return X_adv
@@ -206,7 +216,6 @@ class DefenseRegDiscAttack(FGSMAttack):
         logger=None,
         eps: float = 0.03,
         n_steps: int = 10,
-        
         use_sigmoid: bool = False,
         *args,
         **kwargs,
@@ -222,33 +231,4 @@ class DefenseRegDiscAttack(FGSMAttack):
         loss = - reg_value
 
         X_adv = self.get_adv_data(X, loss)
-        return X_adv
-
-class FGSMAttackHarmonicLoss(FGSMAttack):
-    def __init__(
-        self,
-        model: torch.nn.Module,
-        criterion: torch.nn.Module,
-        disc_models: List[torch.nn.Module],
-        estimator,
-        eps: float = 0.03,
-        n_steps: int = 10,
-        use_sigmoid: bool = False,
-        *args,
-        **kwargs,
-    ) -> None:
-        super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
-        self.disc_models = disc_models
-        self.use_sigmoid = use_sigmoid
-        self.is_regularized = False
-
-
-    def step(self, X: torch.Tensor, y_true: torch.Tensor, e=0.0001) -> torch.Tensor:
-
-
-        loss = self.get_loss(X, y_true)
-        loss_discriminator = reg_disc(X, self.disc_models, self.use_sigmoid)
-        loss_harmonic_mean = 2 * (loss * loss_discriminator) / (loss + loss_discriminator + e)
-        X_adv = self.get_adv_data(X, loss_harmonic_mean)
-        
         return X_adv
