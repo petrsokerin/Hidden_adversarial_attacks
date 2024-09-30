@@ -14,6 +14,7 @@ from omegaconf import DictConfig
 from optuna.trial import Trial
 from src.data import load_data
 from src.estimation.utils import calculate_roughness
+from clearml import Task
 
 
 def save_config(path, config_path: str, config_name: str, config_save_name: str) -> None:
@@ -268,3 +269,18 @@ def save_compiled_config(cfg, path: str, exp_name: str):
         yaml.dump(cfg_dict, file)
 
     print(f"Compiled configuration saved to: {config_path}")
+
+def weights_from_clearml_by_name(project_name:str, task_name:str):
+    downloaded_task = Task.get_task(task_name=task_name, project_name=project_name)
+    loaded_clearml = 'loaded_clearml'
+    load_weights = 'weights'
+    if not os.path.exists(f'{loaded_clearml}/{load_weights}'):
+        os.makedirs(f'{loaded_clearml}/{load_weights}')
+
+    weights = downloaded_task.artifacts['model_weights.pt'].get_local_copy()
+    # print(downloaded_task.artifacts['model_weights.py'])
+    save_name = downloaded_task.name 
+    new_model_file_path = f'{loaded_clearml}/{load_weights}/{save_name}'
+    shutil.move(weights, new_model_file_path)
+    print(f"Модель успешно сохранена по пути: {new_model_file_path}")
+    return new_model_file_path

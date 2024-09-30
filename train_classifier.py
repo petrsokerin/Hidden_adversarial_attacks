@@ -15,7 +15,7 @@ from src.utils import fix_seed, save_config, save_compiled_config
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "train_classifier_config"
-CONFIG_PATH = "config"
+CONFIG_PATH = "config/my_configs"
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
@@ -33,6 +33,7 @@ def main(cfg: DictConfig):
                 task_name=model_save_name,
                 tags=[cfg["model"]["name"], cfg["dataset"]["name"], exp_name, cfg['author']]
             )
+            task.upload_artifact(artifact_object=f'{cfg["save_path"]}/{model_save_name}.pt', name='model_weights.pt')
         else:
             task = None
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
