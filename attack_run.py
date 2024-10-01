@@ -62,7 +62,7 @@ def main(cfg: DictConfig):
     device = torch.device(cfg["device"] if torch.cuda.is_available() else "cpu")
 
     if cfg['pretrained']:
-        project_name = 'AA_train_classifiers'
+        project_name = cfg['project_weights']
         task_name = f"model_{cfg['attack_model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}"
         path = weights_from_clearml_by_name(project_name=project_name, task_name=task_name)
         attack_model_path = os.path.join(path)

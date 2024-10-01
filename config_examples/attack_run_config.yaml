@@ -8,6 +8,7 @@ log_clearml: False
 clearml_project: "AA_attack_run"
 author: '' # Petr, Dima, Sophie
 pretrained: False
+project_weights: 'AA_train_classifiers'
 
 model_folder: checkpoints/${dataset.name}/${attack_model.name}/${exp_model_name}
 disc_path: results/${dataset.name}/${attack_model.name}/discriminator/fgsm_attack${exp_disc_name}
