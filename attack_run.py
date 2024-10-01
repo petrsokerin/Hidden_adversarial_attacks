@@ -17,7 +17,7 @@ from src.utils import fix_seed, save_attack_metrics, save_config, save_compiled_
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "attack_run_config"
-CONFIG_PATH = "configs"
+CONFIG_PATH = "config"
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
@@ -159,7 +159,7 @@ def main(cfg: DictConfig):
         for param in cfg['attack']['named_params']:
             attack_metrics[f'{param}_param'] = round(cfg['attack']['attack_params'][param], 4)
         save_attack_metrics(attack_metrics, cfg["save_path"], attack_save_name)
-
+    os.remove(attack_model_path)
 
 if __name__ == "__main__":
     main()

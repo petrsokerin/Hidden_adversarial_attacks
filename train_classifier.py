@@ -15,7 +15,7 @@ from src.utils import fix_seed, save_config, save_compiled_config
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "train_classifier_config"
-CONFIG_PATH = "configs"
+CONFIG_PATH = "config"
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):

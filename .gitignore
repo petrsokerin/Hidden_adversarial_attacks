@@ -22,6 +22,6 @@ smi.ipynb
 pictures/*
 .docker/*
 train_classifier1.py
-configs/*
+config/*
 loaded_clearml/*
 
