@@ -17,7 +17,7 @@ from src.utils import fix_seed, save_attack_metrics, save_config, save_compiled_
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "attack_run_config"
-CONFIG_PATH = "config/my_configs"
+CONFIG_PATH = "configs"
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
