@@ -175,6 +175,7 @@ def main(cfg: DictConfig):
             attack_metrics[f'{param}_param'] = round(cfg['attack']['attack_params'][param], 4)
         save_attack_metrics(attack_metrics, cfg["save_path"], attack_save_name)
     os.remove(attack_model_path)
+    os.remove(path)
 
 if __name__ == "__main__":
     main()
