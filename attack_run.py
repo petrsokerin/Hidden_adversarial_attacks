@@ -80,7 +80,20 @@ def main(cfg: DictConfig):
     )
 
     criterion = get_criterion(cfg["criterion_name"], cfg["criterion_params"])
-    
+    if cfg['pretrained_disc']:
+        model_start_name = 'model_{}_{}_{}_attack_{}'.format(
+            cfg["attack_model"]["name"],
+            cfg["model_id_attack"],
+            cfg["dataset"]["name"],
+            'fgsm_attack',
+        )
+        model_add_name = cfg['disc_parametr']
+        task_name = model_start_name + model_add_name
+        path = weights_from_clearml_by_name(cfg['project_weights_disc'],task_name, 'disc_weights')
+        
+    else:
+        path = cfg["disc_path"]
+
     if cfg["use_disc_check"]:
         disc_check_list = get_disc_list(
             model_name=cfg["disc_model_check"]["name"],
@@ -89,6 +102,7 @@ def main(cfg: DictConfig):
             device=device,
             path=cfg["disc_path"],
             train_mode=False,
+            from_clearml=True
         )
     else:
         disc_check_list = None
@@ -112,8 +126,9 @@ def main(cfg: DictConfig):
             model_params=cfg["disc_model_reg"]["params"],
             list_disc_params=cfg["attack"]["list_reg_model_params"],
             device=device,
-            path=cfg["disc_path"],
+            path=path,
             train_mode=cfg["disc_model_reg"]["attack_train_mode"],
+            from_clearml=True
         )
 
     attack = get_attack(cfg["attack"]["name"], attack_params)

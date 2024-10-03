@@ -270,10 +270,10 @@ def save_compiled_config(cfg, path: str, exp_name: str):
 
     print(f"Compiled configuration saved to: {config_path}")
 
-def weights_from_clearml_by_name(project_name:str, task_name:str):
+def weights_from_clearml_by_name(project_name:str, task_name:str, load_weights='weights'):
     downloaded_task = Task.get_task(task_name=task_name, project_name=project_name)
     loaded_clearml = 'loaded_clearml'
-    load_weights = 'weights'
+    # load_weights = 'weights'
     if not os.path.exists(f'{loaded_clearml}/{load_weights}'):
         os.makedirs(f'{loaded_clearml}/{load_weights}')
 
@@ -284,3 +284,4 @@ def weights_from_clearml_by_name(project_name:str, task_name:str):
     shutil.move(weights, new_model_file_path)
     print(f"Модель успешно сохранена по пути: {new_model_file_path}")
     return new_model_file_path
+

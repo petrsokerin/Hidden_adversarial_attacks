@@ -181,6 +181,8 @@ def main(cfg: DictConfig):
                     cfg['author'],
                 ]
             )
+           
+            task.upload_artifact(artifact_object=f'{cfg["save_path"]}/{model_save_name}/{model_save_name}.pt', name='model_weights.pt')
         else:
             task = None
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
