@@ -12,7 +12,7 @@ from clearml import Task
 from src.config import get_attack, get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
-from src.utils import fix_seed, save_attack_metrics, save_config, save_compiled_config
+from src.utils import fix_seed, save_attack_metrics, save_config, save_compiled_config,weights_from_clearml_by_name
 
 warnings.filterwarnings("ignore")
 
@@ -61,10 +61,15 @@ def main(cfg: DictConfig):
 
     device = torch.device(cfg["device"] if torch.cuda.is_available() else "cpu")
 
-    attack_model_path = os.path.join(
+    if cfg['pretrained']:
+        project_name = cfg['project_weights']
+        task_name = f"model_{cfg['attack_model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}"
+        path = weights_from_clearml_by_name(project_name=project_name, task_name=task_name)
+        attack_model_path = os.path.join(path)
+    else:
+        attack_model_path = os.path.join(
         cfg["model_folder"],
-        f"model_{cfg['attack_model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt"
-    )
+        f"model_{cfg['attack_model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt")
 
     attack_model = get_model(
         cfg["attack_model"]["name"],
@@ -75,7 +80,7 @@ def main(cfg: DictConfig):
     )
 
     criterion = get_criterion(cfg["criterion_name"], cfg["criterion_params"])
-
+    
     if cfg["use_disc_check"]:
         disc_check_list = get_disc_list(
             model_name=cfg["disc_model_check"]["name"],
@@ -154,7 +159,7 @@ def main(cfg: DictConfig):
         for param in cfg['attack']['named_params']:
             attack_metrics[f'{param}_param'] = round(cfg['attack']['attack_params'][param], 4)
         save_attack_metrics(attack_metrics, cfg["save_path"], attack_save_name)
-
+    os.remove(attack_model_path)
 
 if __name__ == "__main__":
     main()
