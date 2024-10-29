@@ -1,8 +1,8 @@
 name: PGDAttack
 short_name: pgd_attack
+named_params: [eta, n_steps]
 
 attack_params:
-  eps: [0.03]
   n_steps: 10
   eta: 0.5
   norm: null

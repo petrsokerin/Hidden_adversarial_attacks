@@ -15,7 +15,6 @@ class PGDAttack(BaseIterativeAttack, PGDBatchIterativeAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         estimator: BaseEstimator,
-        eps: float = 0.03,
         n_steps: int = 10,
         eta = 0.5,
         norm=None,
@@ -25,8 +24,8 @@ class PGDAttack(BaseIterativeAttack, PGDBatchIterativeAttack):
         BaseIterativeAttack.__init__(self, model=model, n_steps=n_steps)
         PGDBatchIterativeAttack.__init__(self, estimator=estimator)
         self.criterion = criterion
-        self.eps = eps
         self.eta = eta
+        self.eps = self.eta*2.5/self.n_steps
         self.norm = norm
         self.is_regularized = False
 

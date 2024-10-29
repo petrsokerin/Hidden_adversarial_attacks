@@ -1,8 +1,8 @@
 name: PGDRegDiscAttack
 short_name: pgd_disc_attack
+named_params: [eta, n_steps, alpha]
 
 attack_params:
-  eps: [0.03, 0.1]
   n_steps: 50
   eta: 0.01
   alpha: [0.01, 0.1, 1]
