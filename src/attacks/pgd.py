@@ -5,7 +5,6 @@ import torch
 from src.attacks.base_attacks import BaseIterativeAttack
 from src.attacks.procedures import PGDBatchIterativeAttack
 from src.attacks.regularizers import reg_disc, reg_neigh
-from src.attacks.utils import boltzman_loss
 from src.estimation import BaseEstimator
 
 
