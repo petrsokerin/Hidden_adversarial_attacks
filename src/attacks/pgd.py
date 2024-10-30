@@ -62,7 +62,6 @@ class PGDRegDiscAttack(PGDAttack):
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
         estimator: BaseEstimator,
-        eps: float = 0.03,
         alpha: float = 0.0,
         n_steps: int = 10,
         eta = 0.5,
@@ -71,7 +70,7 @@ class PGDRegDiscAttack(PGDAttack):
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(model, criterion, estimator, eps, n_steps, eta, norm)
+        super().__init__(model, criterion, estimator, n_steps, eta, norm)
         self.alpha = alpha
         self.disc_models = disc_models
         self.use_sigmoid = use_sigmoid
