@@ -231,23 +231,21 @@ class FGSMAttackHarmonicLoss(FGSMAttack):
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
         estimator,
+        logger=None,
         eps: float = 0.03,
         n_steps: int = 10,
         use_sigmoid: bool = False,
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(model, criterion, estimator, eps, n_steps=n_steps)
+        super().__init__(model, criterion, estimator, logger, eps, n_steps=n_steps)
         self.disc_models = disc_models
         self.use_sigmoid = use_sigmoid
         self.is_regularized = False
 
-
     def step(self, X: torch.Tensor, y_true: torch.Tensor, e=0.0001) -> torch.Tensor:
-
-
         loss = self.get_loss(X, y_true)
-        loss_discriminator = reg_disc(X, self.disc_models, self.use_sigmoid)
+        loss_discriminator = -reg_disc(X, self.disc_models, self.use_sigmoid)
         loss_harmonic_mean = 2 * (loss * loss_discriminator) / (loss + loss_discriminator + e)
         X_adv = self.get_adv_data(X, loss_harmonic_mean)
         

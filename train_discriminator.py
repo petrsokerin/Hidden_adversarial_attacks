@@ -159,7 +159,7 @@ def main(cfg: DictConfig):
                     param,
                     round(getattr(disc_trainer.attack, param), 4)
                 )
-    else:
+    else: 
         const_params["attack_name"] = cfg["attack"]["name"]
         trainer_params = dict(cfg["training_params"])
         trainer_params.update(const_params)
@@ -181,12 +181,17 @@ def main(cfg: DictConfig):
                     cfg['author'],
                 ]
             )
+           
+            task.upload_artifact(artifact_object=f'{cfg["save_path"]}/{model_save_name}/{model_save_name}.pt', name='model_weights.pt')
         else:
             task = None
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
 
     disc_trainer.train_model(train_loader, test_loader, augmentator, logger)
-    os.remove(attack_model_path)
+    if cfg['pretrained']:
+        os.remove(attack_model_path)
+    else:
+        pass
 
 
     if not cfg["test_run"]:

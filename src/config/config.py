@@ -115,6 +115,7 @@ def get_disc_list(
     device: str = "cpu",
     path: str = "",
     train_mode: bool = False,
+    from_clearml: bool = False
 ):
     list_disc_models = list()
     for model_conf in list_disc_params:
@@ -125,13 +126,23 @@ def get_disc_list(
             weight_name = model_conf
             model_folder_name = model_conf
         disc_path = f"{path}/{model_folder_name}/{weight_name}.pt"
-        disc = get_model(
+        print(disc_path)
+        if from_clearml:
+            disc = get_model(
             model_name,
             model_params,
             device=device,
-            path=disc_path,
+            path=path,
             train_mode=train_mode,
         )
+        else:
+            disc = get_model(
+                model_name,
+                model_params,
+                device=device,
+                path=disc_path,
+                train_mode=train_mode,
+            )
         list_disc_models.append(disc)
     return list_disc_models
 
