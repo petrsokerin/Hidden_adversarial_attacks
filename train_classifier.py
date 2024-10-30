@@ -24,10 +24,11 @@ def main(cfg: DictConfig):
         exp_name = cfg['exp_name'][1:] if cfg['exp_name'][0] == '_' else cfg['exp_name']
         model_save_name = f'model_{cfg["model"]["name"]}_{cfg["model_id"]}_{cfg["dataset"]["name"]}'
 
-        if cfg['author'] == '':
-            raise ValueError("You need to set your name in config")
-
         if cfg['log_clearml']:
+
+            if cfg['author'] == '':
+                raise ValueError("You need to set your name in config")
+
             task = Task.init(
                 project_name=cfg['clearml_project'],
                 task_name=model_save_name,

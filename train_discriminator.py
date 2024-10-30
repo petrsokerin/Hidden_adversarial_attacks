@@ -34,7 +34,7 @@ def main(cfg: DictConfig):
             cfg["dataset"]["name"],
             cfg["attack"]["short_name"],
         )
-        if cfg['author'] == '':
+        if cfg['log_clearml'] and cfg['author'] == '':
             raise ValueError("You need to set your name in config")
 
         model_add_name = ''
