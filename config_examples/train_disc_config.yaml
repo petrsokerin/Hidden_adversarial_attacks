@@ -57,6 +57,7 @@ training_params:
   scheduler_params:
     step_size: 50
     gamma: 0.9
+    param_name: eps
   attack_scheduler_name: StepAttackScheduler
   attack_scheduler_params:
     attack_step_size: 10
