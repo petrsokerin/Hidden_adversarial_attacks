@@ -535,10 +535,9 @@ class DiscTrainer(Trainer):
         adv_valid_loader = self._generate_adversarial_data(valid_loader)
 
         attack_sch_param_name = self.attack_scheduler.param_name
-        prev_attack_sch_param = getattr(self.attack, self.attack_scheduler.param_name)
+        prev_attack_sch_param = getattr(self.attack, attack_sch_param_name)
 
-
-        self._init_logging(["loss"] + self.estimator.get_metrics_names() + ["attack_sch_param_name"])
+        self._init_logging(["loss"] + self.estimator.get_metrics_names() + [attack_sch_param_name])
 
         for epoch in range(self.n_epochs):
             train_metrics_epoch = self._run_epoch(adv_train_loader, mode="train")
