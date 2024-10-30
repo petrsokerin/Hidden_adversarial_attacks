@@ -533,16 +533,19 @@ class DiscTrainer(Trainer):
 
         adv_train_loader = self._generate_adversarial_data(train_loader, transform)
         adv_valid_loader = self._generate_adversarial_data(valid_loader)
-        cur_eps = self.attack.eps
 
-        self._init_logging(["loss"] + self.estimator.get_metrics_names() + ["eps"])
+        attack_sch_param_name = self.attack_scheduler.param_name
+        prev_attack_sch_param = getattr(self.attack, self.attack_scheduler.param_name)
+
+
+        self._init_logging(["loss"] + self.estimator.get_metrics_names() + ["attack_sch_param_name"])
 
         for epoch in range(self.n_epochs):
             train_metrics_epoch = self._run_epoch(adv_train_loader, mode="train")
             test_metrics_epoch = self._run_epoch(adv_valid_loader, mode="valid")
 
-            train_metrics_epoch = list(train_metrics_epoch) + [cur_eps]
-            test_metrics_epoch = list(test_metrics_epoch) + [cur_eps]
+            train_metrics_epoch = list(train_metrics_epoch) + [prev_attack_sch_param]
+            test_metrics_epoch = list(test_metrics_epoch) + [prev_attack_sch_param]
 
             self._logging(train_metrics_epoch, test_metrics_epoch, epoch)
 
@@ -556,10 +559,10 @@ class DiscTrainer(Trainer):
 
             if self.attack_scheduler:
                 self.attack = self.attack_scheduler.step()
-
-                if cur_eps != self.attack.eps and epoch + 1 != self.n_epochs:
-                    cur_eps = self.attack.eps
-                    print("----- New epsilon", round(cur_eps, 3))
+                new_attack_sch_param = getattr(self.attack, self.attack_scheduler.param_name)
+                if prev_attack_sch_param != new_attack_sch_param and epoch + 1 != self.n_epochs:
+                    prev_attack_sch_param = new_attack_sch_param
+                    print(f"----- New {attack_sch_param_name}", round(prev_attack_sch_param, 3))
                     adv_train_loader = self._generate_adversarial_data(
                         train_loader, transform
                     )
