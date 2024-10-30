@@ -5,7 +5,6 @@ import torch
 from src.attacks.base_attacks import BaseIterativeAttack
 from src.attacks.procedures import PGDBatchIterativeAttack
 from src.attacks.regularizers import reg_disc, reg_neigh
-from src.attacks.utils import boltzman_loss
 from src.estimation import BaseEstimator
 
 
@@ -15,7 +14,6 @@ class PGDAttack(BaseIterativeAttack, PGDBatchIterativeAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         estimator: BaseEstimator,
-        eps: float = 0.03,
         n_steps: int = 10,
         eta = 0.5,
         norm=None,
@@ -25,8 +23,8 @@ class PGDAttack(BaseIterativeAttack, PGDBatchIterativeAttack):
         BaseIterativeAttack.__init__(self, model=model, n_steps=n_steps)
         PGDBatchIterativeAttack.__init__(self, estimator=estimator)
         self.criterion = criterion
-        self.eps = eps
         self.eta = eta
+        self.eps = self.eta*2.5/self.n_steps
         self.norm = norm
         self.is_regularized = False
 
@@ -64,7 +62,6 @@ class PGDRegDiscAttack(PGDAttack):
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
         estimator: BaseEstimator,
-        eps: float = 0.03,
         alpha: float = 0.0,
         n_steps: int = 10,
         eta = 0.5,
@@ -73,7 +70,7 @@ class PGDRegDiscAttack(PGDAttack):
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(model, criterion, estimator, eps, n_steps, eta, norm)
+        super().__init__(model, criterion, estimator, n_steps, eta, norm)
         self.alpha = alpha
         self.disc_models = disc_models
         self.use_sigmoid = use_sigmoid
