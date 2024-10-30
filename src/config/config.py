@@ -3,10 +3,8 @@ import shutil
 from typing import Dict, Iterable, List
 
 import torch
-
 from src import attacks, estimation, models
 from src.attacks import attack_scheduler
-
 
 def get_estimator(
     estimator_name: str, estimator_params: Dict
@@ -41,6 +39,7 @@ def get_model(
         model = getattr(models, model_name)(**model_params)
         model = model.to(device)
         if path:
+            
             model.load_state_dict(torch.load(path, map_location=torch.device(device)))
         model.train(train_mode)
         return model
@@ -116,6 +115,7 @@ def get_disc_list(
     device: str = "cpu",
     path: str = "",
     train_mode: bool = False,
+    from_clearml: bool = False
 ):
     list_disc_models = list()
     for model_conf in list_disc_params:
@@ -126,12 +126,23 @@ def get_disc_list(
             weight_name = model_conf
             model_folder_name = model_conf
         disc_path = f"{path}/{model_folder_name}/{weight_name}.pt"
-        disc = get_model(
+        print(disc_path)
+        if from_clearml:
+            disc = get_model(
             model_name,
             model_params,
             device=device,
-            path=disc_path,
+            path=path,
             train_mode=train_mode,
         )
+        else:
+            disc = get_model(
+                model_name,
+                model_params,
+                device=device,
+                path=disc_path,
+                train_mode=train_mode,
+            )
         list_disc_models.append(disc)
     return list_disc_models
+

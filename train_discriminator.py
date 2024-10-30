@@ -13,7 +13,7 @@ from src.config import get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
 from src.training.train import DiscTrainer
-from src.utils import fix_seed, save_config, save_compiled_config
+from src.utils import fix_seed, save_config, save_compiled_config,weights_from_clearml_by_name
 
 warnings.filterwarnings("ignore")
 
@@ -82,11 +82,18 @@ def main(cfg: DictConfig):
 
     device = torch.device(cfg["device"] if torch.cuda.is_available() else "cpu")
 
+    if cfg['pretrained']:
+        project_name = cfg['project_weights']
+        task_name = f"model_{cfg['model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}"
 
-    attack_model_path = os.path.join(
-        cfg["model_folder"],
-        f"model_{cfg['model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt",
-    )
+        path = weights_from_clearml_by_name(project_name=project_name, task_name=task_name)
+        attack_model_path = os.path.join(path)
+    else:
+
+        attack_model_path = os.path.join(
+            cfg["model_folder"],
+            f"model_{cfg['model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt",
+        )
 
     attack_model = get_model(
         cfg["attack_model"]["name"],
@@ -152,7 +159,7 @@ def main(cfg: DictConfig):
                     param,
                     round(getattr(disc_trainer.attack, param), 4)
                 )
-    else:
+    else: 
         const_params["attack_name"] = cfg["attack"]["name"]
         trainer_params = dict(cfg["training_params"])
         trainer_params.update(const_params)
@@ -174,11 +181,18 @@ def main(cfg: DictConfig):
                     cfg['author'],
                 ]
             )
+           
+            task.upload_artifact(artifact_object=f'{cfg["save_path"]}/{model_save_name}/{model_save_name}.pt', name='model_weights.pt')
         else:
             task = None
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
 
     disc_trainer.train_model(train_loader, test_loader, augmentator, logger)
+    if cfg['pretrained']:
+        os.remove(attack_model_path)
+    else:
+        pass
+
 
     if not cfg["test_run"]:
         print("Saving")

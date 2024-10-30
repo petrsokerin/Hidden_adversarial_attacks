@@ -498,7 +498,7 @@ class DiscTrainer(Trainer):
         self, loader: DataLoader, transform=None
     ) -> DataLoader:
         X_orig = torch.tensor(loader.dataset.X)
-        X_adv = self.attack.apply_attack(loader).squeeze(-1)
+        X_adv = self.attack.apply_attack(loader, self.logger).squeeze(-1)
 
         assert X_orig.shape == X_adv.shape
 
