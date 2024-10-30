@@ -126,6 +126,7 @@ def get_disc_list(
             weight_name = model_conf
             model_folder_name = model_conf
         disc_path = f"{path}/{model_folder_name}/{weight_name}.pt"
+        print(disc_path)
         if from_clearml:
             disc = get_model(
             model_name,
