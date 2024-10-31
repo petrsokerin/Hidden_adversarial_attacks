@@ -5,7 +5,7 @@ named_params: [eta, n_steps, alpha]
 attack_params:
   n_steps: 50
   eta: 0.01
-  alpha: [0.01, 0.1, 1]
+  alpha: 0.01
   norm: null
   use_sigmoid: False
   criterion: BCELoss
