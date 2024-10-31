@@ -102,7 +102,7 @@ def main(cfg: DictConfig):
             device=device,
             path=cfg["disc_path"],
             train_mode=False,
-            from_clearml=False
+            from_clearml=cfg['pretrained_disc']
         )
     else:
         disc_check_list = None
@@ -128,7 +128,7 @@ def main(cfg: DictConfig):
             device=device,
             path=path,
             train_mode=cfg["disc_model_reg"]["attack_train_mode"],
-            from_clearml=False
+            from_clearml=cfg['pretrained_disc']
         )
 
     attack = get_attack(cfg["attack"]["name"], attack_params)
