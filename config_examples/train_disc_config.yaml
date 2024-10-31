@@ -61,6 +61,7 @@ training_params:
   attack_scheduler_params:
     attack_step_size: 10
     attack_gamma: 0.8
+    param_name: eps
   n_epochs: 30
   print_every: ${print_every}
   early_stop_patience: 900

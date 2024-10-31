@@ -25,7 +25,7 @@ def main(cfg: DictConfig):
         print("ATTENTION!!!! Results will not be saved. Set param test_run=False")
         logger = None
     else:
-        if cfg['author'] == '':
+        if cfg['log_clearml'] and cfg['author'] == '':
             raise ValueError("You need to set your name in config")
 
         attack_start_name = 'model_{}_{}_{}_attack_{}'.format(
