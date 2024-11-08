@@ -82,7 +82,7 @@ def main(cfg: DictConfig):
 
     device = torch.device(cfg["device"] if torch.cuda.is_available() else "cpu")
 
-    if cfg['pretrained']:
+    if cfg['load_weights_classifier']:
         project_name = cfg['project_weights']
         task_name = f"model_{cfg['model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}"
 
