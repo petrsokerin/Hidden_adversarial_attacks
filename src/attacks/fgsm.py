@@ -251,7 +251,7 @@ class FGSMRegDiscHyperconesAttack(FGSMAttack):
         inner_prog = torch.norm(g, dim=1) / torch.norm(a, dim=1) * (torch.sin(phi)*torch.tan(self.delta) - cos_phi)
 
         #print(final_prog.shape, inner_prog.shape, final_prog.isnan().sum(), inner_prog.isnan().sum())
-        g_p = final_prog @ (g + inner_prog @ a)
+        g_p = final_prog.unsqueeze(-1) * (g + a * inner_prog.unsqueeze(-1))
         g_p_grad_norm = torch.norm(g_p, p=1)
         g_p = g_p * (g_grad_norm + e) / (g_p_grad_norm + e)
         # print(g_p.shape)
@@ -281,7 +281,7 @@ class DefenseRegDiscAttack(FGSMAttack):
         logger=None,
         eps: float = 0.03,
         n_steps: int = 10,
-        
+
         use_sigmoid: bool = False,
         *args,
         **kwargs,
@@ -323,5 +323,5 @@ class FGSMAttackHarmonicLoss(FGSMAttack):
         loss_discriminator = -reg_disc(X, self.disc_models, self.use_sigmoid)
         loss_harmonic_mean = 2 * (loss * loss_discriminator) / (loss + loss_discriminator + e)
         X_adv = self.get_adv_data(X, loss_harmonic_mean)
-        
+
         return X_adv
