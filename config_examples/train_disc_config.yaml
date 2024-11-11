@@ -6,8 +6,11 @@ exp_model_name: 'test'
 log_clearml: False
 clearml_project: "AA_train_discriminator"
 author: '' # Petr, Dima, Sophie
-load_weights_classifier: False
+load_weights_classifier: True
+load_weights_disc: False
 project_weights: 'AA_train_classifier_GOLDEN'
+project_weights_disc: 'AA_train_discriminator_GOLDEN'
+delete_weights_disc: False
 
 model_folder: checkpoints/${dataset.name}/${attack_model.name}/${exp_model_name}
 disc_path: results/${dataset.name}/${attack_model.name}/discriminator/fgsm_attack
