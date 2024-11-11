@@ -130,7 +130,7 @@ def get_disc_list(
         file_path = os.path.join(folder_path, weight_name)
         if from_clearml and os.path.exists(file_path):
             loaded_path = file_path
-        else:
+        elif from_clearml:
             loaded_path = weights_from_clearml_by_name(path, f"{weight_name}", load_weights='disc_weights')
 
 
