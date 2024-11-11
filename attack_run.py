@@ -166,10 +166,19 @@ def main(cfg: DictConfig):
         for param in cfg['attack']['named_params']:
             attack_metrics[f'{param}_param'] = round(cfg['attack']['attack_params'][param], 4)
         save_attack_metrics(attack_metrics, cfg["save_path"], attack_save_name)
-    if cfg['load_weights_classifier']:
-        os.remove(attack_model_path)
-    # if cfg['pretrained_disc']:
-    #     os.remove(path)
+        if cfg['load_weights_classifier']:
+            os.remove(attack_model_path)
+        if cfg['delete_weights_disc']:
+            target_folder = 'loaded_clearml/disc_weights/'
+
+            for file_name in os.listdir(target_folder):
+                file_path = os.path.join(target_folder, file_name)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+
+
+    
+    
 
 if __name__ == "__main__":
     main()

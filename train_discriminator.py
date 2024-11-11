@@ -188,7 +188,7 @@ def main(cfg: DictConfig):
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
 
     disc_trainer.train_model(train_loader, test_loader, augmentator, logger)
-    if cfg['pretrained']:
+    if cfg['load_weights_classifier']:
         os.remove(attack_model_path)
     else:
         pass
