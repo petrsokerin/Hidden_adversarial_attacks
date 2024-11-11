@@ -5,7 +5,7 @@ from typing import Dict, Iterable, List
 import torch
 from src import attacks, estimation, models
 from src.attacks import attack_scheduler
-
+from src.utils import weights_from_clearml_by_name
 def get_estimator(
     estimator_name: str, estimator_params: Dict
 ) -> estimation.BaseEstimator:
@@ -126,13 +126,20 @@ def get_disc_list(
             weight_name = model_conf
             model_folder_name = model_conf
         disc_path = f"{path}/{model_folder_name}/{weight_name}.pt"
-        print(disc_path)
+        folder_path = 'loaded_clearml/disc_weights'
+        file_path = os.path.join(folder_path, weight_name)
+        if from_clearml and os.path.exists(file_path):
+            loaded_path = file_path
+        elif from_clearml:
+            loaded_path = weights_from_clearml_by_name(path, f"{weight_name}", load_weights='disc_weights')
+
+
         if from_clearml:
             disc = get_model(
             model_name,
             model_params,
             device=device,
-            path=path,
+            path=loaded_path,
             train_mode=train_mode,
         )
         else:

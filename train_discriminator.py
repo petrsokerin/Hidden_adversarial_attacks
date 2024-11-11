@@ -82,7 +82,7 @@ def main(cfg: DictConfig):
 
     device = torch.device(cfg["device"] if torch.cuda.is_available() else "cpu")
 
-    if cfg['pretrained']:
+    if cfg['load_weights_classifier']:
         project_name = cfg['project_weights']
         task_name = f"model_{cfg['model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}"
 
@@ -104,15 +104,20 @@ def main(cfg: DictConfig):
     )
 
     criterion = get_criterion(cfg["criterion_name"], cfg["criterion_params"])
-
+    if cfg['load_weights_disc']:
+        path = cfg['project_weights_disc']
+        
+    else:
+        path = cfg["disc_path"]
     if cfg["use_disc_check"]:
         disc_check_list = get_disc_list(
             model_name=cfg["disc_model_check"]["name"],
             model_params=cfg["disc_model_check"]["params"],
             list_disc_params=cfg["list_check_model_params"],
             device=device,
-            path=cfg["disc_path"],
+            path=path,
             train_mode=False,
+            from_clearml=cfg['load_weights_disc']
         )
     else:
         disc_check_list = None
@@ -135,8 +140,9 @@ def main(cfg: DictConfig):
             model_params=cfg["disc_model_reg"]["params"],
             list_disc_params=cfg["attack"]["list_reg_model_params"],
             device=device,
-            path=cfg["disc_path"],
+            path=path,
             train_mode=cfg["disc_model_reg"]["attack_train_mode"],
+            from_clearml=cfg['load_weights_disc']
         )
 
     const_params = {
@@ -188,16 +194,25 @@ def main(cfg: DictConfig):
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
 
     disc_trainer.train_model(train_loader, test_loader, augmentator, logger)
-    if cfg['pretrained']:
-        os.remove(attack_model_path)
-    else:
-        pass
+    # if cfg['load_weights_classifier']:
+    #     os.remove(attack_model_path)
+    # else:
+    #     pass
 
 
     if not cfg["test_run"]:
         print("Saving")
         new_save_path = os.path.join(cfg["save_path"], model_save_name)
         disc_trainer.save_result(new_save_path, model_save_name, task)
+        if cfg['load_weights_classifier']:
+            os.remove(attack_model_path)
+        if cfg['delete_weights_disc']:
+            target_folder = 'loaded_clearml/disc_weights/'
+
+            for file_name in os.listdir(target_folder):
+                file_path = os.path.join(target_folder, file_name)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
 
 if __name__ == "__main__":
     main()
