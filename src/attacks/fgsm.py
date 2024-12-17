@@ -43,7 +43,7 @@ class FGSMAttack(BaseIterativeAttack, BatchIterativeAttack):
 
         if grad is None:
             grad = torch.autograd.grad(loss, X, retain_graph=True)[0]
-            print(torch.norm(grad, p=1))
+            # print(torch.norm(grad, p=1))
 
         grad_sign = torch.where(torch.isnan(grad), 0, torch.sign(grad))
         X_adv = X.data + self.eps * grad_sign
