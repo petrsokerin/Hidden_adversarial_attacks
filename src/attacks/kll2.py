@@ -33,6 +33,7 @@ class KLL2Attack(BaseIterativeAttack, ClippedBatchIterativeAttack):
         eta: float = 0.03,
         smoothness: float = 0.1,
         mu: float = 1.0,
+        norm: float = 1.0,
         *args,
         **kwargs,
     ) -> None:
@@ -45,12 +46,8 @@ class KLL2Attack(BaseIterativeAttack, ClippedBatchIterativeAttack):
         self.eta = eta
         self.mu = mu
         self.smoothness = smoothness
+        self.norm = norm
 
-    def get_loss(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
-        self.model.zero_grad()
-        y_pred = self.model(X)
-        loss = self.criterion(y_pred, y_true)
-        return loss
 
     def get_adv_data(
         self,
@@ -66,7 +63,7 @@ class KLL2Attack(BaseIterativeAttack, ClippedBatchIterativeAttack):
         opt.zero_grad()
 
         y_pred = trainable_r(X)
-        kl_loss = - self.mu * self.criterion(y_pred, y_true)
+        kl_loss = self.mu * self.criterion(y_pred, y_true)
 
         coef_shifted = torch.ones(X.shape)
         coef_shifted[:, -1, :] = 0
@@ -74,9 +71,9 @@ class KLL2Attack(BaseIterativeAttack, ClippedBatchIterativeAttack):
 
         fused_lasso = self.smoothness * torch.sum(torch.abs(r - shifted_r), axis=1)
 
-        l2_loss = torch.norm(r, dim=1)
+        l2_loss = self.norm * torch.norm(r, dim=1)
 
-        kll2_loss = torch.mean(kl_loss + l2_loss + fused_lasso)
+        kll2_loss = torch.mean(- kl_loss + l2_loss + fused_lasso)
 
         kll2_loss.backward()
         opt.step()

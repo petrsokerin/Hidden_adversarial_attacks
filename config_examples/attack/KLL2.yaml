@@ -3,12 +3,12 @@ short_name: kll2_attack
 named_params: [eta, n_steps]
 
 attack_params:
-  n_steps: 1000
+  n_steps: 20
   eta: 0.5
-  norm: null
   eps: 0.03
   smoothness: 0.1
-  mu: 100.0
+  mu: 1.0
+  norm: 0.1
 
 hyperparameters_vary:
   eps:
