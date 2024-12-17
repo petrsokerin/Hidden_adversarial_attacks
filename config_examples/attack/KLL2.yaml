@@ -1,0 +1,21 @@
+name: KLL2Attack
+short_name: kll2_attack
+named_params: [eta, n_steps]
+
+attack_params:
+  n_steps: 1000
+  eta: 0.5
+  norm: null
+  eps: 0.03
+  smoothness: 0.1
+  mu: 100.0
+
+hyperparameters_vary:
+  eps:
+    optuna_type: float
+    low: 0.01
+    high: 0.5
+    log: True
+  n_steps:
+    optuna_type: const
+    value: 50
