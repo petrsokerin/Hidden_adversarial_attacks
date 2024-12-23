@@ -3,12 +3,12 @@ from typing import List
 import torch
 
 from src.attacks.base_attacks import BaseIterativeAttack
-from src.attacks.procedures import PGDBatchIterativeAttack
+from src.attacks.procedures import ClippedBatchIterativeAttack
 from src.attacks.regularizers import reg_disc, reg_neigh
 from src.estimation import BaseEstimator
 
 
-class PGDAttack(BaseIterativeAttack, PGDBatchIterativeAttack):
+class PGDAttack(BaseIterativeAttack, ClippedBatchIterativeAttack):
     def __init__(
         self,
         model: torch.nn.Module,
@@ -17,11 +17,12 @@ class PGDAttack(BaseIterativeAttack, PGDBatchIterativeAttack):
         n_steps: int = 10,
         eta = 0.5,
         norm=None,
+        logger=None,
         *args,
         **kwargs,
     ) -> None:
         BaseIterativeAttack.__init__(self, model=model, n_steps=n_steps)
-        PGDBatchIterativeAttack.__init__(self, estimator=estimator)
+        ClippedBatchIterativeAttack.__init__(self, estimator=estimator, logger=logger)
         self.criterion = criterion
         self.eta = eta
         self.eps = self.eta*2.5/self.n_steps
@@ -36,8 +37,8 @@ class PGDAttack(BaseIterativeAttack, PGDBatchIterativeAttack):
 
     def get_adv_data(self, X: torch.Tensor, loss: torch.Tensor, X_orig: torch.Tensor) -> torch.Tensor:
 
-        grad = torch.autograd.grad(loss, X, retain_graph=True)[0] 
-        X_adv = X + self.eps * grad.sign() 
+        grad = torch.autograd.grad(loss, X, retain_graph=True)[0]
+        X_adv = X + self.eps * grad.sign()
         perturbation = X_adv - X_orig
 
         if self.norm:
@@ -45,9 +46,9 @@ class PGDAttack(BaseIterativeAttack, PGDBatchIterativeAttack):
             perturbation = perturbation * torch.where(scaling_factor < 1, scaling_factor, 1)
         else:
             perturbation = torch.clamp(X_adv - X_orig, min=-self.eta, max=self.eta)
-        
+
         X_adv = X_orig + perturbation
-        
+
         return X_adv
 
     def step(self, X: torch.Tensor, y_true: torch.Tensor, X_orig: torch.Tensor) -> torch.Tensor:
