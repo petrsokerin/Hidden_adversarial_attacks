@@ -107,8 +107,6 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
         self.opt.step()
 
         perturbations = self.trainable_r.noise[self.batch_size*(batch_id): self.batch_size*(batch_id+1)]
-        perturbations = X + r - X_orig
-
         perturbations = torch.clamp(perturbations, min=-self.eta, max=self.eta)
 
         X_adv = X_orig + perturbations
