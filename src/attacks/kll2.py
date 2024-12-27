@@ -72,7 +72,7 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
 
         self.trainable_r = TrainableNoise(self.model, self.eps)
 
-    def get_kll2_loss(self, y_true, y_pred, r):
+    def kll2_loss(self, y_true, y_pred, r):
         kl_loss = self.mu * self.criterion(y_pred, y_true)
 
         coef_shifted = torch.ones(X.shape)
@@ -100,19 +100,9 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
         self.opt.zero_grad()
 
         r = self.trainable_r.noise[self.batch_size*(batch_id): self.batch_size*(batch_id+1)]
-
         y_pred = self.trainable_r(X_orig, batch_id)
-        kl_loss = self.get_kll2_loss(y_true, y_pred, r)
+        kll2_loss = self.kll2_loss(self, y_true, y_pred, r)
 
-        coef_shifted = torch.ones(X.shape)
-        coef_shifted[:, -1, :] = 0
-        shifted_r = torch.roll(r, shifts=-1, dims=1) * coef_shifted
-
-        fused_lasso = self.smoothness * torch.sum(torch.abs(r - shifted_r), axis=1)
-
-        l2_loss = self.norm_coef * torch.norm(r, dim=1)
-
-        kll2_loss = torch.mean(- kl_loss + l2_loss + fused_lasso)
         kll2_loss.backward()
         self.opt.step()
 
