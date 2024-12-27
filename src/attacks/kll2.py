@@ -68,8 +68,6 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
         else:
             self.norm_coef = norm_coef
 
-        print(self.smoothness, self.norm_coef, self.eta)
-
         self.trainable_r = TrainableNoise(self.model, self.eps)
 
     def kll2_loss(self, X, y_true, y_pred, r):
@@ -100,7 +98,7 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
 
         r = self.trainable_r.noise[self.batch_size*(batch_id): self.batch_size*(batch_id+1)]
         y_pred = self.trainable_r(X_orig, batch_id)
-        kll2_loss = self.kll2_loss(X, y_true, y_pred, r)
+        kll2_loss = self.kll2_loss(X_orig, y_true, y_pred, r)
 
         kll2_loss.backward()
         self.opt.step()
