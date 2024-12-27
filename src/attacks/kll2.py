@@ -72,6 +72,19 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
 
         self.trainable_r = TrainableNoise(self.model, self.eps)
 
+    def get_kll2_loss(self, y_true, y_pred, r):
+        kl_loss = self.mu * self.criterion(y_pred, y_true)
+
+        coef_shifted = torch.ones(X.shape)
+        coef_shifted[:, -1, :] = 0
+        shifted_r = torch.roll(r, shifts=-1, dims=1) * coef_shifted
+
+        fused_lasso = self.smoothness * torch.sum(torch.abs(r - shifted_r), axis=1)
+
+        l2_loss = self.norm_coef * torch.norm(r, dim=1)
+
+        kll2_loss = torch.mean(- kl_loss + l2_loss + fused_lasso)
+        return kll2_loss
 
 
     def get_adv_data(
@@ -86,14 +99,10 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
         self.opt = torch.optim.Adam(self.trainable_r.parameters())
         self.opt.zero_grad()
 
-        # model_parameters = filter(lambda p: p.requires_grad, self.trainable_r.parameters())
-        # params = sum([torch.prod(torch.tensor(p.shape)) for p in model_parameters])
-        # print(sum(p.numel() for p in self.trainable_r.parameters()), print(self.data_size), params)
-
         r = self.trainable_r.noise[self.batch_size*(batch_id): self.batch_size*(batch_id+1)]
 
         y_pred = self.trainable_r(X_orig, batch_id)
-        kl_loss = self.mu * self.criterion(y_pred, y_true)
+        kl_loss = self.get_kll2_loss(y_true, y_pred, r)
 
         coef_shifted = torch.ones(X.shape)
         coef_shifted[:, -1, :] = 0
@@ -104,17 +113,10 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
         l2_loss = self.norm_coef * torch.norm(r, dim=1)
 
         kll2_loss = torch.mean(- kl_loss + l2_loss + fused_lasso)
-
-        #print(kl_loss, l2_loss, fused_lasso)
-
-        r = self.trainable_r.noise[self.batch_size*(batch_id): self.batch_size*(batch_id+1)]
-        #print(r[:1, :5].flatten())
-
         kll2_loss.backward()
         self.opt.step()
 
         perturbations = self.trainable_r.noise[self.batch_size*(batch_id): self.batch_size*(batch_id+1)]
-        #print(r[:1, :5].flatten())
         perturbations = X + r - X_orig
 
         perturbations = torch.clamp(perturbations, min=-self.eta, max=self.eta)
