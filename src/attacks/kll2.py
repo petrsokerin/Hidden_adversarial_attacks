@@ -10,7 +10,7 @@ from src.estimation import BaseEstimator
 
 
 class TrainableNoise(torch.nn.Module):
-    def __init__(self, model, eps, batch_size=1, low=-1, high=-1, data_size=None):
+    def __init__(self, model, eps, batch_size=1, low=-1, high=1, data_size=None):
         super(TrainableNoise, self).__init__()
 
         self.model = model
@@ -34,8 +34,8 @@ class TrainableNoise(torch.nn.Module):
             self.noise = torch.nn.Parameter(noise.to(torch.float))
 
     def forward(self, X, batch_id):
-        data_noise = self.noise[self.batch_size * (batch_id):self.batch_size * (batch_id + 1)]
-        return self.model(X + data_noise)
+        data_noise = self.noise[self.batch_size * (batch_id): self.batch_size * (batch_id + 1)]
+        return self.model(X + data_noise), data_noise
 
 
 class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
@@ -60,7 +60,7 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
         self.criterion = criterion
         self.is_regularized = False
         self.eta = eta
-        self.eps = 2.5 * self.eta / n_steps
+        self.eps = eps
         self.mu = mu
         self.smoothness = smoothness
         if norm_coef is None:
@@ -93,12 +93,11 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
     ) -> torch.Tensor:
 
         self.trainable_r.init_noise(self.data_size, self.batch_size)
-        self.opt = torch.optim.Adam(self.trainable_r.parameters())
+        self.opt = torch.optim.Adam(self.trainable_r.parameters(), lr=0.01)
         self.opt.zero_grad()
 
-        r = self.trainable_r.noise[self.batch_size*(batch_id): self.batch_size*(batch_id+1)]
-        y_pred = self.trainable_r(X_orig, batch_id)
-        kll2_loss = self.kll2_loss(X_orig, y_true, y_pred, r)
+        y_pred, noise = self.trainable_r(X_orig, batch_id)
+        kll2_loss = self.kll2_loss(X_orig, y_true, y_pred, noise)
 
         kll2_loss.backward()
         self.opt.step()
