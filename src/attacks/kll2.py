@@ -89,9 +89,8 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
 
     def get_adv_data(
         self,
-        X: torch.Tensor,
-        y_true: torch.Tensor = None,
         X_orig: torch.Tensor = None,
+        y_true: torch.Tensor = None,
         batch_id: int = 0,
     ) -> torch.Tensor:
 
@@ -101,7 +100,7 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
 
         r = self.trainable_r.noise[self.batch_size*(batch_id): self.batch_size*(batch_id+1)]
         y_pred = self.trainable_r(X_orig, batch_id)
-        kll2_loss = self.kll2_loss(self, y_true, y_pred, r)
+        kll2_loss = self.kll2_loss(y_true, y_pred, r)
 
         kll2_loss.backward()
         self.opt.step()
@@ -113,5 +112,5 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
         return X_adv
 
     def step(self, X: torch.Tensor, y_true: torch.Tensor, X_orig: torch.Tensor, batch_id: int) -> torch.Tensor:
-        X_adv = self.get_adv_data(X, y_true, X_orig, batch_id)
+        X_adv = self.get_adv_data(X_orig, y_true, batch_id)
         return X_adv
