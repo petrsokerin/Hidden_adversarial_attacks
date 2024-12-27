@@ -20,6 +20,9 @@ class BatchIterativeAttack:
             self.metrics_names = self.estimator.get_metrics_names()
             self.metrics = pd.DataFrame(columns=self.metrics_names)
 
+    def step(self):
+        raise NotImplementedError
+
     def log_step(
         self,
         y_true: torch.Tensor,
@@ -185,11 +188,11 @@ class ClippedBatchIterativeAttack(BatchIterativeAttack):
             []
         )  # logging predictions adversarial if realize_attack or original
 
-        for (X_orig, _), (X, y_true) in zip(loader_orig, loader):
+        for loader_id, ((X_orig, _), (X, y_true)) in enumerate(zip(loader_orig, loader)):
             X_orig = X_orig.to(self.device)
 
             X, y_true = self.prepare_data_to_attack(X, y_true)
-            X_adv = self.step(X, y_true, X_orig)
+            X_adv = self.step(X, y_true, X_orig, loader_id)
             y_pred_adv = self.model(X_adv)
 
             X_adv_all_objects = torch.cat(
@@ -276,6 +279,65 @@ class ClippedBatchIterativeAttack(BatchIterativeAttack):
 
         return X_adv
 
+
+class KLLL2IterativeAttack(ClippedBatchIterativeAttack):
+
+    def run_iteration_log(self, loader: DataLoader, loader_orig: DataLoader) -> Tuple[torch.Tensor]:
+        X_adv_all_objects = torch.FloatTensor(
+            []
+        )  # logging x_adv for rebuilding dataloader
+        y_true_all_objects = torch.tensor(
+            []
+        )  # logging model for rebuilding dataloader and calculation difference with preds
+        y_pred_all_objects = torch.tensor(
+            []
+        )  # logging predictions adversarial if realize_attack or original
+
+        self.data_size = loader.dataset.X.shape
+        self.batch_size = loader.batch_size
+
+        for batch_id, ((X_orig, _), (X, y_true)) in enumerate(zip(loader_orig, loader)):
+            X_orig = X_orig.to(self.device)
+
+            X, y_true = self.prepare_data_to_attack(X, y_true)
+            X_adv = self.step(X, y_true, X_orig, batch_id)
+            y_pred_adv = self.model(X_adv)
+
+            X_adv_all_objects = torch.cat(
+                (X_adv_all_objects, X_adv.cpu().detach()), dim=0
+            )
+            y_true_all_objects = torch.cat(
+                (y_true_all_objects, y_true.cpu().detach()), dim=0
+            )
+            y_pred_all_objects = torch.cat(
+                (y_pred_all_objects, y_pred_adv.cpu().detach()), dim=0
+            )
+
+        return X_adv_all_objects, y_true_all_objects, y_pred_all_objects
+
+    def run_iteration(self, loader: DataLoader, loader_orig: DataLoader) -> Tuple[torch.Tensor]:
+        X_adv_all_objects = torch.FloatTensor(
+            []
+        )  # logging x_adv for rebuilding dataloader
+        y_true_all_objects = torch.tensor(
+            []
+        )  # logging model for rebuilding dataloader and calculation difference with preds
+
+        self.data_shape = loader.dataset.X.shape
+        self.batch_size = loader.batch_size
+
+        for X_orig, _, X, y_true in zip(loader_orig, loader):
+            X, y_true = self.prepare_data_to_attack(X, y_true)
+            X_adv = self.step(X, y_true, X_orig)
+
+            X_adv_all_objects = torch.cat(
+                (X_adv_all_objects, X_adv.cpu().detach()), dim=0
+            )
+            y_true_all_objects = torch.cat(
+                (y_true_all_objects, y_true.cpu().detach()), dim=0
+            )
+
+        return X_adv_all_objects, y_true_all_objects
 
 # class PGDBatchIterativeAttack:
 #     def __init__(self, estimator: BaseEstimator = None, logger=None, *args, **kwargs) -> None:
