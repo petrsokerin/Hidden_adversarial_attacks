@@ -293,10 +293,12 @@ class KLLL2IterativeAttack(ClippedBatchIterativeAttack):
             []
         )  # logging predictions adversarial if realize_attack or original
 
-        self.data_size = loader.dataset.X.shape
         self.batch_size = loader.batch_size
 
         for batch_id, ((X_orig, _), (X, y_true)) in enumerate(zip(loader_orig, loader)):
+            if batch_id == 0:
+                self.data_size = list(X_orig.shape)
+                self.data_size[0] = len(loader.dataset.X)
             X_orig = X_orig.to(self.device)
 
             X, y_true = self.prepare_data_to_attack(X, y_true)

@@ -14,27 +14,33 @@ class TrainableNoise(torch.nn.Module):
         super(TrainableNoise, self).__init__()
 
         self.model = model
-        for param in self.model.parameters():
+        self.device = 'cpu'
+        for i, param in enumerate(self.model.parameters()):
             param.requires_grad = False
+            if i == 0:
+                self.device = param.device
 
+        #self.device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu") 
         self.batch_size = batch_size
         self.low = low
         self.high = high
         self.eps = eps
         if data_size is not None:
-            noise = torch.randint(low=self.low, high=self.high, size=data_size).unsqueeze(-1) * self.eps
-            self.noise = torch.nn.Parameter(noise.to(torch.float))
+            noise = torch.randint(low=self.low, high=self.high, size=data_size) * self.eps
+            self.noise = torch.nn.Parameter(noise.to(torch.float).to(self.device))
         else:
             self.noise = None
 
     def init_noise(self, data_size, batch_size, reinit=False):
         self.batch_size = batch_size
         if self.noise is None or reinit:
-            noise = torch.randint(low=-1, high=1, size=data_size).unsqueeze(-1) * self.eps
-            self.noise = torch.nn.Parameter(noise.to(torch.float))
+            noise = torch.randint(low=-1, high=1, size=data_size) * self.eps
+            self.noise = torch.nn.Parameter(noise.to(torch.float).to(self.device))
 
     def forward(self, X, batch_id):
         data_noise = self.noise[self.batch_size * (batch_id): self.batch_size * (batch_id + 1)]
+        # print(self.batch_size * (batch_id), self.batch_size * (batch_id + 1))
+        # print(batch_id, data_noise.shape, X.shape)
         return self.model(X + data_noise), data_noise
 
 
@@ -63,6 +69,12 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
         self.eps = eps
         self.mu = mu
         self.smoothness = smoothness
+
+        self.device = 'cpu'
+        for param in self.model.parameters():
+            self.device = param.device
+            break
+
         if norm_coef is None:
             self.norm_coef = smoothness
         else:
@@ -73,7 +85,7 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
     def kll2_loss(self, X, y_true, y_pred, r):
         kl_loss = self.mu * self.criterion(y_pred, y_true)
 
-        coef_shifted = torch.ones(X.shape)
+        coef_shifted = torch.ones(X.shape).to(r.device)
         coef_shifted[:, -1, :] = 0
         shifted_r = torch.roll(r, shifts=-1, dims=1) * coef_shifted
 
@@ -83,7 +95,14 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
 
         kll2_loss = torch.mean(- kl_loss + l2_loss + fused_lasso)
         return kll2_loss
+    
+    def reinit_attack(self):
+        #print("Data, batch size", self.data_size, self.batch_size)
+        self.trainable_r.init_noise(self.data_size, self.batch_size, reinit=True)
 
+    def update_data_batch_size(self, data_size, batch_size):
+        self.data_size = data_size
+        self.batch_size = batch_size
 
     def get_adv_data(
         self,

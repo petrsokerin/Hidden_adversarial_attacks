@@ -1,6 +1,7 @@
 import os
 from functools import partial
 from typing import Any, Dict, List, Tuple
+import copy
 
 import numpy as np
 import optuna
@@ -376,7 +377,8 @@ class DiscTrainer(Trainer):
             train_self_supervised=train_self_supervised,
         )
 
-        self.attack = attack
+        self.train_attack = attack
+        self.test_attack = copy.deepcopy(attack)
         self.attack_scheduler = attack_scheduler
 
     @staticmethod
@@ -495,10 +497,11 @@ class DiscTrainer(Trainer):
         return last_epoch_metrics[optim_metric]
 
     def _generate_adversarial_data(
-        self, loader: DataLoader, transform=None
+        self, loader: DataLoader, transform=None, train=False
     ) -> DataLoader:
         X_orig = torch.tensor(loader.dataset.X)
-        X_adv = self.attack.apply_attack(loader, self.logger).squeeze(-1)
+        attack = self.train_attack if train else self.test_attack
+        X_adv = attack.apply_attack(loader, self.logger).squeeze(-1)
 
         assert X_orig.shape == X_adv.shape
 
@@ -531,11 +534,15 @@ class DiscTrainer(Trainer):
         if self.early_stop_patience and self.early_stop_patience != "None":
             earl_stopper = EarlyStopper(self.early_stop_patience)
 
-        adv_train_loader = self._generate_adversarial_data(train_loader, transform)
-        adv_valid_loader = self._generate_adversarial_data(valid_loader)
+        test_data_size = valid_loader.dataset.X.shape
+        test_batch_size = valid_loader.batch_size
+        self.test_attack.update_data_batch_size(test_data_size, test_batch_size)
+
+        adv_train_loader = self._generate_adversarial_data(train_loader, transform, train=True)
+        adv_valid_loader = self._generate_adversarial_data(valid_loader, train=False)
 
         attack_sch_param_name = self.attack_scheduler.param_name
-        prev_attack_sch_param = getattr(self.attack, attack_sch_param_name)
+        prev_attack_sch_param = getattr(self.train_attack, attack_sch_param_name)
 
         self._init_logging(["loss"] + self.estimator.get_metrics_names() + [attack_sch_param_name])
 
@@ -557,15 +564,21 @@ class DiscTrainer(Trainer):
                 self.scheduler.step()
 
             if self.attack_scheduler:
-                self.attack = self.attack_scheduler.step()
-                new_attack_sch_param = getattr(self.attack, self.attack_scheduler.param_name)
+                self.train_attack = self.attack_scheduler.step()
+                new_attack_sch_param = getattr(self.train_attack, self.attack_scheduler.param_name)
+                setattr(self.test_attack, self.attack_scheduler.param_name, new_attack_sch_param)
+
                 if prev_attack_sch_param != new_attack_sch_param and epoch + 1 != self.n_epochs:
+                    if hasattr(self.train_attack, 'reinit_attack'):
+                        self.train_attack.reinit_attack()
+                        self.test_attack.reinit_attack()
+                        
                     prev_attack_sch_param = new_attack_sch_param
                     print(f"----- New {attack_sch_param_name}", round(prev_attack_sch_param, 3))
                     adv_train_loader = self._generate_adversarial_data(
-                        train_loader, transform
+                        train_loader, transform, train=True
                     )
-                    adv_valid_loader = self._generate_adversarial_data(valid_loader)
+                    adv_valid_loader = self._generate_adversarial_data(valid_loader, train=False)
 
         metrics_names = ['loss'] +self.estimator.get_metrics_names()
         test_metrics_epoch = {name: val for name, val in zip(metrics_names, test_metrics_epoch)}
