@@ -14,10 +14,13 @@ class TrainableNoise(torch.nn.Module):
         super(TrainableNoise, self).__init__()
 
         self.model = model
-        for param in self.model.parameters():
+        self.device = 'cpu'
+        for i, param in enumerate(self.model.parameters()):
             param.requires_grad = False
+            if i == 0:
+                self.device = param.device
 
-        self.device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu") 
+        #self.device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu") 
         self.batch_size = batch_size
         self.low = low
         self.high = high
@@ -67,7 +70,10 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
         self.mu = mu
         self.smoothness = smoothness
 
-        self.device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu") 
+        self.device = 'cpu'
+        for param in self.model.parameters():
+            self.device = param.device
+            break
 
         if norm_coef is None:
             self.norm_coef = smoothness
