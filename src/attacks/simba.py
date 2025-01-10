@@ -2,7 +2,7 @@ import torch
 
 from src.attacks.base_attacks import BaseIterativeAttack
 from src.attacks.procedures import BatchIterativeAttack
-from .regularizers import reg_disc, reg_neigh
+from .regularizers import reg_disc
 
 
 class SimBABinary(BaseIterativeAttack, BatchIterativeAttack):
@@ -57,9 +57,9 @@ class SimBABinary(BaseIterativeAttack, BatchIterativeAttack):
 
 class SimBABinaryDiscReg(SimBABinary):
     def __init__(
-        self, model, criterion, eps, n_steps, alpha, disc_models, device="cpu", use_sigmoid=False,
-    ):
-        super().__init__(model, criterion, eps, n_steps, device=device)
+        self, model, criterion, eps, n_steps, estimator, alpha, disc_models, device="cpu", use_sigmoid=False,
+    **kwargs):
+        super().__init__(model, criterion, eps, n_steps, estimator, device=device)
         self.use_sigmoid = use_sigmoid
         self.alpha = alpha
         self.disc_models = disc_models
