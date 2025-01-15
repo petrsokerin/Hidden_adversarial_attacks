@@ -1,10 +1,10 @@
-name: LSTM
+name: S4
 
 params:
-  hidden_dim: 50
-  n_layers: 1
+  input_dim: 1
+  hidden_dim: 128
   output_dim: 1
-  dropout: 0.0
+  dropout: 0.1
 
 hyperparameters_vary:
   dropout:
@@ -13,6 +13,4 @@ hyperparameters_vary:
     high: 0.7
     step: 0.1
 
-attack_train_mode: True
-  
-    
+attack_train_mode: False

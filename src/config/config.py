@@ -3,11 +3,9 @@ import shutil
 from typing import Dict, Iterable, List
 
 import torch
-
 from src import attacks, estimation, models
 from src.attacks import attack_scheduler
-
-
+from src.utils import weights_from_clearml_by_name
 def get_estimator(
     estimator_name: str, estimator_params: Dict
 ) -> estimation.BaseEstimator:
@@ -41,6 +39,7 @@ def get_model(
         model = getattr(models, model_name)(**model_params)
         model = model.to(device)
         if path:
+            
             model.load_state_dict(torch.load(path, map_location=torch.device(device)))
         model.train(train_mode)
         return model
@@ -114,18 +113,43 @@ def get_disc_list(
     model_params: Dict,
     list_disc_params: List[Dict],
     device: str = "cpu",
-    path: str = None,
+    path: str = "",
     train_mode: bool = False,
+    from_clearml: bool = False
 ):
     list_disc_models = list()
-    for params in list_disc_params:
-        disc_path = f"{path}/{params['model_name']}/{params['model_id']}.pt"
-        disc = get_model(
+    for model_conf in list_disc_params:
+        if isinstance(model_conf, dict):
+            weight_name = model_conf['model_id']
+            model_folder_name = model_conf['model_name']
+        else:
+            weight_name = model_conf
+            model_folder_name = model_conf
+        disc_path = f"{path}/{model_folder_name}/{weight_name}.pt"
+        folder_path = 'loaded_clearml/disc_weights'
+        file_path = os.path.join(folder_path, weight_name)
+        if from_clearml and os.path.exists(file_path):
+            loaded_path = file_path
+        elif from_clearml:
+            loaded_path = weights_from_clearml_by_name(path, f"{weight_name}", load_weights='disc_weights')
+
+
+        if from_clearml:
+            disc = get_model(
             model_name,
             model_params,
             device=device,
-            path=disc_path,
+            path=loaded_path,
             train_mode=train_mode,
         )
+        else:
+            disc = get_model(
+                model_name,
+                model_params,
+                device=device,
+                path=disc_path,
+                train_mode=train_mode,
+            )
         list_disc_models.append(disc)
     return list_disc_models
+

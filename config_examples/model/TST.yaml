@@ -16,6 +16,15 @@ params:
   fc_dropout: 0
 
 hyperparameters_vary:
+  c_in:
+    optuna_type: const
+    value: 1
+  c_out:
+    optuna_type: const
+    value: 1
+  seq_len:
+    optuna_type: const
+    value: ${dataset.seq_len}
   dropout:
     optuna_type: float
     low: 0.1

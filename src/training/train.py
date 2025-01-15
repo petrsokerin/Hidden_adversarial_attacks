@@ -10,6 +10,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from optuna.trial import Trial
 from torch.utils.data import DataLoader
+from clearml import Task
 
 from src.attacks import BaseIterativeAttack
 from src.attacks.attack_scheduler import AttackScheduler
@@ -187,6 +188,7 @@ class Trainer:
 
         model = Trainer.initialize_with_params(**initial_model_parameters)
         last_epoch_metrics = model.train_model(train_loader, valid_loader)
+
         return last_epoch_metrics[optim_metric]
 
     def _init_logging(self, metric_names: List[str]) -> None:
@@ -210,15 +212,11 @@ class Trainer:
             for met_name, met_val in zip(self.metric_names, test_metrics)
         }
 
-        mode = "train"
-        for metric in self.dict_logging[mode].keys():
-            self.dict_logging[mode][metric].append(train_metrics[metric])
-            self.logger.add_scalar(metric + "/" + mode, train_metrics[metric], epoch)
-
-        mode = "test"
-        for metric in self.dict_logging[mode].keys():
-            self.dict_logging[mode][metric].append(test_metrics[metric])
-            self.logger.add_scalar(metric + "/" + mode, test_metrics[metric], epoch)
+        for mode, dict_metrics in zip(['train', 'test'], [train_metrics, test_metrics]):
+            for metric in self.dict_logging[mode].keys():
+                self.dict_logging[mode][metric].append(dict_metrics[metric])
+                if self.logger:
+                    self.logger.add_scalar(metric + "/" + mode, dict_metrics[metric], epoch)
 
         if epoch % self.print_every == 0:
             print_line = self.print_line.format(
@@ -261,6 +259,8 @@ class Trainer:
             if self.scheduler:
                 self.scheduler.step()
 
+        metrics_names = ['loss'] +self.estimator.get_metrics_names()
+        test_metrics_epoch = {name: val for name, val in zip(metrics_names, test_metrics_epoch)}
         return test_metrics_epoch
 
     def _train_step(self, X: torch.Tensor, labels: torch.Tensor) -> Tuple[torch.Tensor]:
@@ -333,13 +333,15 @@ class Trainer:
         res = res.round(4)
         res.to_csv(path, index=False)
 
-    def save_result(self, save_path: str, model_name: str) -> None:
+    def save_result(self, save_path: str, model_name: str, task: Task=None) -> None:
+
         if not os.path.isdir(save_path):
             os.makedirs(save_path)
 
-        full_path = save_path + "/" + model_name
-        torch.save(self.model.state_dict(), full_path + ".pt")
-
+        full_path = os.path.join(save_path,  model_name)
+        torch.save(self.model.state_dict(), full_path  + ".pt")
+        if task:
+            task.upload_artifact(name='model_weights', artifact_object=full_path)
         self.save_metrics_as_csv(full_path + "_metrics.csv")
 
 
@@ -442,12 +444,14 @@ class DiscTrainer(Trainer):
         valid_loader: DataLoader,
         optuna_params: Dict,
         const_params: Dict,
+        transform = None,
     ):
         study = optuna.create_study(
             direction="maximize",
             sampler=instantiate(optuna_params["sampler"]),
             pruner=instantiate(optuna_params["pruner"]),
         )
+
         study.optimize(
             partial(
                 DiscTrainer.objective,
@@ -456,6 +460,7 @@ class DiscTrainer(Trainer):
                 const_params=const_params,
                 train_loader=train_loader,
                 valid_loader=valid_loader,
+                transform=transform,
             ),
             n_trials=optuna_params["n_trials"],
         )
@@ -477,6 +482,7 @@ class DiscTrainer(Trainer):
         const_params: Dict,
         train_loader: DataLoader,
         valid_loader: DataLoader,
+        transform = None
     ) -> float:
         initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
         initial_model_parameters = dict(initial_model_parameters)
@@ -485,14 +491,14 @@ class DiscTrainer(Trainer):
         )
 
         model = DiscTrainer.initialize_with_params(**initial_model_parameters)
-        last_epoch_metrics = model.train_model(train_loader, valid_loader)
+        last_epoch_metrics = model.train_model(train_loader, valid_loader, transform)
         return last_epoch_metrics[optim_metric]
 
     def _generate_adversarial_data(
         self, loader: DataLoader, transform=None
     ) -> DataLoader:
         X_orig = torch.tensor(loader.dataset.X)
-        X_adv = self.attack.apply_attack(loader).squeeze(-1)
+        X_adv = self.attack.apply_attack(loader, self.logger).squeeze(-1)
 
         assert X_orig.shape == X_adv.shape
 
@@ -510,8 +516,12 @@ class DiscTrainer(Trainer):
         return loader
 
     def train_model(
-        self, train_loader: DataLoader, valid_loader: DataLoader, transform
+        self, train_loader: DataLoader, valid_loader: DataLoader, transform=None, logger=None
     ) -> Dict[str, float]:
+
+        if logger:
+            self.logger = logger
+
         if self.model.self_supervised and self.train_self_supervised:
             print("Training self-supervised model")
             X_train = train_loader.dataset.X.unsqueeze(-1).numpy()
@@ -523,16 +533,18 @@ class DiscTrainer(Trainer):
 
         adv_train_loader = self._generate_adversarial_data(train_loader, transform)
         adv_valid_loader = self._generate_adversarial_data(valid_loader)
-        cur_eps = self.attack.eps
 
-        self._init_logging(["loss"] + self.estimator.get_metrics_names() + ["eps"])
+        attack_sch_param_name = self.attack_scheduler.param_name
+        prev_attack_sch_param = getattr(self.attack, attack_sch_param_name)
+
+        self._init_logging(["loss"] + self.estimator.get_metrics_names() + [attack_sch_param_name])
 
         for epoch in range(self.n_epochs):
             train_metrics_epoch = self._run_epoch(adv_train_loader, mode="train")
             test_metrics_epoch = self._run_epoch(adv_valid_loader, mode="valid")
 
-            train_metrics_epoch = list(train_metrics_epoch) + [cur_eps]
-            test_metrics_epoch = list(test_metrics_epoch) + [cur_eps]
+            train_metrics_epoch = list(train_metrics_epoch) + [prev_attack_sch_param]
+            test_metrics_epoch = list(test_metrics_epoch) + [prev_attack_sch_param]
 
             self._logging(train_metrics_epoch, test_metrics_epoch, epoch)
 
@@ -546,13 +558,15 @@ class DiscTrainer(Trainer):
 
             if self.attack_scheduler:
                 self.attack = self.attack_scheduler.step()
-
-                if cur_eps != self.attack.eps and epoch + 1 != self.n_epochs:
-                    cur_eps = self.attack.eps
-                    print("----- New epsilon", round(cur_eps, 3))
+                new_attack_sch_param = getattr(self.attack, self.attack_scheduler.param_name)
+                if prev_attack_sch_param != new_attack_sch_param and epoch + 1 != self.n_epochs:
+                    prev_attack_sch_param = new_attack_sch_param
+                    print(f"----- New {attack_sch_param_name}", round(prev_attack_sch_param, 3))
                     adv_train_loader = self._generate_adversarial_data(
                         train_loader, transform
                     )
                     adv_valid_loader = self._generate_adversarial_data(valid_loader)
 
+        metrics_names = ['loss'] +self.estimator.get_metrics_names()
+        test_metrics_epoch = {name: val for name, val in zip(metrics_names, test_metrics_epoch)}
         return test_metrics_epoch

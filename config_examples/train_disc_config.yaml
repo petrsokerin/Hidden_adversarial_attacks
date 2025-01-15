@@ -1,25 +1,33 @@
 slice: False
 use_disc_check: False
 test_run: False  # If true results will be not saved!!!!
-exp_name: '_MULTI'
-exp_model_name: '_MULTI'
+exp_name: '_test'
+exp_model_name: 'test'
+log_clearml: False
+clearml_project: "AA_train_discriminator"
+author: '' # Petr, Dima, Sophie
+load_weights_classifier: True
+load_weights_disc: False
+project_weights: 'AA_train_classifier_GOLDEN'
+project_weights_disc: 'AA_train_discriminator_GOLDEN'
+delete_weights_disc: False
 
 model_folder: checkpoints/${dataset.name}/${attack_model.name}/${exp_model_name}
 disc_path: results/${dataset.name}/${attack_model.name}/discriminator/fgsm_attack
 save_path: results/${dataset.name}/${attack_model.name}/discriminator/${attack.short_name}${exp_name}
-model_id_attack: 100
 
-model_ids: [100]
+model_id_attack: 100
+model_id: 100
 
 train_self_supervised: True
 
 defaults:
-  - dataset: FordA
-  - model: PatchTST
-  - model@attack_model: PatchTST
-  - model@disc_model_reg: PatchTST
-  - model@disc_model_check: PatchTST
-  - attack: FGSM
+  - dataset: PowerCons
+  - model: ResidualCNN
+  - model@attack_model: ResidualCNN
+  - model@disc_model_reg: ResidualCNN
+  - model@disc_model_check: ResidualCNN
+  - attack_disc@attack: FGSM
 
 criterion_name: BCELoss
 criterion_params: null
@@ -29,7 +37,7 @@ metric_hid: ROC_AUC_DISC
 
 batch_size: 64
 estimator_batch_size: null
-cuda: 'cuda:3'
+device: 'cuda:0'
 print_every: 1
 
 list_check_model_params:
@@ -56,7 +64,8 @@ training_params:
   attack_scheduler_params:
     attack_step_size: 10
     attack_gamma: 0.8
-  n_epochs: 50
+    param_name: eps
+  n_epochs: 30
   print_every: ${print_every}
   early_stop_patience: 900
 
@@ -106,6 +115,14 @@ optuna_optimizer:
       value:
         step_size: 10
         gamma: 0.5
+    attack_scheduler_name:
+      optuna_type: const
+      value: StepAttackScheduler
+    attack_scheduler_params:
+      optuna_type: const
+      value:
+        attack_step_size: 10
+        attack_gamma: 0.8
     n_epochs:
       optuna_type: const
       value: 3

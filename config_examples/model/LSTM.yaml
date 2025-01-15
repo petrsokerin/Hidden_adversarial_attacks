@@ -1,12 +1,10 @@
-name: Rocket
+name: LSTM
 
 params:
-  c_in: 1
-  seq_len: 500
-  n_kernels: 1000
-  kss: [7, 9, 11]
-  device: 'cuda:3'
-  verbose: False
+  hidden_dim: 50
+  n_layers: 1
+  output_dim: 1
+  dropout: 0.0
 
 hyperparameters_vary:
   dropout:
