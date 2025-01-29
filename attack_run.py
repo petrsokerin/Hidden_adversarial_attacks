@@ -68,8 +68,9 @@ def main(cfg: DictConfig):
         attack_model_path = os.path.join(path)
     else:
         attack_model_path = os.path.join(
-        cfg["model_folder"],
-        f"model_{cfg['attack_model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt")
+            cfg["model_folder"],
+            f"model_{cfg['attack_model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}.pt"
+        )
 
     attack_model = get_model(
         cfg["attack_model"]["name"],
