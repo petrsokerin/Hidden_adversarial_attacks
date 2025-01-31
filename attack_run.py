@@ -37,10 +37,17 @@ def main(cfg: DictConfig):
 
         attack_add_name = ''
         for param in cfg['attack']['named_params']:
-            attack_add_name += '__{}={}'.format(
-                param,
-                round(cfg['attack']['attack_params'][param], 4)
-            )
+            try:
+                attack_add_name += '__{}={}'.format(
+                    param,
+                    round(cfg['attack']['attack_params'][param], 4)
+                )
+            except:
+                attack_add_name += '__{}={}'.format(
+                    param,
+                    cfg['attack']['attack_params'][param]
+                )
+
 
         save_config(cfg["save_path"], CONFIG_PATH, CONFIG_NAME, attack_start_name)
         save_compiled_config(cfg, cfg["save_path"], attack_start_name + attack_add_name)

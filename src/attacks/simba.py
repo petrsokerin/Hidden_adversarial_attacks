@@ -21,6 +21,10 @@ class SimBABinary(BaseIterativeAttack, BatchIterativeAttack):
         y_pred = self.model(X)
         loss = self.criterion(y_pred, y_true)
         return loss
+    
+    def update_data_batch_size(self, data_size, batch_size):
+        self.data_size = data_size
+        self.batch_size = batch_size
 
     def generate_changes(self, X):
         random_indices = torch.randint(0, X.shape[1], (X.shape[0], 1, 1)).to(self.device)
