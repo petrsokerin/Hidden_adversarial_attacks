@@ -243,7 +243,6 @@ def reject_by_iters_obj(
     preds_sorted, labels_sorted = sort_data_by_metric(
         1 / (iters_vec + 0.001), preds, labels
     )
-    # preds_sorted, labels_sorted = sort_data_by_metric(iters_vec, preds, labels)
 
     upper_indices = get_upper_bound_idx(preds.size, rejection_rates)
     res = reject_and_eval(preds_sorted, labels_sorted, upper_indices, scoring_func)
@@ -262,7 +261,6 @@ def reject_by_diff(
     preds_sorted, labels_sorted = sort_data_by_metric(
         1 / (diff_vec + 0.001), preds, labels
     )
-    # preds_sorted, labels_sorted = sort_data_by_metric(diff_vec, preds, labels)
 
     upper_indices = get_upper_bound_idx(preds.size, rejection_rates)
     res = reject_and_eval(preds_sorted, labels_sorted, upper_indices, scoring_func)
@@ -278,8 +276,6 @@ def reject_by_norm(
 ) -> List:
     preds = np.average(np.copy(preds), axis=0)
 
-    # print(len(iters_vec), len(preds), len(labels))
-    # preds_sorted, labels_sorted = sort_data_by_metric(1/(norm_vec+1), preds, labels)
     preds_sorted, labels_sorted = sort_data_by_metric(norm_vec, preds, labels)
 
     upper_indices = get_upper_bound_idx(preds.size, rejection_rates)

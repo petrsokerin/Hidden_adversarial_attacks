@@ -438,7 +438,6 @@ def nplr(measure, N, rank=1, dtype=torch.float, diagonalize_precision=True, B_cl
         W_im, V = W_im.to(cdtype), V.to(cdtype)
     W = W_re + 1j * W_im
     # Check: V W V^{-1} = A
-    # print("check", V @ torch.diag_embed(W) @ V.conj().transpose(-1, -2))
 
     # Only keep half of each conjugate pair
     _, idx = torch.sort(W.imag)
@@ -460,7 +459,6 @@ def nplr(measure, N, rank=1, dtype=torch.float, diagonalize_precision=True, B_cl
         print(
             "Warning: Diagonalization of A matrix not numerically precise - error", err
         )
-    # print("check", V @ torch.diag_embed(W) @ V.conj().transpose(-1, -2))
 
     V_inv = V.conj().transpose(-1, -2)
 

@@ -53,10 +53,6 @@ def req_grad(model, state: bool = True) -> None:
 def save_attack_metrics(
     attack_metrics: pd.DataFrame,
     path: str,
-    # is_regularized: bool,
-    # dataset: str,
-    # model_id: int,
-    # alpha: float,
     attack_name: str
 ) -> None:
     if not os.path.isdir(path):
@@ -282,6 +278,6 @@ def weights_from_clearml_by_name(project_name:str, task_name:str, load_weights='
     save_name = downloaded_task.name 
     new_model_file_path = f'{loaded_clearml}/{load_weights}/{save_name}'
     shutil.move(weights, new_model_file_path)
-    print(f"Модель успешно сохранена по пути: {new_model_file_path}")
+    print(f"Model successfully saved in: {new_model_file_path}")
     return new_model_file_path
 
