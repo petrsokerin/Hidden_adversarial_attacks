@@ -6,15 +6,6 @@ import torch
 from src import attacks, estimation, models
 from src.attacks import attack_scheduler
 from src.utils import weights_from_clearml_by_name
-def get_estimator(
-    estimator_name: str, estimator_params: Dict
-) -> estimation.BaseEstimator:
-    if estimator_params is None:
-        estimator_params = dict()
-    try:
-        return getattr(estimation, estimator_name)(**estimator_params)
-    except AttributeError:
-        raise ValueError(f"Estimator with name {estimator_name} is not implemented")
 
 
 def get_attack(attack_name: str, attack_params: Dict) -> attacks.BaseIterativeAttack:
@@ -97,15 +88,6 @@ def get_attack_scheduler(
         raise ValueError(
             f"Attack Scheduler with name {attack_scheduler_name} is not implemented"
         )
-
-
-def save_config(path: str, config_load_name: str, config_save_name: str) -> None:
-    if not os.path.isdir(path):
-        os.makedirs(path)
-
-    shutil.copyfile(
-        f"config/{config_load_name}.yaml", path + f"/{config_save_name}.yaml"
-    )
 
 
 def get_disc_list(

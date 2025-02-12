@@ -24,8 +24,8 @@ def reg_disc(
     disc_models: List[torch.nn.Module],
     use_sigmoid: bool = True,
 ) -> torch.Tensor:
-    n_models = len(disc_models)
-    reg_value = 0
+    n_models: int = len(disc_models)
+    reg_value: float = 0
     for d_model in disc_models:
         req_grad(d_model, state=True)
         if use_sigmoid:

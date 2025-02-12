@@ -42,7 +42,7 @@ class ClassifierEstimator(BaseEstimator):
         ]
 
     @staticmethod
-    def balance(y):
+    def balance(y: np.ndarray):
         return np.mean(y).item()
 
     @staticmethod

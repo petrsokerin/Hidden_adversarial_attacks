@@ -101,7 +101,7 @@ class FGSMRegDiscAttack(FGSMAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
-        estimator,
+        estimator: BaseEstimator,
         logger=None,
         eps: float = 0.03,
         alpha: float = 0.0,
@@ -131,7 +131,7 @@ class FGSMRegDiscNormAttack(FGSMAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
-        estimator,
+        estimator: BaseEstimator,
         logger=None,
         eps: float = 0.03,
         alpha: float = 0.0,
@@ -181,7 +181,7 @@ class FGSMRegDiscSmoothMaxAttack(FGSMAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
-        estimator,
+        estimator: BaseEstimator,
         logger=None,
         eps: float = 0.03,
         beta: float = 0.0,
@@ -210,7 +210,7 @@ class FGSMRegDiscHyperconesAttack(FGSMAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
-        estimator,
+        estimator: BaseEstimator,
         logger=None,
         eps: float = 0.03,
         delta: float = 0.0,
@@ -281,7 +281,7 @@ class DefenseRegDiscAttack(FGSMAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
-        estimator,
+        estimator: BaseEstimator,
         logger=None,
         eps: float = 0.03,
         n_steps: int = 10,
@@ -309,7 +309,7 @@ class FGSMAttackHarmonicLoss(FGSMAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
-        estimator,
+        estimator: BaseEstimator,
         logger=None,
         eps: float = 0.03,
         n_steps: int = 10,
@@ -322,7 +322,7 @@ class FGSMAttackHarmonicLoss(FGSMAttack):
         self.use_sigmoid = use_sigmoid
         self.is_regularized = False
 
-    def step(self, X: torch.Tensor, y_true: torch.Tensor, e=0.0001) -> torch.Tensor:
+    def step(self, X: torch.Tensor, y_true: torch.Tensor, e: float=0.0001) -> torch.Tensor:
         loss = self.get_loss(X, y_true)
         loss_discriminator = -reg_disc(X, self.disc_models, self.use_sigmoid)
         loss_harmonic_mean = 2 * (loss * loss_discriminator) / (loss + loss_discriminator + e)

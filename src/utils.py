@@ -17,7 +17,7 @@ from src.estimation.utils import calculate_roughness
 from clearml import Task
 
 
-def save_config(path, config_path: str, config_name: str, config_save_name: str) -> None:
+def save_config(path: str, config_path: str, config_name: str, config_save_name: str) -> None:
     if not os.path.isdir(path):
         os.makedirs(path)
 
@@ -40,7 +40,7 @@ def save_config(path, config_path: str, config_name: str, config_save_name: str)
 
 
 
-def req_grad(model, state: bool = True) -> None:
+def req_grad(model: torch.nn.Module, state: bool = True) -> None:
     """Set requires_grad of all model parameters to the desired value.
 
     :param model: the model
@@ -182,7 +182,7 @@ def build_dataframe_metrics(experiment):
     return df
 
 
-def save_train_disc(experiment, config_name, model_id, cfg, save_csv=True):
+def save_train_disc(experiment, config_name: str, model_id: int, cfg, save_csv=True):
     if "prefix" not in cfg:
         cfg["prefix"] = ""
 
@@ -224,7 +224,7 @@ def fix_seed(seed: int) -> None:
     torch.backends.cudnn.deterministic = True
 
 
-def calc_stats(data):
+def calc_stats(data:np.ndarray):
     stats = {}
     stats['object_count'] = data.shape[0]
     stats['max'] = float(data.max())
@@ -235,7 +235,7 @@ def calc_stats(data):
     return stats
 
 
-def get_dataset_stats(dataset_name, path='config/my_configs/dataset/'):
+def get_dataset_stats(dataset_name: str, path='config/my_configs/dataset/'):
     X_train, y_train, X_test, y_test = load_data(dataset_name)
 
     stats = {}

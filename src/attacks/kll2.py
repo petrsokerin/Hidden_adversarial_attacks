@@ -10,7 +10,7 @@ from src.estimation import BaseEstimator
 
 
 class TrainableNoise(torch.nn.Module):
-    def __init__(self, model, eps, batch_size=1, low=-1, high=1, data_size=None):
+    def __init__(self, model: torch.nn.Module, eps: float, batch_size: int=1, low: int=-1, high: int=1, data_size=None):
         super(TrainableNoise, self).__init__()
 
         self.model = model
@@ -31,13 +31,13 @@ class TrainableNoise(torch.nn.Module):
         else:
             self.noise = None
 
-    def init_noise(self, data_size, batch_size, reinit=False):
+    def init_noise(self, data_size: int, batch_size: int, reinit=False):
         self.batch_size = batch_size
         if self.noise is None or reinit:
             noise = torch.randint(low=-1, high=1, size=data_size) * self.eps
             self.noise = torch.nn.Parameter(noise.to(torch.float).to(self.device))
 
-    def forward(self, X, batch_id):
+    def forward(self, X: torch.Tensor, batch_id: int):
         data_noise = self.noise[self.batch_size * (batch_id): self.batch_size * (batch_id + 1)]
         # print(self.batch_size * (batch_id), self.batch_size * (batch_id + 1))
         # print(batch_id, data_noise.shape, X.shape)
@@ -82,7 +82,7 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
 
         self.trainable_r = TrainableNoise(self.model, self.eps)
 
-    def kll2_loss(self, X, y_true, y_pred, r):
+    def kll2_loss(self, X:torch.Tensor, y_true: torch.Tensor, y_pred: torch.Tensor, r: float):
         kl_loss = self.mu * self.criterion(y_pred, y_true)
 
         coef_shifted = torch.ones(X.shape).to(r.device)
@@ -100,7 +100,7 @@ class KLL2Attack(BaseIterativeAttack, KLLL2IterativeAttack):
         #print("Data, batch size", self.data_size, self.batch_size)
         self.trainable_r.init_noise(self.data_size, self.batch_size, reinit=True)
 
-    def update_data_batch_size(self, data_size, batch_size):
+    def update_data_batch_size(self, data_size: int, batch_size: int):
         self.data_size = data_size
         self.batch_size = batch_size
 
