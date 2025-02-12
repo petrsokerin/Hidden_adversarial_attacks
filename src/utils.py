@@ -53,10 +53,6 @@ def req_grad(model: torch.nn.Module, state: bool = True) -> None:
 def save_attack_metrics(
     attack_metrics: pd.DataFrame,
     path: str,
-    # is_regularized: bool,
-    # dataset: str,
-    # model_id: int,
-    # alpha: float,
     attack_name: str
 ) -> None:
     if not os.path.isdir(path):
@@ -182,7 +178,7 @@ def build_dataframe_metrics(experiment):
     return df
 
 
-def save_train_disc(experiment, config_name: str, model_id: int, cfg, save_csv=True):
+def save_train_disc(experiment, config_name: str, model_id: int, cfg: DictConfig, save_csv=True):
     if "prefix" not in cfg:
         cfg["prefix"] = ""
 
@@ -207,7 +203,7 @@ def save_train_disc(experiment, config_name: str, model_id: int, cfg, save_csv=T
     save_config(full_path, config_name, f"{model_id}_config.yaml")
 
 
-def save_train_classifier(model, save_path, model_name):
+def save_train_classifier(model: torch.nn.Module, save_path: str, model_name: str):
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
 
@@ -224,7 +220,7 @@ def fix_seed(seed: int) -> None:
     torch.backends.cudnn.deterministic = True
 
 
-def calc_stats(data:np.ndarray):
+def calc_stats(data: np.ndarray):
     stats = {}
     stats['object_count'] = data.shape[0]
     stats['max'] = float(data.max())
@@ -253,7 +249,7 @@ def get_dataset_stats(dataset_name: str, path='config/my_configs/dataset/'):
     with open(path + f'{dataset_name}.yaml', 'w+') as f:
         yaml.dump(stats, f, sort_keys=False)
 
-def save_compiled_config(cfg, path: str, exp_name: str):
+def save_compiled_config(cfg: DictConfig, path: str, exp_name: str):
     timestamp = datetime.now().strftime("%Y:%m:%d %H:%M:%S")
 
     os.makedirs(path, exist_ok=True)
@@ -270,7 +266,7 @@ def save_compiled_config(cfg, path: str, exp_name: str):
 
     print(f"Compiled configuration saved to: {config_path}")
 
-def weights_from_clearml_by_name(project_name:str, task_name:str, load_weights='weights'):
+def weights_from_clearml_by_name(project_name: str, task_name: str, load_weights: str ='weights'):
     downloaded_task = Task.get_task(task_name=task_name, project_name=project_name)
     loaded_clearml = 'loaded_clearml'
     
