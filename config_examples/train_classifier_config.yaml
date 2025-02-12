@@ -4,7 +4,7 @@ test_run: False # If true results will be not saved!!!!
 exp_name: 'test'
 log_clearml: False
 clearml_project: "AA_train_classifiers"
-author: '' # Petr, Dima, Sophie
+author: '' 
 
 # model_id_start: 100
 # model_id_finish: 101

@@ -7,8 +7,8 @@ exp_disc_name: _test
 log_clearml: False
 clearml_project: "AA_attack_run"
 author: '' # Petr, Dima, Sophie
-load_weights_classifier: True
-load_weights_disc: True
+load_weights_classifier: False
+load_weights_disc: False
 project_weights: 'AA_train_classifier_GOLDEN'
 project_weights_disc: 'AA_train_discriminator_GOLDEN'
 delete_weights_disc: False
