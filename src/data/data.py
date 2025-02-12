@@ -16,8 +16,8 @@ def load_data(dataset: str = "FordA") -> Tuple[np.ndarray]:
 
 
 def load_UCR(dataset: str) -> Tuple[np.ndarray]:
-    train_file = os.path.join("data/TS2Vec/UCR", dataset, dataset + "_TRAIN.tsv")
-    test_file = os.path.join("data/TS2Vec/UCR", dataset, dataset + "_TEST.tsv")
+    train_file = os.path.join("data/UCR", dataset, dataset + "_TRAIN.tsv")
+    test_file = os.path.join("data/UCR", dataset, dataset + "_TEST.tsv")
     train_df = pd.read_csv(train_file, sep="\t", header=None)
     test_df = pd.read_csv(test_file, sep="\t", header=None)
     train_array = np.array(train_df)
