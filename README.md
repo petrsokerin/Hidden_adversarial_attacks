@@ -5,7 +5,7 @@ To achieve this goal, we train a discriminator model to detect adversarial pertu
 The proposed adversarial attack with the regularization makes attacks harder to detect. Our claims are supported by extensive benchmarking via datasets from UCR and different models: recurrent, convolution, state-space, and transformers. For our proposed metric, a mix of concealability and effectiveness, we find an improvement over vanilla attacks. In some cases, the findings are more intricate, as adversarial vulnerability significantly changes for different models and datasets. Thus, our proposed attack can bypass the discriminator, raising the challenge of creating neural network models for time-series data that can resist adversarial attacks.
 
 ## Data
-You need to download [https://paperswithcode.com/dataset/ucr-time-series-classification-archive](UCR datasets) and put it into the `data/UCR` directory.
+You need to download [https://paperswithcode.com/dataset/ucr-time-series-classification-archive](UCR) dataset and put it into the `data/UCR` directory.
 
 ## Quick Start
 
