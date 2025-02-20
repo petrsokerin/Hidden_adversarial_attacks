@@ -50,8 +50,12 @@ class PGDAttack(BaseIterativeAttack, ClippedBatchIterativeAttack):
         X_adv = X_orig + perturbation
 
         return X_adv
+    
+    def update_data_batch_size(self, data_size, batch_size):
+        self.data_size = data_size
+        self.batch_size = batch_size
 
-    def step(self, X: torch.Tensor, y_true: torch.Tensor, X_orig: torch.Tensor) -> torch.Tensor:
+    def step(self, X: torch.Tensor, y_true: torch.Tensor, X_orig: torch.Tensor, loader_id) -> torch.Tensor:
         loss = self.get_loss(X, y_true)
         X_adv = self.get_adv_data(X, loss, X_orig)
         return X_adv
@@ -77,7 +81,7 @@ class PGDRegDiscAttack(PGDAttack):
         self.use_sigmoid = use_sigmoid
         self.is_regularized = True
 
-    def step(self, X: torch.Tensor, y_true: torch.Tensor, X_orig) -> torch.Tensor:
+    def step(self, X: torch.Tensor, y_true: torch.Tensor, X_orig, loader_id) -> torch.Tensor:
         loss = self.get_loss(X, y_true)
 
         reg_value = reg_disc(X, self.disc_models, self.use_sigmoid)

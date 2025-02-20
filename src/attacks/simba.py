@@ -2,7 +2,7 @@ import torch
 from typing import List
 from src.attacks.base_attacks import BaseIterativeAttack
 from src.attacks.procedures import BatchIterativeAttack
-from .regularizers import reg_disc, reg_neigh
+from .regularizers import reg_disc
 
 
 class SimBABinary(BaseIterativeAttack, BatchIterativeAttack):
@@ -21,6 +21,10 @@ class SimBABinary(BaseIterativeAttack, BatchIterativeAttack):
         y_pred = self.model(X)
         loss = self.criterion(y_pred, y_true)
         return loss
+    
+    def update_data_batch_size(self, data_size, batch_size):
+        self.data_size = data_size
+        self.batch_size = batch_size
 
     def generate_changes(self, X: torch.Tensor):
         random_indices = torch.randint(0, X.shape[1], (X.shape[0], 1, 1)).to(self.device)
@@ -57,9 +61,9 @@ class SimBABinary(BaseIterativeAttack, BatchIterativeAttack):
 
 class SimBABinaryDiscReg(SimBABinary):
     def __init__(
-        self, model: torch.nn.Module, criterion: torch.nn.Module, eps: float, n_steps: int,
-        alpha: float, disc_models: List[torch.nn.Module], device="cpu", use_sigmoid: bool=False):
-        super().__init__(model, criterion, eps, n_steps, device=device)
+        self, model: torch.nn.Module, criterion: torch.nn.Module, eps: float, n_steps: int, 
+        estimator, alpha: float, disc_models: List[torch.nn.Module], device="cpu", use_sigmoid: bool=False, **kwargs):
+        super().__init__(model, criterion, eps, n_steps, estimator, device=device)
         self.use_sigmoid = use_sigmoid
         self.alpha = alpha
         self.disc_models = disc_models
