@@ -101,7 +101,7 @@ class FGSMRegDiscAttack(FGSMAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
-        estimator,
+        estimator: BaseEstimator,
         logger=None,
         eps: float = 0.03,
         alpha: float = 0.0,
@@ -131,7 +131,7 @@ class FGSMRegDiscNormAttack(FGSMAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
-        estimator,
+        estimator: BaseEstimator,
         logger=None,
         eps: float = 0.03,
         alpha: float = 0.0,
@@ -181,7 +181,7 @@ class FGSMRegDiscSmoothMaxAttack(FGSMAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
-        estimator,
+        estimator: BaseEstimator,
         logger=None,
         eps: float = 0.03,
         beta: float = 0.0,
@@ -210,7 +210,7 @@ class FGSMRegDiscHyperconesAttack(FGSMAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
-        estimator,
+        estimator: BaseEstimator,
         logger=None,
         eps: float = 0.03,
         delta: float = 0.0,
@@ -231,35 +231,17 @@ class FGSMRegDiscHyperconesAttack(FGSMAttack):
 
         g_grad_norm = torch.norm(g, p=1)
 
-        # print(a.shape, g.shape)
         num_cos_phi = (g * a).sum(dim=1)
-        # print(num_cos_phi.shape, num_cos_phi.isnan().sum())
         dem_cos_phi = torch.norm(g, dim=1) * torch.norm(a, dim=1) + e
-        # print(dem_cos_phi)
         cos_phi = num_cos_phi / dem_cos_phi
 
-        # if cos_phi.isnan().sum() > 0:
-        #     print(g[cos_phi.isnan()])
-        #     print(a[cos_phi.isnan()])
-        #     print(num_cos_phi[cos_phi.isnan()])
-        #     print(dem_cos_phi[cos_phi.isnan()])
-        #     print(cos_phi.isnan().sum())
         phi = torch.arccos(torch.clip(cos_phi, -1, 1))
-        # if phi.isnan().sum() > 0:
-        #     print(cos_phi[phi.isnan()])
-        #     print(phi.isnan().sum())
 
         final_prog = torch.cos(self.delta) / (cos_phi * torch.cos(phi + self.delta) + e)
         inner_prog = torch.norm(g, dim=1) / (torch.norm(a, dim=1) * (torch.sin(phi)*torch.tan(self.delta) - cos_phi) + e)
-
-        # print(final_prog.isnan().sum(), inner_prog.isnan().sum(), g.isnan().sum(), a.isnan().sum())
-        # print(torch.norm(final_prog), torch.norm(inner_prog), torch.norm(g), torch.norm(a))
         g_p = final_prog.unsqueeze(-1) * (g + a * inner_prog.unsqueeze(-1))
-        # print(g_p.isnan().sum())
         g_p_grad_norm = torch.norm(g_p, p=1)
-        # print('g_p_grad_norm', g_p_grad_norm)
         g_p = g_p * (g_grad_norm + e) / (g_p_grad_norm + e)
-        # print(g_p.isnan().sum(), torch.norm(g_p))
         return g_p.unsqueeze(-1)
 
     def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
@@ -281,7 +263,7 @@ class DefenseRegDiscAttack(FGSMAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
-        estimator,
+        estimator: BaseEstimator,
         logger=None,
         eps: float = 0.03,
         n_steps: int = 10,
@@ -309,7 +291,7 @@ class FGSMAttackHarmonicLoss(FGSMAttack):
         model: torch.nn.Module,
         criterion: torch.nn.Module,
         disc_models: List[torch.nn.Module],
-        estimator,
+        estimator: BaseEstimator,
         logger=None,
         eps: float = 0.03,
         n_steps: int = 10,
@@ -322,7 +304,7 @@ class FGSMAttackHarmonicLoss(FGSMAttack):
         self.use_sigmoid = use_sigmoid
         self.is_regularized = False
 
-    def step(self, X: torch.Tensor, y_true: torch.Tensor, e=0.0001) -> torch.Tensor:
+    def step(self, X: torch.Tensor, y_true: torch.Tensor, e: float=0.0001) -> torch.Tensor:
         loss = self.get_loss(X, y_true)
         loss_discriminator = -reg_disc(X, self.disc_models, self.use_sigmoid)
         loss_harmonic_mean = 2 * (loss * loss_discriminator) / (loss + loss_discriminator + e)

@@ -1,12 +1,12 @@
 import torch
-
+from typing import List
 from src.attacks.base_attacks import BaseIterativeAttack
 from src.attacks.procedures import BatchIterativeAttack
 from .regularizers import reg_disc
 
 
 class SimBABinary(BaseIterativeAttack, BatchIterativeAttack):
-    def __init__(self, model, criterion, eps, n_steps, estimator, device="cpu", **kwargs):
+    def __init__(self, model: torch.nn.Module, criterion: torch.nn.Module, eps: float, n_steps:int, estimator, device="cpu", **kwargs):
         super().__init__(model, criterion, eps, n_steps, device=device)
         BaseIterativeAttack.__init__(self, model=model, n_steps=n_steps)
         BatchIterativeAttack.__init__(self, estimator=estimator)
@@ -26,7 +26,7 @@ class SimBABinary(BaseIterativeAttack, BatchIterativeAttack):
         self.data_size = data_size
         self.batch_size = batch_size
 
-    def generate_changes(self, X):
+    def generate_changes(self, X: torch.Tensor):
         random_indices = torch.randint(0, X.shape[1], (X.shape[0], 1, 1)).to(self.device)
 
         ones = torch.ones_like(X)
@@ -36,7 +36,7 @@ class SimBABinary(BaseIterativeAttack, BatchIterativeAttack):
         return X_minus, X_plus
 
 
-    def step(self, X, y_true):
+    def step(self, X: torch.Tensor, y_true: torch.Tensor):
         X_minus, X_plus = self.generate_changes(X)
 
         y_pred = self.model(X)
@@ -61,14 +61,14 @@ class SimBABinary(BaseIterativeAttack, BatchIterativeAttack):
 
 class SimBABinaryDiscReg(SimBABinary):
     def __init__(
-        self, model, criterion, eps, n_steps, estimator, alpha, disc_models, device="cpu", use_sigmoid=False,
-    **kwargs):
+        self, model: torch.nn.Module, criterion: torch.nn.Module, eps: float, n_steps: int, 
+        estimator, alpha: float, disc_models: List[torch.nn.Module], device="cpu", use_sigmoid: bool=False, **kwargs):
         super().__init__(model, criterion, eps, n_steps, estimator, device=device)
         self.use_sigmoid = use_sigmoid
         self.alpha = alpha
         self.disc_models = disc_models
 
-    def step(self, X, y_true):
+    def step(self, X: torch.Tensor, y_true: torch.Tensor):
         X_minus, X_plus = self.generate_changes(X)
 
         y_pred = self.model(X)
