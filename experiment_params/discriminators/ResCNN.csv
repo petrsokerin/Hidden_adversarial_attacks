@@ -1,0 +1,13 @@
+model,c_in,c_out,coord,separable,zero_norm,seed,lr,n_epochs,times_reduce_attack,dataset,attack
+ResCNN,1,1,False,False,False,100,0.0001,50,5,Strawberry,Vanilla PGD
+ResCNN,1,1,False,False,False,100,0.001,30,6,Strawberry,Vanilla iFGSM
+ResCNN,1,1,False,False,False,100,0.0001,500,5,GunPointMaleVersusFemale,Vanilla PGD
+ResCNN,1,1,False,False,False,100,0.0001,120,6,GunPointMaleVersusFemale,Vanilla iFGSM
+ResCNN,1,1,False,False,False,100,0.0003,150,3,Coffee,Vanilla PGD
+ResCNN,1,1,False,False,False,100,0.0004,90,3,Coffee,Vanilla iFGSM
+ResCNN,1,1,False,False,False,100,0.0001,250,3,GunPoint,Vanilla PGD
+ResCNN,1,1,False,False,False,100,0.001,150,5,GunPoint,Vanilla iFGSM
+ResCNN,1,1,False,False,False,100,0.0001,500,5,FreezerRegularTrain,Vanilla PGD
+ResCNN,1,1,False,False,False,100,0.0001,60,6,FreezerRegularTrain,Vanilla iFGSM
+ResCNN,1,1,False,False,False,100,0.0004,300,10,PowerCons,Vanilla PGD
+ResCNN,1,1,False,False,False,100,0.001,150,5,PowerCons,Vanilla iFGSM
