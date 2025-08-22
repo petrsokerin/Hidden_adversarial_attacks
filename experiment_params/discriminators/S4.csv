@@ -1,0 +1,12 @@
+model,dropout,hidden_dim,input_dim,output_dim,seed,lr,batch_size,n_epochs,times_reduce_attack,dataset,attack
+S4,0.0001,128,1,1,100,0.001,64,150,5,Strawberry,Vanilla PGD
+S4,0.1,128,1,1,100,0.001,64,180,6,Strawberry,Vanilla iFGSM
+S4,0.0001,1024,1,1,100,0.0001,512,1000,5,GunPointMaleVersusFemale,Vanilla PGD
+S4,0.01,128,1,1,100,0.01,64,120,6,GunPointMaleVersusFemale,Vanilla iFGSM
+S4,0.2,128,1,1,100,0.001,64,150,5,Coffee,Vanilla PGD
+S4,0.2,128,1,1,100,0.001,64,150,5,Coffee,Vanilla iFGSM
+S4,0.2,128,1,1,100,0.0009,64,300,3,GunPoint,Vanilla iFGSM
+S4,0.3,64,1,1,100,0.001,1024,1500,5,FreezerRegularTrain,Vanilla PGD
+S4,0.0001,256,1,1,100,0.01,32,120,6,FreezerRegularTrain,Vanilla iFGSM
+S4,0.5,64,1,1,100,0.0005,512,1000,5,PowerCons,Vanilla PGD
+S4,0.01,128,1,1,100,0.0005,128,500,2,PowerCons,Vanilla iFGSM
