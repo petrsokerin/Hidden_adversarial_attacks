@@ -1,0 +1,13 @@
+model,activation,affine,attn_dropout,c_in,c_out,d_ff,d_model,decomposition,dropout,individual,kernel_size,n_heads,n_layers,norm,padding_patch,patch_len,pre_norm,pred_dim,res_attention,revin,seq_len,store_attn,stride,subtract_last,seed,lr,batch_size,n_epochs,times_reduce_attack,dataset,attack
+PatchTST,gelu,False,0.0,1,1,2048,512,False,0.3,False,25,8,2,BatchNorm,True,16,False,1,True,True,235,False,8,False,100,0.0001,64,150,5,Strawberry,Vanilla PGD
+PatchTST,gelu,False,0.0,1,1,2048,512,False,0.3,False,25,8,2,BatchNorm,True,16,False,1,True,True,235,False,8,False,100,0.001,64,30,6,Strawberry,Vanilla iFGSM
+PatchTST,gelu,False,0.0,1,1,2048,512,False,0.3,False,25,8,2,BatchNorm,True,16,False,1,True,True,150,False,8,False,100,0.0001,64,1000,5,GunPointMaleVersusFemale,Vanilla PGD
+PatchTST,gelu,False,0.0,1,1,2048,512,False,0.3,False,25,8,2,BatchNorm,True,16,False,1,True,True,150,False,8,False,100,0.001,64,120,6,GunPointMaleVersusFemale,Vanilla iFGSM
+PatchTST,gelu,False,0.15,1,1,2048,512,False,0.15,False,25,8,2,BatchNorm,True,16,False,1,True,True,286,False,8,False,100,0.0006,64,250,2,Coffee,Vanilla PGD
+PatchTST,gelu,False,0.1,1,1,2048,512,False,0.1,False,25,8,2,BatchNorm,True,16,False,1,True,True,286,False,8,False,100,0.0004,64,90,3,Coffee,Vanilla iFGSM
+PatchTST,gelu,False,0.01,1,1,2048,512,False,0.01,False,25,8,2,BatchNorm,True,16,False,1,True,True,150,False,8,False,100,0.0004,2048,150,5,GunPoint,Vanilla PGD
+PatchTST,gelu,False,0.1,1,1,2048,512,False,0.1,False,25,8,2,BatchNorm,True,16,False,1,True,True,150,False,8,False,100,0.001,64,150,5,GunPoint,Vanilla iFGSM
+PatchTST,gelu,False,0.0,1,1,2048,512,False,0.3,False,25,8,2,BatchNorm,True,16,False,1,True,True,301,False,8,False,100,0.0001,64,500,5,FreezerRegularTrain,Vanilla PGD
+PatchTST,gelu,False,0.0,1,1,2048,512,False,0.3,False,25,8,2,BatchNorm,True,16,False,1,True,True,${dataset.seq_len},False,8,False,100,0.0001,32,60,6,FreezerRegularTrain,Vanilla iFGSM
+PatchTST,gelu,False,0.09,1,1,1024,256,False,0.09,False,25,4,2,BatchNorm,True,8,False,1,True,True,144,False,6,False,100,0.0004,2048,300,5,PowerCons,Vanilla PGD
+PatchTST,gelu,False,0.1,1,1,2048,512,False,0.1,False,25,8,2,BatchNorm,True,16,False,1,True,True,144,False,8,False,100,0.0001,64,150,5,PowerCons,Vanilla iFGSM
