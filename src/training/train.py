@@ -63,6 +63,7 @@ class Trainer:
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler.LRScheduler,
         n_epochs: int = 30,
+        n_classes: int = 2,
         early_stop_patience: int = None,
         logger: Any = None,
         print_every: int = 5,
@@ -75,9 +76,10 @@ class Trainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
 
-        self.estimator = ClassifierEstimator()
+        self.estimator = ClassifierEstimator(n_classes)
         self.n_epochs = n_epochs
         self.early_stop_patience = early_stop_patience
+        self.n_classes = n_classes
 
         self.device = device
         self.multiclass = multiclass
@@ -100,6 +102,7 @@ class Trainer:
         scheduler_name: str = "None",
         scheduler_params: Dict = None,
         n_epochs: int = 30,
+        n_classes: int = 2,
         early_stop_patience: int = None,
         logger: Any = None,
         print_every: int = 5,
@@ -128,6 +131,7 @@ class Trainer:
             optimizer,
             scheduler,
             n_epochs=n_epochs,
+            n_classes=n_classes,
             early_stop_patience=early_stop_patience,
             logger=logger,
             print_every=print_every,
@@ -268,6 +272,10 @@ class Trainer:
         self.optimizer.zero_grad()
 
         y_preds = self.model(X)
+
+        if isinstance(self.criterion, torch.nn.CrossEntropyLoss):
+            labels = labels.squeeze(-1).long()
+        
         loss = self.criterion(y_preds, labels)
 
         loss.backward()
@@ -278,6 +286,10 @@ class Trainer:
     def _valid_step(self, X: torch.Tensor, labels: torch.Tensor) -> Tuple[torch.Tensor]:
         with torch.no_grad():
             y_preds = self.model(X)
+            
+            if isinstance(self.criterion, torch.nn.CrossEntropyLoss):
+                labels = labels.squeeze(-1).long()
+            
             loss = self.criterion(y_preds, labels)
         return loss, y_preds
 
@@ -314,9 +326,15 @@ class Trainer:
 
         mean_loss = losses.cpu().detach().numpy() / len(loader)
 
-        y_all_pred = y_all_pred.numpy().reshape([-1, 1])
-        y_all_pred_prob = y_all_pred_prob.numpy().reshape([-1, 1])
-        y_all_true = y_all_true.numpy().reshape([-1, 1])
+        y_all_true = y_all_true.numpy().reshape(-1)
+
+        if self.n_classes > 2:
+            y_all_pred = y_all_pred.argmax(dim=-1).numpy()
+            y_all_pred_prob = y_all_pred_prob.numpy() 
+        else:
+            y_all_pred = y_all_pred.numpy().reshape(-1)
+            y_all_pred_prob = y_all_pred_prob.numpy().reshape(-1)
+
 
         metrics = self.estimator.estimate(y_all_true, y_all_pred, y_all_pred_prob)
 

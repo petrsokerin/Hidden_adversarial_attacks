@@ -1,6 +1,7 @@
 import os
 import warnings
 
+import time
 import hydra
 import pandas as pd
 import torch
@@ -21,6 +22,8 @@ CONFIG_PATH = "config"
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
+    start_time = time.time() 
+
     if cfg["test_run"]:
         print("ATTENTION!!!! Results will not be saved. Set param test_run=False")
         logger = None
@@ -113,12 +116,14 @@ def main(cfg: DictConfig):
         cfg["metric_effect"],
         cfg["metric_hid"],
         batch_size=cfg["estimator_batch_size"],
+        n_classes = cfg["dataset"]["num_classes"]
     )
 
     attack_params = dict(cfg["attack"]["attack_params"])
     attack_params["model"] = attack_model
     attack_params["criterion"] = criterion
     attack_params["estimator"] = estimator
+    attack_params["n_classes"] = cfg["dataset"]["num_classes"]
 
     if "list_reg_model_params" in cfg["attack"]:
         attack_params["disc_models"] = get_disc_list(
@@ -167,6 +172,10 @@ def main(cfg: DictConfig):
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
 
     attack.apply_attack(test_loader, logger)
+
+    end_time = time.time()
+    total_time = end_time - start_time
+    print(f"Total wall clock time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
 
     if not cfg["test_run"]:
         print("Saving")

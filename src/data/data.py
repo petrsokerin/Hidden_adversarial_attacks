@@ -12,14 +12,19 @@ from tsai.data.core import TSTensor
 
 
 def load_data(dataset: str = "FordA") -> Tuple[np.ndarray]:
-    return load_UCR(dataset)
+    if dataset in ["Epilepsy"]:
+        return load_UEA(dataset)
+    else:
+        return load_UCR(dataset)
 
 
 def load_UCR(dataset: str) -> Tuple[np.ndarray]:
+
     train_file = os.path.join("data/UCR", dataset, dataset + "_TRAIN.tsv")
     test_file = os.path.join("data/UCR", dataset, dataset + "_TEST.tsv")
     train_df = pd.read_csv(train_file, sep="\t", header=None)
     test_df = pd.read_csv(test_file, sep="\t", header=None)
+
     train_array = np.array(train_df)
     test_array = np.array(test_df)
 
@@ -83,8 +88,8 @@ def load_UCR(dataset: str) -> Tuple[np.ndarray]:
 
 
 def load_UEA(dataset: str) -> Tuple[np.ndarray]:
-    train_data = loadarff(f"data/TS2Vec/UEA/{dataset}/{dataset}_TRAIN.arff")[0]
-    test_data = loadarff(f"data/TS2Vec/UEA/{dataset}/{dataset}_TEST.arff")[0]
+    train_data = loadarff(f"data/UEA/{dataset}/{dataset}_TRAIN.arff")[0]
+    test_data = loadarff(f"data/UEA/{dataset}/{dataset}_TEST.arff")[0]
 
     def extract_data(data):
         res_data = []
@@ -137,8 +142,10 @@ def transform_data(
     slice_data: bool = True,
     window: int = 50,
 ) -> Tuple[torch.Tensor]:
-    X_train = X_train.reshape(X_train.shape[0], X_train.shape[1])
-    X_test = X_test.reshape(X_test.shape[0], X_test.shape[1])
+
+    if X_train.shape[-1] == 1:
+        X_train = X_train.squeeze(-1)
+        X_test = X_test.squeeze(-1)
 
     # transform from -1,1 labels to 0,1.
     if len(np.unique(y_train)) == 2:
@@ -237,9 +244,10 @@ class MyDataset(Dataset):
 
     def __getitem__(self, idx: Any) -> Tuple[torch.Tensor]:
         X = torch.tensor(self.X[idx], dtype=torch.float32)
-
-        X = X.reshape([-1, 1])
         y = torch.tensor(self.y[idx], dtype=torch.float32)
+
+        if len(X.shape) == 1:
+            X = X.unsqueeze(-1)
 
         if self.transform:
             X = self.transform(X)

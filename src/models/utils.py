@@ -54,6 +54,8 @@ def Activation(activation=None, dim=-1):
         return nn.Sigmoid()
     elif activation == "softplus":
         return nn.Softplus()
+    elif activation == "softmax":
+        return nn.Softmax()
     else:
         raise NotImplementedError(
             "hidden activation '{}' is not implemented".format(activation)

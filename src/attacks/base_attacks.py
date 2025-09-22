@@ -21,11 +21,12 @@ from src.utils import (
 
 class BaseIterativeAttack(ABC):
     def __init__(
-        self, model: torch.nn.Module, n_steps: int = 50, *args, **kwargs
+        self, model: torch.nn.Module, n_steps: int = 50, n_classes=2, *args, **kwargs
     ) -> None:
         self.model = model
         self.device = next(model.parameters()).device
         self.n_steps = n_steps
+        self.n_classes = n_classes
 
     @abstractmethod
     def step(self, X: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
