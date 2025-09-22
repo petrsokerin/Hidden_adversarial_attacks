@@ -298,7 +298,6 @@ class Trainer:
         if mode not in ['train', 'valid']:
             raise ValueError("mode should be train or valid")
         losses = 0
-        y_all_pred = torch.tensor([])
         y_all_pred_prob = torch.tensor([])
         y_all_true = torch.tensor([])
 
@@ -312,29 +311,21 @@ class Trainer:
             elif mode == "valid":
                 loss, y_preds = self._valid_step(X, labels)
 
-            if self.multiclass:
-                y_pred = torch.argmax(y_preds, axis=1)
-            else:
-                y_pred = torch.round(y_preds)
-
             losses += loss
             y_all_true = torch.cat((y_all_true, labels.cpu().detach()), dim=0)
             y_all_pred_prob = torch.cat(
                 (y_all_pred_prob, y_preds.cpu().detach()), dim=0
             )
-            y_all_pred = torch.cat((y_all_pred, y_pred.cpu().detach()), dim=0)
 
         mean_loss = losses.cpu().detach().numpy() / len(loader)
-
         y_all_true = y_all_true.numpy().reshape(-1)
 
-        if self.n_classes > 2:
-            y_all_pred = y_all_pred.argmax(dim=-1).numpy()
+        if self.n_classes > 2 and not self.disc_trainer:
+            y_all_pred = y_all_pred_prob.argmax(dim=-1).numpy()
             y_all_pred_prob = y_all_pred_prob.numpy() 
         else:
-            y_all_pred = y_all_pred.numpy().reshape(-1)
+            y_all_pred = y_all_pred_prob.round().numpy().reshape(-1)
             y_all_pred_prob = y_all_pred_prob.numpy().reshape(-1)
-
 
         metrics = self.estimator.estimate(y_all_true, y_all_pred, y_all_pred_prob)
 
@@ -374,6 +365,7 @@ class DiscTrainer(Trainer):
         scheduler: torch.optim.lr_scheduler.LRScheduler,
         attack_scheduler: AttackScheduler,
         n_epochs: int = 30,
+        n_classes = 2,
         early_stop_patience: int = None,
         logger: Any = None,
         print_every: int = 5,
@@ -387,6 +379,7 @@ class DiscTrainer(Trainer):
             optimizer=optimizer,
             scheduler=scheduler,
             n_epochs=n_epochs,
+            n_classes = n_classes,
             early_stop_patience=early_stop_patience,
             logger=logger,
             print_every=print_every,
@@ -398,6 +391,7 @@ class DiscTrainer(Trainer):
         self.train_attack = attack
         self.test_attack = copy.deepcopy(attack)
         self.attack_scheduler = attack_scheduler
+        self.disc_trainer = True
 
     @staticmethod
     def initialize_with_params(
@@ -414,6 +408,7 @@ class DiscTrainer(Trainer):
         attack_scheduler_name: str = "None",
         attack_scheduler_params: Dict = None,
         n_epochs: int = 30,
+        n_classes = 2,
         early_stop_patience: int = None,
         logger: Any = None,
         print_every: int = 5,
@@ -450,6 +445,7 @@ class DiscTrainer(Trainer):
             scheduler=scheduler,
             attack_scheduler=attack_scheduler,
             n_epochs=n_epochs,
+            n_classes = n_classes,
             early_stop_patience=early_stop_patience,
             logger=logger,
             print_every=print_every,
@@ -518,8 +514,9 @@ class DiscTrainer(Trainer):
         self, loader: DataLoader, transform=None, train=False
     ) -> DataLoader:
         X_orig = torch.tensor(loader.dataset.X)
+
         attack = self.train_attack if train else self.test_attack
-        X_adv = attack.apply_attack(loader, self.logger).squeeze(-1)
+        X_adv = attack.apply_attack(loader, self.logger) #.squeeze(-1)
 
         assert X_orig.shape == X_adv.shape
 
