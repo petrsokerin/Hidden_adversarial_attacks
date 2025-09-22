@@ -49,9 +49,6 @@ class BatchIterativeAttack:
         X_orig = X_orig.detach().numpy()
         X_adv = X_adv.detach().numpy()
 
-        # print(self.n_classes)
-        # print("-----------", y_true.shape, y_pred.shape)
-
         metrics_line = self.estimator.estimate(
             y_true, y_pred, y_pred_classes, y_pred_orig_classes, X_orig, X_adv, step_id
         )

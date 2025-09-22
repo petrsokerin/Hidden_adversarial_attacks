@@ -34,7 +34,6 @@ class FGSMAttack(BaseIterativeAttack, BatchIterativeAttack):
         self.model.zero_grad()
         y_pred = self.model(X)
         
-        # print("-----//------", y_pred.shape)
         if isinstance(self.criterion, torch.nn.CrossEntropyLoss):
             y_true = y_true.view(-1).long()
 

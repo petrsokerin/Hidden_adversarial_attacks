@@ -129,12 +129,14 @@ def main(cfg: DictConfig):
         cfg["metric_effect"],
         cfg["metric_hid"],
         batch_size=cfg["estimator_batch_size"],
+        n_classes=cfg["dataset"]["num_classes"],
     )
 
     attack_params = dict(cfg["attack"]["attack_params"])
     attack_params["model"] = attack_model
     attack_params["criterion"] = criterion
     attack_params["estimator"] = estimator
+    attack_params["n_classes"] = cfg["dataset"]["num_classes"]
 
     if "list_reg_model_params" in cfg["attack"]:
         attack_params["disc_models"] = get_disc_list(
@@ -153,6 +155,7 @@ def main(cfg: DictConfig):
             "device": device,
             "seed": cfg['model_id'],
             "train_self_supervised": cfg["train_self_supervised"],
+            "n_classes": cfg['dataset']['num_classes'],
     }
 
     if cfg["enable_optimization"]:
