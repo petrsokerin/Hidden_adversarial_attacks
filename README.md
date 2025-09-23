@@ -260,7 +260,7 @@ the second best is <mark>highlighted</mark>.
 | Attack                          | epsilon | num of iterations | epochs | lr      | alpha_l2   | patience |
 |---------------------------------|---------|-------------------|--------|---------|------------|----------|
 | FGSM                            | 1       | -                 | -      | -       | -          | -        |
-| iFSSM                           | 1       | 10                | -      | -       | -          | -        |
+| iFGSM                           | 1       | 10                | -      | -       | -          | -        |
 | Iterative Gen. Attacks (LSTM)   | 1.2     | 13                | 30     | 0.0006  | 0.0002     | 10       |
 | Iterative Gen. Attacks (ResCNN) | 2.4     | 15                | 30     | 0.004   | 0.004      | 10       |
 | Iterative Gen. Attacks (PatchTST)| 0.4    | 13               | 30     | 0.0006  | 0.0002     | 10       |
