@@ -249,62 +249,21 @@ the second best is <mark>highlighted</mark>.
 
 ## Hyperparameters
 
-<table>
-  <caption><b>Сlassifiers</b></caption>
-  <thead>
-    <tr>
-      <th>epochs</th>
-      <th>lr</th>
-      <th>weight_decay</th>
-      <th>patience</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>50</td>
-      <td>0.001</td>
-      <td>0.0001</td>
-      <td>4</td>
-    </tr>
-  </tbody>
-</table>
+### Classifiers
+| epochs | lr    | weight_decay | patience |
+|--------|-------|--------------|----------|
+| 50     | 0.001 | 0.0001       | 4        |
 
-<table>
-  <thead>
-    <tr>
-      <th>Attack</th>
-      <th>eps</th>
-      <th>num of iterations</th>
-      <th>epochs</th>
-      <th>lr</th>
-      <th>alpha_l2</th>
-      <th>patience</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>FGSM</td><td>1</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
-    </tr>
-    <tr>
-      <td>iFSSM</td><td>1</td><td>10</td><td>-</td><td>-</td><td>-</td><td>-</td>
-    </tr>
-    <tr>
-      <td>Iterative Gen. Attacks (LSTM)</td><td>1.2</td><td>13</td><td>30</td><td>0.0006</td><td>0.0002</td><td>10</td>
-    </tr>
-    <tr>
-      <td>Iterative Gen. Attacks (ResCNN)</td><td>2.4</td><td>15</td><td>30</td><td>0.004</td><td>0.004</td><td>10</td>
-    </tr>
-    <tr>
-      <td>Iterative Gen. Attacks (PatchTST)</td><td>0.4</td><td>13</td><td>30</td><td>0.0006</td><td>0.0002</td><td>10</td>
-    </tr>
-    <tr>
-      <td>Gen. Attacks (LSTM)</td><td>1.4</td><td>-</td><td>50</td><td>0.02</td><td>0.0006</td><td>10</td>
-    </tr>
-    <tr>
-      <td>Gen. Attacks (ResCNN)</td><td>2.1</td><td>-</td><td>50</td><td>0.0002</td><td>0.000045</td><td>10</td>
-    </tr>
-    <tr>
-      <td>Gen. Attacks (PatchTST)</td><td>1.5</td><td>-</td><td>50</td><td>0.0002</td><td>0.0001</td><td>10</td>
-    </tr>
-  </tbody>
-</table>
+---
+
+### Attacks
+| Attack                          | eps | num of iterations | epochs | lr      | alpha_l2   | patience |
+|---------------------------------|-----|-------------------|--------|---------|------------|----------|
+| FGSM                            | 1   | -                 | -      | -       | -          | -        |
+| iFSSM                           | 1   | 10                | -      | -       | -          | -        |
+| Iterative Gen. Attacks (LSTM)   | 1.2 | 13                | 30     | 0.0006  | 0.0002     | 10       |
+| Iterative Gen. Attacks (ResCNN) | 2.4 | 15                | 30     | 0.004   | 0.004      | 10       |
+| Iterative Gen. Attacks (PatchTST)| 0.4 | 13               | 30     | 0.0006  | 0.0002     | 10       |
+| Gen. Attacks (LSTM)             | 1.4 | -                 | 50     | 0.02    | 0.0006     | 10       |
+| Gen. Attacks (ResCNN)           | 2.1 | -                 | 50     | 0.0002  | 0.000045   | 10       |
+| Gen. Attacks (PatchTST)         | 1.5 | -                 | 50     | 0.0002  | 0.0001     | 10       |
