@@ -246,3 +246,24 @@ the second best is <mark>highlighted</mark>.
     </tr>
   </tbody>
 </table>
+
+## Hyperparameters
+
+### Classifiers
+| epochs | lr    | weight_decay | patience |
+|--------|-------|--------------|----------|
+| 50     | 0.001 | 0.0001       | 4        |
+
+---
+
+### Attacks
+| Attack                          | epsilon | num of iterations | epochs | lr      | alpha_l2   | patience |
+|---------------------------------|---------|-------------------|--------|---------|------------|----------|
+| FGSM                            | 1       | -                 | -      | -       | -          | -        |
+| iFGSM                           | 1       | 10                | -      | -       | -          | -        |
+| Iterative Gen. Attacks (LSTM)   | 1.2     | 13                | 30     | 0.0006  | 0.0002     | 10       |
+| Iterative Gen. Attacks (ResCNN) | 2.4     | 15                | 30     | 0.004   | 0.004      | 10       |
+| Iterative Gen. Attacks (PatchTST)| 0.4    | 13               | 30     | 0.0006  | 0.0002     | 10       |
+| Gen. Attacks (LSTM)             | 1.4     | -                 | 50     | 0.02    | 0.0006     | 10       |
+| Gen. Attacks (ResCNN)           | 2.1     | -                 | 50     | 0.0002  | 0.000045   | 10       |
+| Gen. Attacks (PatchTST)         | 1.5     | -                 | 50     | 0.0002  | 0.0001     | 10       |
