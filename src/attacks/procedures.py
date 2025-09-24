@@ -10,11 +10,10 @@ from src.estimation import BaseEstimator
 
 
 class BatchIterativeAttack:
-    def __init__(self, estimator: BaseEstimator=None, logger=None, n_classes=2, *args, **kwargs) -> None:
+    def __init__(self, estimator: BaseEstimator=None, logger=None, *args, **kwargs) -> None:
         self.logging = bool(estimator)
         self.estimator = estimator
         self.logger = logger
-        self.n_classes = n_classes
 
         if self.logging:
             print("logging")
@@ -33,24 +32,17 @@ class BatchIterativeAttack:
         X_adv: torch.Tensor = None,
         step_id: int = 0,
     ) -> None:
-        
         y_true = y_true.flatten().numpy()
-
-        if self.n_classes > 2:
-            y_pred_classes = y_pred.argmax(dim=-1).numpy()
-            y_pred_orig_classes = y_pred_orig.argmax(dim=-1).numpy()
-
-        else:
-            y_pred = y_pred.flatten().numpy()
-            y_pred_orig = y_pred_orig.flatten().numpy()
-            y_pred_classes = np.round(y_pred)
-            y_pred_orig_classes = np.round(y_pred_orig)
+        y_pred = y_pred.flatten().numpy()
+        y_pred_orig = y_pred_orig.flatten().numpy()
+        y_pred_classes = np.round(y_pred)
+        y_pred_orig_classes = np.round(y_pred_orig)
 
         X_orig = X_orig.detach().numpy()
         X_adv = X_adv.detach().numpy()
 
         metrics_line = self.estimator.estimate(
-            y_true, y_pred, y_pred_classes, y_pred_orig_classes, X_orig, X_adv, step_id
+            y_true, y_pred_classes, y_pred_orig_classes, X_orig, X_adv, step_id
         )
 
         for metric_name, metric_val in zip(self.estimator.metrics_names, metrics_line):
@@ -154,11 +146,7 @@ class BatchIterativeAttack:
         if self.logging:
             y_pred_orig = self.get_model_predictions(loader)
             y_pred_orig = y_pred_orig.cpu().detach()
-            X_orig = loader.dataset.X
-
-            if self.n_classes == 2:
-                X_orig = X_orig.unsqueeze(-1)
-
+            X_orig = loader.dataset.X.unsqueeze(-1)
             self.log_step(
                 y_true=y_true,
                 y_pred=y_pred_orig,

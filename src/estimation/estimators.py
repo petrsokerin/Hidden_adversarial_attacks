@@ -6,8 +6,6 @@ import torch
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
-    recall_score,
-    precision_score,
     f1_score,
     roc_auc_score,
 )
@@ -30,15 +28,12 @@ class BaseEstimator(ABC):
 
 
 class ClassifierEstimator(BaseEstimator):
-    def __init__(self, n_classes: int) -> None:
-
-        average = 'macro' if n_classes > 2 else 'binary'
-
+    def __init__(self) -> None:
         self.sklearn_metrics = {
-            "accuracy": (accuracy_score, {}),
-            "precision": (precision_score, {"average": average}),
-            "recall": (recall_score, {"average": average}),
-            "f1": (f1_score, {"average": average}),
+            "accuracy": accuracy_score,
+            "precision": roc_auc_score,
+            "recall": average_precision_score,
+            "f1": f1_score,
         }
         self.metrics_names = list(self.sklearn_metrics.keys()) + [
             "balance_true",
@@ -64,8 +59,8 @@ class ClassifierEstimator(BaseEstimator):
         self, y_true: np.ndarray, y_pred: np.ndarray, y_pred_probs: np.ndarray
     ) -> List[float]:
         metrics_res = []
-        for _, (metric_func, params) in self.sklearn_metrics.items():
-            metrics_res.append(metric_func(y_true, y_pred, **params))
+        for _, metric_func in self.sklearn_metrics.items():
+            metrics_res.append(metric_func(y_true, y_pred))
 
         metrics_res.append(self.balance(y_true))
         metrics_res.append(self.balance(y_pred))
@@ -80,23 +75,16 @@ class AttackEstimator(BaseEstimator):
         metric_effect: str = "F1",
         metric_hid: str = "PROB_HID",
         batch_size: int = None,
-        n_classes: int = 2,
     ) -> None:
-        
-        multi_class_params = {'multi_class':'ovr'} if n_classes > 2 else {}
-        average = 'macro' if n_classes > 2 else 'binary'
-
         self.metrics = {
-            "ACC": (accuracy_score,{}),
-            "ROC": (roc_auc_score, multi_class_params),
-            "PR": (average_precision_score, {}),
-            "F1": (f1_score,{"average": average}),
+            "ACC": accuracy_score,
+            "ROC": roc_auc_score,
+            "PR": average_precision_score,
+            "F1": f1_score,
         }
-
         self.metric_effect = metric_effect
         self.metric_hid = metric_hid
         self.batch_size = batch_size
-        self.n_classes = n_classes
 
         self.metrics_names = list(self.metrics.keys()) + ["EFF", "L1", "ACC_CORRECT", "ACC_ORIG_ADV", "ROUGHNESS", "ROUGHNESS_NORM"]
 
@@ -114,27 +102,17 @@ class AttackEstimator(BaseEstimator):
 
     @staticmethod
     def accuracy_correct_predicted(y_true: np.ndarray, y_pred: np.ndarray, y_pred_orig: np.ndarray):
-        orig_correct_mask = y_pred_orig == y_true
+        orig_correct_mask= y_pred_orig == y_true
         return accuracy_score(y_true[orig_correct_mask], y_pred[orig_correct_mask])
 
 
     def calculate_effectiveness(
-        self,
-        y_true: np.ndarray,
-        y_pred_probs: np.ndarray,
-        y_pred_classes: np.ndarray
-    ) -> Dict[str, float]:
+        self, y_true: np.ndarray, y_pred: np.ndarray
+    ) -> List[float]:
         metric_res = {}
 
-        for metric_name, (metric_func, params) in self.metrics.items():
-            try:
-                if metric_name in ["ROC", "PR"]:  # needs probabilities
-                    metric_res[metric_name] = metric_func(y_true, y_pred_probs, **params)
-                else:  # works with class labels
-                    metric_res[metric_name] = metric_func(y_true, y_pred_classes, **params)
-            except Exception as e:
-                print(f"Failed to compute {metric_name}: {e}")
-                metric_res[metric_name] = np.nan
+        for metric_name, metric_func in self.metrics.items():
+            metric_res[metric_name] = metric_func(y_true, y_pred)
 
         metric_res["EFF"] = 1 - metric_res[self.metric_effect]
         return metric_res
@@ -223,11 +201,6 @@ class AttackEstimator(BaseEstimator):
 
     @staticmethod
     def calculate_l1(X_orig: np.ndarray, X_adv: np.ndarray) -> float:
-
-        # print("sdjhfljlksjfkjsklfjklf", X_orig.shape, X_adv.shape)
-        # X_orig = X_orig.squeeze(-1)
-        # X_adv = X_adv.squeeze(-1)
-
         data_shape_no_ax0 = tuple(np.arange(1, len(X_adv.shape)))
         l1_vector = np.sum(np.abs(X_orig - X_adv), axis=data_shape_no_ax0)
         assert l1_vector.shape[0] == len(X_orig)
@@ -244,22 +217,19 @@ class AttackEstimator(BaseEstimator):
         self,
         y_true: np.ndarray,
         y_pred: np.ndarray,
-        y_pred_classes: np.ndarray,
         y_pred_orig: np.ndarray,
         X_orig: np.ndarray,
         X_adv: np.ndarray,
         step_id: int,
     ) -> List[float]:
-        # assert y_true.shape == y_pred.shape
-        # assert X_orig.shape == X_adv.shape
+        assert y_true.shape == y_pred.shape
+        assert X_orig.shape == X_adv.shape
 
-        # print(y_pred.shape)
-
-        metrics = self.calculate_effectiveness(y_true, y_pred, y_pred_classes)
+        metrics = self.calculate_effectiveness(y_true, y_pred)
 
         metrics["L1"] = self.calculate_l1(X_orig, X_adv)
-        metrics["ACC_ORIG_ADV"] = accuracy_score(y_pred_orig, y_pred_classes)
-        metrics['ACC_CORRECT'] =  self.accuracy_correct_predicted(y_true, y_pred_classes, y_pred_orig)
+        metrics["ACC_ORIG_ADV"] = accuracy_score(y_pred_orig, y_pred)
+        metrics['ACC_CORRECT'] =  self.accuracy_correct_predicted(y_true, y_pred, y_pred_orig)
         metrics['ROUGHNESS'] = calculate_roughness(X_adv)
         metrics['ROUGHNESS_NORM'] = metrics['ROUGHNESS']/calculate_roughness(X_orig)
 

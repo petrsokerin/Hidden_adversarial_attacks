@@ -1,7 +1,6 @@
 import os
 import warnings
 
-import time
 import hydra
 import torch
 from hydra.utils import instantiate
@@ -24,7 +23,6 @@ CONFIG_PATH = "config"
 torch.cuda.empty_cache()
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
-    start_time = time.time()
 
     if cfg["test_run"]:
         print("ATTENTION!!!! Results will not be saved. Set param test_run=False")
@@ -59,8 +57,8 @@ def main(cfg: DictConfig):
 
     X_train, y_train, X_test, y_test = load_data(cfg["dataset"]['name'])
 
-    if cfg["dataset"]["num_classes"] > 2:
-        print(f"--- You have {cfg['dataset']['num_classes']} classes ---")
+    if len(set(y_test)) > 2:
+        return None
 
     X_train, X_test, y_train, y_test = transform_data(
         X_train,
@@ -129,14 +127,12 @@ def main(cfg: DictConfig):
         cfg["metric_effect"],
         cfg["metric_hid"],
         batch_size=cfg["estimator_batch_size"],
-        n_classes=cfg["dataset"]["num_classes"],
     )
 
     attack_params = dict(cfg["attack"]["attack_params"])
     attack_params["model"] = attack_model
     attack_params["criterion"] = criterion
     attack_params["estimator"] = estimator
-    attack_params["n_classes"] = cfg["dataset"]["num_classes"]
 
     if "list_reg_model_params" in cfg["attack"]:
         attack_params["disc_models"] = get_disc_list(
@@ -155,7 +151,6 @@ def main(cfg: DictConfig):
             "device": device,
             "seed": cfg['model_id'],
             "train_self_supervised": cfg["train_self_supervised"],
-            "n_classes": cfg['dataset']['num_classes'],
     }
 
     if cfg["enable_optimization"]:
@@ -204,9 +199,6 @@ def main(cfg: DictConfig):
     # else:
     #     pass
 
-    end_time = time.time()
-    total_time = end_time - start_time
-    print(f"Total wall clock time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
 
     if not cfg["test_run"]:
         print("Saving")
