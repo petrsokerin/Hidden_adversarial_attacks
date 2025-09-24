@@ -1,5 +1,6 @@
 import warnings
 
+import time
 import hydra
 import torch
 from hydra.utils import instantiate
@@ -19,6 +20,7 @@ CONFIG_PATH = "config"
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
+    start_time = time.time() 
 
     if not cfg["test_run"]:
         exp_name = cfg['exp_name'][1:] if cfg['exp_name'][0] == '_' else cfg['exp_name']
@@ -43,10 +45,7 @@ def main(cfg: DictConfig):
     else:
         logger = None
 
-
     print("trainig model", cfg['model_id'])
-
-    fix_seed(cfg['model_id'])
 
     augmentator = (
         [instantiate(trans) for trans in cfg["transform_data"]]
@@ -56,8 +55,10 @@ def main(cfg: DictConfig):
 
     # load data
     X_train, y_train, X_test, y_test = load_data(cfg["dataset"]['name'])
-    if len(set(y_test)) > 2:
-        return None
+
+    if cfg["dataset"]["num_classes"] > 2:
+        print(f"--- You have {cfg['dataset']['num_classes']} classes ---")
+    
     X_train, X_test, y_train, y_test = transform_data(
         X_train,
         X_test,
@@ -85,7 +86,8 @@ def main(cfg: DictConfig):
         "print_every": cfg["print_every"],
         "device": device,
         "seed": cfg['model_id'],
-        "train_self_supervised": cfg['train_self_supervised']
+        "train_self_supervised": cfg['train_self_supervised'],
+        "n_classes": cfg["dataset"]["num_classes"]
     }
     if cfg["enable_optimization"]:
         const_params['logger'] = None
@@ -98,6 +100,10 @@ def main(cfg: DictConfig):
         trainer = Trainer.initialize_with_params(**trainer_params)
 
     trainer.train_model(train_loader, test_loader)
+
+    end_time = time.time()
+    total_time = end_time - start_time
+    print(f"Total wall clock time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
 
     if not cfg["test_run"]:
         logger.close()
