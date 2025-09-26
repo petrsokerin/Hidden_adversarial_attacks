@@ -116,11 +116,12 @@ class FGSMRegDiscAttack(FGSMAttack):
         eps: float = 0.03,
         alpha: float = 0.0,
         n_steps: int = 10,
+        n_classes = 2,
         use_sigmoid: bool = False,
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(model, criterion, estimator, logger, eps, n_steps=n_steps)
+        super().__init__(model, criterion, estimator, logger, eps, n_steps=n_steps, n_classes=n_classes)
         self.alpha = alpha
         self.disc_models = disc_models
         self.use_sigmoid = use_sigmoid
