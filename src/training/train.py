@@ -516,7 +516,11 @@ class DiscTrainer(Trainer):
         X_orig = torch.tensor(loader.dataset.X)
 
         attack = self.train_attack if train else self.test_attack
-        X_adv = attack.apply_attack(loader, self.logger) #.squeeze(-1)
+
+        if self.n_classes > 2:
+            X_adv = attack.apply_attack(loader, self.logger)
+        else:
+            X_adv = attack.apply_attack(loader, self.logger).squeeze(-1)
 
         assert X_orig.shape == X_adv.shape
 
