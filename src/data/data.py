@@ -12,9 +12,9 @@ from tsai.data.core import TSTensor
 
 
 def load_data(dataset: str = "FordA") -> Tuple[np.ndarray]:
-    if dataset in ["Epilepsy"]:
+    try:
         return load_UEA(dataset)
-    else:
+    except:
         return load_UCR(dataset)
 
 
