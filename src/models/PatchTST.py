@@ -6,12 +6,11 @@ from .utils import Activation
 
 
 class PatchTST(BaseModel):
-    def __init__(self, activation_type: str = "sigmoid", inference_mode=False, **kwargs) -> None:
+    def __init__(self, activation_type: str = "sigmoid", c_in=1, **kwargs) -> None:
         super().__init__()
-        self.model = mdls.PatchTST(**kwargs).float()
+        self.model = mdls.PatchTST(c_in=c_in, **kwargs).float()
         self.final_activation = Activation(activation_type)
-        self.c_in = kwargs["c_in"]
-        self.inf_mode = inference_mode
+        self.c_in = c_in
 
         if self.c_in > 1:
             self.pred_head = torch.nn.Sequential(
