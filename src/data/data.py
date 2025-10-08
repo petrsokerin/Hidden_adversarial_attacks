@@ -12,10 +12,21 @@ from tsai.data.core import TSTensor
 
 
 def load_data(dataset: str = "FordA") -> Tuple[np.ndarray]:
-    try:
+    uea_path = os.path.join("data", "UEA", dataset)
+    ucr_path = os.path.join("data", "UCR", dataset)
+
+    available_dirs = []
+    if os.path.exists("data"):
+        available_dirs = os.listdir("data")
+
+    if "UEA" in available_dirs and os.path.isdir(uea_path):
         return load_UEA(dataset)
-    except:
+    elif "UCR" in available_dirs and os.path.isdir(ucr_path):
         return load_UCR(dataset)
+    else:
+        raise FileNotFoundError(
+            f"Dataset '{dataset}' not found in either 'data/UEA' or 'data/UCR'."
+        )
 
 
 def load_UCR(dataset: str) -> Tuple[np.ndarray]:
