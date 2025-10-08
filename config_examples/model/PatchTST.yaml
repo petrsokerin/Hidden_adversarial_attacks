@@ -2,9 +2,9 @@ name: PatchTST
 
 params:
   seq_len: ${dataset.seq_len}
-  c_in: 1
-  c_out: 1
-  pred_dim: 1
+  c_in: 1 # ${dataset.num_dim} if multivariate
+  c_out: 1 # always 1
+  pred_dim: 1 # ${dataset.n_classes} or 1 if binary
   n_layers: 2
   n_heads: 8
   d_model: 512

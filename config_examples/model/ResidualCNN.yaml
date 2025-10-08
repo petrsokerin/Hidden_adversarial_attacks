@@ -1,8 +1,8 @@
 name: ResidualCNN
 
 params:
-  c_in: 1 # по умолчанию
-  c_out: 1 # по умолчанию
+  c_in: 1 # ${dataset.num_dim}
+  c_out: 1 # ${dataset.n_classes} or 1 if binary
   coord: False
   separable: False
   zero_norm: False
