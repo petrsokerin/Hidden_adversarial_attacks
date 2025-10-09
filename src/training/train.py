@@ -71,6 +71,10 @@ class Trainer:
         multiclass: bool = False,
         train_self_supervised: bool = True,
     ) -> None:
+        
+        if n_classes < 2:
+            raise ValueError(f"Invalid n_classes={n_classes}. Must be >= 2 for classification tasks.")
+        
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
@@ -516,7 +520,10 @@ class DiscTrainer(Trainer):
         X_orig = torch.tensor(loader.dataset.X)
 
         attack = self.train_attack if train else self.test_attack
-        X_adv = attack.apply_attack(loader, self.logger) #.squeeze(-1)
+
+        X_adv = attack.apply_attack(loader, self.logger)
+        if self.n_classes == 2:
+            X_adv = X_adv.squeeze(-1)
 
         assert X_orig.shape == X_adv.shape
 

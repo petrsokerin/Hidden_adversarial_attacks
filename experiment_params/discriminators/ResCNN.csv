@@ -4,7 +4,7 @@ ResCNN,1,1,False,False,False,100,0.001,64,30,6,Strawberry,Vanilla iFGSM
 ResCNN,1,1,False,False,False,100,0.0001,64,500,5,GunPointMaleVersusFemale,Vanilla PGD
 ResCNN,1,1,False,False,False,100,0.0001,64,120,6,GunPointMaleVersusFemale,Vanilla iFGSM
 ResCNN,1,1,False,False,False,100,0.0003,64,150,3,Coffee,Vanilla PGD
-ResCNN,1,1,False,False,False,100,0.0004,64,90,3,Coffee,Vanilla iFGSM
+ResCNN,1,1,False,False,False,100,0.0001,32,250,5,Coffee,Vanilla iFGSM
 ResCNN,1,1,False,False,False,100,0.0001,64,250,3,GunPoint,Vanilla PGD
 ResCNN,1,1,False,False,False,100,0.001,64,150,5,GunPoint,Vanilla iFGSM
 ResCNN,1,1,False,False,False,100,0.0001,64,500,5,FreezerRegularTrain,Vanilla PGD

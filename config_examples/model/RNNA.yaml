@@ -2,8 +2,8 @@ name: RNNA
 
 params:
   seq_len: ${dataset.seq_len}
-  c_in: 1 # по умолчанию
-  c_out: 1 # по умолчанию
+  c_in: 1 # ${dataset.num_dim} if multivariate
+  c_out: 1 # ${dataset.n_classes} or 1 if binary
   hidden_size: 256
   rnn_layers: 1
   bias: True
