@@ -27,7 +27,8 @@ defaults:
   - model@attack_model: ResidualCNN
   - model@disc_model_reg: ResidualCNN
   - model@disc_model_check: ResidualCNN
-  - attack_disc@attack: FGSM
+  # - attack_disc@attack: FGSM
+  - attack@attack: FGSM
 
 criterion_name: BCELoss
 criterion_params: null

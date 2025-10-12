@@ -3,3 +3,4 @@ from .fgsm import *
 from .simba import *
 from .pgd import *
 from .kll2 import *
+from .mba import *

@@ -43,7 +43,7 @@ metric_effect: F1
 metric_hid: ROC_AUC_DISC
 
 list_check_model_params:
-  - model_ResidualCNN_100_PowerCons_attack_fgsm_attack__eps=0.03__n_steps=10
+  - model_ResidualCNN_100_PowerCons_attack_fgsm_attack__eps=0.03__n_steps=3
 
 enable_optimization: False
 optuna_optimizer:

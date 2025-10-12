@@ -6,3 +6,8 @@ from .TS2Vec import TS2VEC
 from .TST import TST
 from .PatchTST import PatchTST
 from .Rocket import Rocket
+
+# Surrogate models for MBA attacks
+from .AttackLSTM import AttackLSTM
+from .AttackResidualCNN import AttackResidualCNN
+from .AttackPatchTST import AttackPatchTST

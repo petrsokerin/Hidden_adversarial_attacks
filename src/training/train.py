@@ -605,3 +605,4 @@ class DiscTrainer(Trainer):
         metrics_names = ['loss'] +self.estimator.get_metrics_names()
         test_metrics_epoch = {name: val for name, val in zip(metrics_names, test_metrics_epoch)}
         return test_metrics_epoch
+
