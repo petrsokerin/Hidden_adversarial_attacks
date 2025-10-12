@@ -1,0 +1,15 @@
+#! /bin/bash
+
+source credentials
+
+cp ../requirements.txt requirements.txt
+
+chmod -R 777 requirements.txt
+
+docker build -t ${DOCKER_NAME} . \
+        --no-cache \
+        --build-arg DOCKER_NAME=${DOCKER_NAME} \
+        --build-arg DOCKER_USER_ID=${DOCKER_USER_ID} \
+        --build-arg DOCKER_GROUP_ID=${DOCKER_GROUP_ID}
+
+rm -rf requirements.txt
