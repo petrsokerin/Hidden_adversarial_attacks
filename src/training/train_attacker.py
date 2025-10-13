@@ -155,8 +155,8 @@ class AttackerTrainer(Trainer):
             for x, y in val_loader:
                 x, y = x.to(self.device), y.to(self.device)
                 
-                # Generate perturbation
-                delta = self.eps * torch.tanh(self.attacker_model(x))
+            # Generate perturbation
+            delta = self.eps * torch.tanh(self.attacker_model(x))
                 
                 if self.is_clamped:
                     delta = torch.clamp(delta, -1, 1)

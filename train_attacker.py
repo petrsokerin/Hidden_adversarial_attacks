@@ -64,10 +64,13 @@ def main(cfg: DictConfig):
     print(f"Using device: {device}")
     
     # Load victim model
-    victim_model_path = os.path.join(
-        cfg["model_folder"],
-        f"model_{cfg['victim_model']['name']}_{cfg['model_id']}_{cfg['dataset']['name']}.pt"
-    )
+    if "path" in cfg["victim_model"]:
+        victim_model_path = cfg["victim_model"]["path"]
+    else:
+        victim_model_path = os.path.join(
+            cfg["model_folder"],
+            f"model_{cfg['victim_model']['name']}_{cfg['model_id']}_{cfg['dataset']['name']}.pt"
+        )
     
     if not os.path.exists(victim_model_path):
         raise FileNotFoundError(f"Victim model not found at {victim_model_path}")
@@ -85,7 +88,7 @@ def main(cfg: DictConfig):
     # Create surrogate model
     attacker_model = get_model(
         cfg["attacker_model"]["name"],
-        cfg["attacker_model"]["params"],
+        cfg["attacker_model"]["model_params"],
         device=device,
         train_mode=True,
     )

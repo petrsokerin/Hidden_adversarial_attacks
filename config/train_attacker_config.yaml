@@ -18,7 +18,6 @@ is_clamped: false
 # Model parameters
 model_id: 100
 device: "cuda"
-project_name: "AttackerTraining"
 
 # Paths
 model_folder: "checkpoints"
@@ -38,9 +37,10 @@ slice: false
 victim_model:
   name: "ResidualCNN"
   params:
-    n_classes: 2
-    x_dim: 1
+    c_in: 1
+    c_out: 1
   attack_train_mode: false
+  path: "checkpoints/PowerCons/ResidualCNN/test/model_ResidualCNN_100_PowerCons.pt"
 
 # Surrogate model parameters (will be overridden by surrogate_model config)
 surrogate_model:
@@ -61,8 +61,10 @@ optimizer:
 
 # Scheduler parameters
 scheduler:
-  name: "None"
-  params: {}
+  name: "StepLR"
+  params:
+    step_size: 10
+    gamma: 0.5
 
 # Criterion
 criterion_name: "CrossEntropyLoss"
