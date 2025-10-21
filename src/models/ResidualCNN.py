@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 from tsai.models.all import ResCNN
 
 from .base_model import BaseModel
@@ -38,7 +39,7 @@ class GenResidualCNN(BaseModel):
         
         # ResCNN backbone
         rescnn_kwargs = rescnn_kwargs or {}
-        self.step_cnn = mdls.ResCNN(
+        self.step_cnn = ResCNN(
             c_in=x_dim, 
             c_out=hidden_dim, 
             **rescnn_kwargs

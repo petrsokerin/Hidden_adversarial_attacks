@@ -27,10 +27,11 @@ hydra:
 
 defaults:
   - dataset: PowerCons
+  - model@gen_attack_model: GenPatchTST
   - model@attack_model: ResidualCNN
-#  - model@disc_model_reg: ResidualCNN
-#  - model@disc_model_check: ResidualCNN
-  - attack: LSTMAttack
+  - model@disc_model_reg: ResidualCNN
+  - model@disc_model_check: ResidualCNN
+  - attack: TrainAttack
 
 criterion_name: BCELoss
 criterion_params: null
