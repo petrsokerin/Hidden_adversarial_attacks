@@ -1,0 +1,16 @@
+name: LSTMAttack
+short_name: lstm_attack
+named_params: [eps]
+
+attack_params:
+  eps: 0.03
+
+hyperparameters_vary:
+  eps:
+    optuna_type: float
+    low: 0.01
+    high: 0.5
+    log: True
+  n_steps:
+    optuna_type: const
+    value: 5

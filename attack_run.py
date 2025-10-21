@@ -125,16 +125,17 @@ def main(cfg: DictConfig):
     attack_params["estimator"] = estimator
     attack_params["n_classes"] = cfg["dataset"]["num_classes"]
 
-    if "list_reg_model_params" in cfg["attack"]:
-        attack_params["disc_models"] = get_disc_list(
-            model_name=cfg["disc_model_reg"]["name"],
-            model_params=cfg["disc_model_reg"]["params"],
-            list_disc_params=cfg["attack"]["list_reg_model_params"],
-            device=device,
-            path=path,
-            train_mode=cfg["disc_model_reg"]["attack_train_mode"],
-            from_clearml=cfg['load_weights_disc']
-        )
+    # if "list_reg_model_params" in cfg["attack"]:
+    #     attack_params["disc_models"] = get_disc_list(
+    #         model_name=cfg["disc_model_reg"]["name"],
+    #         model_params=cfg["disc_model_reg"]["params"],
+    #         list_disc_params=cfg["attack"]["list_reg_model_params"],
+    #         device=device,
+    #         path=path,
+    #         train_mode=cfg["disc_model_reg"]["attack_train_mode"],
+    #         from_clearml=cfg['load_weights_disc']
+    #     )
+
 
     attack = get_attack(cfg["attack"]["name"], attack_params)
 
@@ -171,6 +172,12 @@ def main(cfg: DictConfig):
 
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
 
+    if getattr(attack, "is_trainable", False):
+        from src.training.train_attacker import train_atk_model
+        train_loader = DataLoader(
+            MyDataset(X_train, y_train), batch_size=cfg["batch_size"], shuffle=True
+        )
+        train_atk_model(attack.attacker, attack_model, train_loader, device=device)
     attack.apply_attack(test_loader, logger)
 
     end_time = time.time()

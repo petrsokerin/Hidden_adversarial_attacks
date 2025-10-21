@@ -1,5 +1,5 @@
 slice: False
-use_disc_check: True
+use_disc_check: False
 test_run: False # If true results will be not saved!!!!
 exp_name: '_test'
 exp_model_name: 'test'
@@ -28,9 +28,9 @@ hydra:
 defaults:
   - dataset: PowerCons
   - model@attack_model: ResidualCNN
-  - model@disc_model_reg: ResidualCNN
-  - model@disc_model_check: ResidualCNN
-  - attack: FGSMDisc
+#  - model@disc_model_reg: ResidualCNN
+#  - model@disc_model_check: ResidualCNN
+  - attack: LSTMAttack
 
 criterion_name: BCELoss
 criterion_params: null
