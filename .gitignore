@@ -4,3 +4,7 @@
 **/__pycache__/**
 /*.pth
 !/*/*.pth
+cache/*
+checkpoints/*
+data/*
+dataset/*
