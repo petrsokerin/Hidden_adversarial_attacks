@@ -32,9 +32,19 @@ def main(cfg: DictConfig):
         if cfg['log_clearml'] and cfg['author'] == '':
             raise ValueError("You need to set your name in config")
 
+        # Определяем имя модели для названия атаки
+        if cfg['attack'].get('is_trainable', False):
+            # Для генеративных атак используем learning_target_model
+            model_name_for_title = cfg["learning_target_model"]["name"]
+            model_id_for_title = cfg["model_id_learning"]
+        else:
+            # Для обычных атак используем attack_model
+            model_name_for_title = cfg["attack_model"]["name"]
+            model_id_for_title = cfg["model_id_attack"]
+
         attack_start_name = 'model_{}_{}_{}_attack_{}'.format(
-            cfg["attack_model"]["name"],
-            cfg["model_id_attack"],
+            model_name_for_title,
+            model_id_for_title,
             cfg["dataset"]["name"],
             cfg["attack"]["short_name"],
         )
@@ -72,6 +82,7 @@ def main(cfg: DictConfig):
 
     device = torch.device(cfg["device"] if torch.cuda.is_available() else "cpu")
 
+    # Загружаем attack_model (для обычных атак)
     if cfg['load_weights_classifier']:
         project_name = cfg['project_weights']
         task_name = f"model_{cfg['attack_model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}"
@@ -90,6 +101,51 @@ def main(cfg: DictConfig):
         device=device,
         train_mode=cfg["attack_model"]["attack_train_mode"],
     )
+
+    # Загружаем модели только для генеративных атак
+    learning_target_model = None
+    inference_target_model = None
+    
+    if cfg['attack'].get('is_trainable', False):
+        # Загружаем learning_target_model (для обучения генеративной атаки)
+        if cfg.get('load_weights_learning', False):
+            project_name = cfg['project_weights']
+            task_name = f"model_{cfg['learning_target_model']['name']}_{cfg['model_id_learning']}_{cfg['dataset']['name']}"
+            path = weights_from_clearml_by_name(project_name=project_name, task_name=task_name)
+            learning_model_path = os.path.join(path)
+        else:
+            learning_model_path = os.path.join(
+                cfg["learning_model_folder"],
+                f"model_{cfg['learning_target_model']['name']}_{cfg['model_id_learning']}_{cfg['dataset']['name']}.pt"
+            )
+
+        learning_target_model = get_model(
+            cfg["learning_target_model"]["name"],
+            cfg["learning_target_model"]["params"],
+            path=learning_model_path,
+            device=device,
+            train_mode=cfg["learning_target_model"]["attack_train_mode"],
+        )
+
+        # Загружаем inference_target_model (для финальной оценки)
+        if cfg.get('load_weights_inference', False):
+            project_name = cfg['project_weights']
+            task_name = f"model_{cfg['inference_target_model']['name']}_{cfg['model_id_inference']}_{cfg['dataset']['name']}"
+            path = weights_from_clearml_by_name(project_name=project_name, task_name=task_name)
+            inference_model_path = os.path.join(path)
+        else:
+            inference_model_path = os.path.join(
+                cfg["inference_model_folder"],
+                f"model_{cfg['inference_target_model']['name']}_{cfg['model_id_inference']}_{cfg['dataset']['name']}.pt"
+            )
+
+        inference_target_model = get_model(
+            cfg["inference_target_model"]["name"],
+            cfg["inference_target_model"]["params"],
+            path=inference_model_path,
+            device=device,
+            train_mode=False,  # всегда eval режим для inference
+        )
 
     criterion = get_criterion(cfg["criterion_name"], cfg["criterion_params"])
     if cfg['load_weights_disc']:
@@ -146,7 +202,7 @@ def main(cfg: DictConfig):
                 project_name=cfg['clearml_project'],
                 task_name=attack_save_name,
                 tags=[
-                    cfg["attack_model"]["name"],
+                    model_name_for_title,
                     cfg["dataset"]["name"],
                     cfg["attack"]["short_name"],
                     exp_name,
@@ -183,6 +239,8 @@ def main(cfg: DictConfig):
             device=device,
         )
 
+        # Для генеративных атак используем learning_target_model вместо attack_model
+        attack_params['model'] = learning_target_model
         attack_params['gen_model'] = gen_model
         training_train_loader = DataLoader(
             MyDataset(X_train, y_train), batch_size=cfg["attack"]["batch_size"], shuffle=True
@@ -217,7 +275,69 @@ def main(cfg: DictConfig):
 
         # train_atk_model(attack.attacker, attack_model, train_loader, device=device)
 
-    attack.apply_attack(test_loader, logger)
+    # Заменяем модель на inference перед финальной оценкой (для генеративных атак)
+    if cfg['attack'].get('is_trainable', False) and inference_target_model is not None:
+        print(f"Replacing model: {type(attack.model).__name__} -> {type(inference_target_model).__name__}")
+        attack.set_inference_model(inference_target_model)
+        print(f"Model replaced successfully!")
+
+    # Применяем атаку и получаем атакованные данные
+    X_adv = attack.apply_attack(test_loader, logger)
+
+    # Выводим финальные метрики после атаки на inference модели
+    if not cfg["test_run"] and inference_target_model is not None:
+        print(f"\nFinal attack metrics on inference_target_model ({cfg['inference_target_model']['name']}):")
+        
+        # Создаем временный estimator для inference модели
+        inference_estimator = AttackEstimator(
+            None,  # без discriminator check
+            cfg["metric_effect"],
+            cfg["metric_hid"],
+            batch_size=cfg["estimator_batch_size"],
+            n_classes=cfg["dataset"]["num_classes"]
+        )
+        
+        # Вычисляем метрики на inference модели
+        with torch.no_grad():
+            y_true = test_loader.dataset.y
+            y_pred_orig = inference_target_model(test_loader.dataset.X.unsqueeze(-1).to(device))
+            y_pred_adv = inference_target_model(X_adv.to(device))
+            
+            # Подготавливаем данные для estimator
+            if cfg["dataset"]["num_classes"] > 2:
+                y_pred_orig_classes = y_pred_orig.argmax(dim=-1).cpu()
+                y_pred_adv_classes = y_pred_adv.argmax(dim=-1).cpu()
+            else:
+                y_pred_orig_classes = (y_pred_orig > 0.5).float().cpu()
+                y_pred_adv_classes = (y_pred_adv > 0.5).float().cpu()
+            
+            # Подготавливаем данные для estimator (как в procedures.py)
+            X_orig = test_loader.dataset.X
+            if X_orig.dim() == 2:
+                X_orig = X_orig.unsqueeze(-1)
+            if X_adv.dim() == 2:
+                X_adv = X_adv.unsqueeze(-1)
+            
+            # Вычисляем метрики через estimator (как в procedures.py)
+            metrics_line = inference_estimator.estimate(
+                y_true.numpy(), 
+                y_pred_adv.cpu().numpy(), 
+                y_pred_adv_classes.numpy(), 
+                y_pred_orig_classes.numpy(), 
+                X_orig.numpy(), 
+                X_adv.numpy(), 
+                0
+            )
+            
+            # Выводим метрики
+            for metric_name, metric_value in zip(inference_estimator.metrics_names, metrics_line):
+                print(f"  {metric_name}: {metric_value:.4f}")
+    elif not cfg["test_run"]:
+        print(f"\nFinal attack metrics on learning_target_model ({cfg['learning_target_model']['name']}):")
+        attack_metrics = attack.get_metrics()
+        for metric_name, metric_value in attack_metrics.items():
+            if isinstance(metric_value, (int, float)):
+                print(f"  {metric_name}: {metric_value:.4f}")
 
     end_time = time.time()
     total_time = end_time - start_time
@@ -231,6 +351,10 @@ def main(cfg: DictConfig):
         save_attack_metrics(attack_metrics, cfg["save_path"], attack_save_name)
         if cfg['load_weights_classifier']:
             os.remove(attack_model_path)
+        if cfg.get('load_weights_learning', False):
+            os.remove(learning_model_path)
+        if cfg.get('load_weights_inference', False) and inference_target_model is not None:
+            os.remove(inference_model_path)
         if cfg['delete_weights_disc']:
             target_folder = 'loaded_clearml/disc_weights/'
 
