@@ -4,9 +4,9 @@ named_params: [eps]
 is_trainable: True
 
 attack_params:
-  train_eps: 5
-  eps: 0.03
-  n_steps: 50
+  train_eps: 2
+  eps: 0.5
+  n_steps: 1
   is_clamp: False
 
 batch_size: 64
@@ -21,9 +21,9 @@ training_params:
   scheduler_params:
     step_size: 30
     gamma: 0.8
-  n_epochs: 200
+  n_epochs: 50
   alpha_l2: 0.01
-  early_stop_patience: 1000
+  early_stop_patience: 50
   print_every: 5
   train_self_supervised: False
 

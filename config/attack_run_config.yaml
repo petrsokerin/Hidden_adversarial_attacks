@@ -17,7 +17,7 @@ model_folder: checkpoints/${dataset.name}/${attack_model.name}/${exp_model_name}
 disc_path: results/${dataset.name}/${attack_model.name}/discriminator/fgsm_attack${exp_disc_name}
 save_path: results/${dataset.name}/${attack_model.name}/attack/${attack.short_name}${exp_name}
 
-model_id_attack: 100
+model_id_attack: 110
 
 hydra:
   mode: RUN #MULTIRUN
@@ -27,8 +27,8 @@ hydra:
 
 defaults:
   - dataset: PowerCons
-  - model@gen_attack_model: GenPatchTST
-  - model@attack_model: ResidualCNN
+  - model@gen_attack_model: GenResidualCNN
+  - model@attack_model: LSTM
   - model@disc_model_reg: ResidualCNN
   - model@disc_model_check: ResidualCNN
   - attack: TrainAttack
