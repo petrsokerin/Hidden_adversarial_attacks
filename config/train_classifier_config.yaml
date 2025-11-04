@@ -8,7 +8,7 @@ author: ''
 
 # model_id_start: 100
 # model_id_finish: 101
-model_id: 210
+model_id: 110
 
 batch_size: 64
 device: 'cuda:0'
