@@ -11,20 +11,24 @@ author: '' # Petr, Dima, Sophie
 load_weights_disc: False
 project_weights: 'AA_train_classifier_GOLDEN'
 project_weights_disc: 'AA_train_discriminator_GOLDEN'
+project_weights_gen_attack: 'AA_attack_run_GOLDEN'
 delete_weights_disc: False
 
 model_folder: checkpoints/${dataset.name}/${learning_target_model.name}/${exp_model_name}
 learning_model_folder: checkpoints/${dataset.name}/${learning_target_model.name}/${exp_model_name}
 inference_model_folder: checkpoints/${dataset.name}/${inference_target_model.name}/${exp_model_name}
+gen_attack_model_folder: checkpoints/${dataset.name}/gen_attack/${exp_model_name}
 disc_path: results/${dataset.name}/${learning_target_model.name}/discriminator/fgsm_attack${exp_disc_name}
 save_path: results/${dataset.name}/${learning_target_model.name}/attack/${attack.short_name}${exp_name}
 
 model_id_attack: 110
-model_id_learning: 110
+model_id_learning: 210
 model_id_inference: 110
+model_id_gen_attack: 621
 load_weights_classifier: False
 load_weights_learning: False
 load_weights_inference: False
+load_weights_gen_attack: True
 
 hydra:
   mode: RUN #MULTIRUN
@@ -34,7 +38,7 @@ hydra:
 
 defaults:
   - dataset: PowerCons
-  - model@gen_attack_model: GenResidualCNN
+  - model@gen_attack_model: GenLSTM
   - model@attack_model: LSTM  # для обратной совместимости с обычными атаками
   - model@learning_target_model: LSTM  # для генеративных атак (может отличаться от attack_model)
   - model@inference_target_model: LSTM  # для генеративных атак

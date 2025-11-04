@@ -102,12 +102,12 @@ def main(cfg: DictConfig):
         train_mode=cfg["attack_model"]["attack_train_mode"],
     )
 
-    # Загружаем модели только для генеративных атак
+    # learning, inference target models for gen atk
     learning_target_model = None
     inference_target_model = None
     
     if cfg['attack'].get('is_trainable', False):
-        # Загружаем learning_target_model (для обучения генеративной атаки)
+        # load learning_target_model (for training gen attack)
         if cfg.get('load_weights_learning', False):
             project_name = cfg['project_weights']
             task_name = f"model_{cfg['learning_target_model']['name']}_{cfg['model_id_learning']}_{cfg['dataset']['name']}"
@@ -127,7 +127,7 @@ def main(cfg: DictConfig):
             train_mode=cfg["learning_target_model"]["attack_train_mode"],
         )
 
-        # Загружаем inference_target_model (для финальной оценки)
+        # load inference_target_model (for final evaluation)
         if cfg.get('load_weights_inference', False):
             project_name = cfg['project_weights']
             task_name = f"model_{cfg['inference_target_model']['name']}_{cfg['model_id_inference']}_{cfg['dataset']['name']}"
@@ -144,7 +144,7 @@ def main(cfg: DictConfig):
             cfg["inference_target_model"]["params"],
             path=inference_model_path,
             device=device,
-            train_mode=False,  # всегда eval режим для inference
+            train_mode=False,  # always eval mode for inference
         )
 
     criterion = get_criterion(cfg["criterion_name"], cfg["criterion_params"])
@@ -216,6 +216,10 @@ def main(cfg: DictConfig):
 
     
     is_learnable = cfg['attack'].get('is_trainable', False)
+    
+    # Инициализируем переменные для генеративной модели атаки
+    gen_attack_model_path = None
+    gen_attack_model_from_clearml = False
 
     if not is_learnable:
         attack = get_attack(cfg["attack"]["name"], attack_params)
@@ -233,45 +237,117 @@ def main(cfg: DictConfig):
                         round(getattr(attack, param), 4)
                     )
     else:
+        # load-name for gen attack model weights (like other models)
+        gen_attack_base_name = f"gen_attack_{cfg['gen_attack_model']['name']}_{cfg['model_id_gen_attack']}_{cfg['learning_target_model']['name']}_{cfg['dataset']['name']}_{cfg['attack']['short_name']}"
+        
+        # Добавляем параметры атаки (attack_add_name уже сформирован выше)
+        gen_attack_model_name = gen_attack_base_name + attack_add_name
+        
+        # Определяем источник загрузки (clearml или локально)
+        # Путь всегда формируется, независимо от флага (как для других моделей)
+        if cfg.get('load_weights_gen_attack', False) and cfg.get('project_weights_gen_attack'):
+            # Загружаем из clearml
+            project_name = cfg['project_weights_gen_attack']
+            task_name = gen_attack_model_name
+            try:
+                path = weights_from_clearml_by_name(project_name=project_name, task_name=task_name)
+                gen_attack_model_path = os.path.join(path)
+                gen_attack_model_from_clearml = True
+            except Exception as e:
+                print(f"Warning: Could not load gen attack model weights from clearml: {e}. Trying local path.")
+                gen_attack_model_path = os.path.join(
+                    cfg["gen_attack_model_folder"],
+                    f"{gen_attack_model_name}.pt"
+                )
+                gen_attack_model_from_clearml = False
+        else:
+            # Загружаем локально (по умолчанию, как и для других моделей)
+            gen_attack_model_path = os.path.join(
+                cfg["gen_attack_model_folder"],
+                f"{gen_attack_model_name}.pt"
+            )
+            gen_attack_model_from_clearml = False
+        
+        # Проверяем существование файла и информируем пользователя
+        print(f"\n=== Gen Attack Model Loading ===")
+        print(f"Expected model name: {gen_attack_model_name}")
+        print(f"Model folder: {cfg['gen_attack_model_folder']}")
+        print(f"Full path: {gen_attack_model_path}")
+        
+        gen_model_loaded = False
+        if gen_attack_model_path and os.path.exists(gen_attack_model_path):
+            print(f"Found gen attack model weights, loading from: {gen_attack_model_path}")
+            gen_model_loaded = True
+        elif gen_attack_model_path:
+            print(f"Warning: Gen attack model weights not found at {gen_attack_model_path}")
+            # Проверяем, есть ли файлы в директории
+            if os.path.isdir(cfg["gen_attack_model_folder"]):
+                existing_files = os.listdir(cfg["gen_attack_model_folder"])
+                print(f"  Existing files in directory: {existing_files}")
+            print(f"  Will train from scratch.")
+            gen_attack_model_path = None  # Не передаем путь, чтобы модель создалась с нуля
+        else:
+            print(f"Warning: No path specified, will train from scratch")
+        print(f"===============================\n")
+        
         gen_model = get_model(
             cfg["gen_attack_model"]["name"],
             cfg["gen_attack_model"]["params"],
             device=device,
+            path=gen_attack_model_path,
         )
 
         # Для генеративных атак используем learning_target_model вместо attack_model
         attack_params['model'] = learning_target_model
         attack_params['gen_model'] = gen_model
-        training_train_loader = DataLoader(
-            MyDataset(X_train, y_train), batch_size=cfg["attack"]["batch_size"], shuffle=True
-        )
-
-        training_test_loader = DataLoader(
-            MyDataset(X_test, y_test), batch_size=cfg["attack"]["batch_size"], shuffle=False
-        )
-
-        trainer_logger = SummaryWriter(cfg["save_path"] + "/training_tensorboard")
-
-        const_trainer_params = {
-            "attack_name":  cfg["attack"]["name"],
-            "attack_params": attack_params,
-            "logger": trainer_logger,
-            "print_every": cfg["attack"]["training_params"]["print_every"],
-            "device": device,
-            "seed": cfg['model_id_attack'],
-            "train_self_supervised": cfg["attack"]["training_params"]["train_self_supervised"],
-        }
-        if cfg["enable_optimization"]:
-            const_trainer_params['logger'] = None
-            attack_trainer = GenAttackTrainer.initialize_with_optimization(
-                training_train_loader, training_test_loader, cfg["optuna_optimizer"], const_trainer_params
-            )
+        
+        if gen_model_loaded:
+            print(f"✓ Gen attack model loaded successfully. Skipping training.")
+            attack = get_attack(cfg["attack"]["name"], attack_params)
         else:
-            trainer_params = dict(cfg["attack"]["training_params"])
-            trainer_params.update(const_trainer_params)
-            attack_trainer = GenAttackTrainer.initialize_with_params(**trainer_params)
+            # Обучаем модель только если она не была загружена
+            training_train_loader = DataLoader(
+                MyDataset(X_train, y_train), batch_size=cfg["attack"]["batch_size"], shuffle=True
+            )
 
-        attack = attack_trainer.train_model(training_train_loader, training_test_loader)
+            training_test_loader = DataLoader(
+                MyDataset(X_test, y_test), batch_size=cfg["attack"]["batch_size"], shuffle=False
+            )
+
+            trainer_logger = SummaryWriter(cfg["save_path"] + "/training_tensorboard")
+
+            const_trainer_params = {
+                "attack_name":  cfg["attack"]["name"],
+                "attack_params": attack_params,
+                "logger": trainer_logger,
+                "print_every": cfg["attack"]["training_params"]["print_every"],
+                "device": device,
+                "seed": cfg['model_id_attack'],
+                "train_self_supervised": cfg["attack"]["training_params"]["train_self_supervised"],
+            }
+            if cfg["enable_optimization"]:
+                const_trainer_params['logger'] = None
+                attack_trainer = GenAttackTrainer.initialize_with_optimization(
+                    training_train_loader, training_test_loader, cfg["optuna_optimizer"], const_trainer_params
+                )
+            else:
+                trainer_params = dict(cfg["attack"]["training_params"])
+                trainer_params.update(const_trainer_params)
+                attack_trainer = GenAttackTrainer.initialize_with_params(**trainer_params)
+
+            attack = attack_trainer.train_model(training_train_loader, training_test_loader)
+            
+            # Сохраняем веса генеративной модели атаки и метрики после обучения
+            if not cfg["test_run"]:
+                gen_attack_base_name = f"gen_attack_{cfg['gen_attack_model']['name']}_{cfg['model_id_gen_attack']}_{cfg['learning_target_model']['name']}_{cfg['dataset']['name']}_{cfg['attack']['short_name']}"
+                gen_attack_model_name = gen_attack_base_name + attack_add_name
+                
+                attack_trainer.save_result(
+                    save_path=cfg["gen_attack_model_folder"],
+                    model_name=gen_attack_model_name,
+                    task=task if cfg['log_clearml'] else None
+                )
+                print(f"Gen attack model weights and metrics saved to: {cfg['gen_attack_model_folder']}/{gen_attack_model_name}")
 
         # train_atk_model(attack.attacker, attack_model, train_loader, device=device)
 
@@ -355,6 +431,8 @@ def main(cfg: DictConfig):
             os.remove(learning_model_path)
         if cfg.get('load_weights_inference', False) and inference_target_model is not None:
             os.remove(inference_model_path)
+        if cfg.get('load_weights_gen_attack', False) and gen_attack_model_from_clearml and gen_attack_model_path:
+            os.remove(gen_attack_model_path)
         if cfg['delete_weights_disc']:
             target_folder = 'loaded_clearml/disc_weights/'
 
