@@ -17,6 +17,40 @@ def get_attack(attack_name: str, attack_params: Dict) -> attacks.BaseIterativeAt
         raise ValueError(f"Attack with name {attack_name} is not implemented")
 
 
+
+def get_attacker_model(
+    surrogate_model_name: str,
+    attacker_model_params: Dict,
+    device: str = "cpu",
+    path: str = None,
+    train_mode: bool = False,
+) -> torch.nn.Module:
+    """
+    Get a surrogate model for MBA attacks.
+    
+    Args:
+        surrogate_model_name: Name of the surrogate model class
+        attacker_model_params: Parameters for the surrogate model
+        device: Device to load the model on
+        path: Path to load the model weights from
+        train_mode: Whether to set the model to training mode
+        
+    Returns:
+        The surrogate model
+    """
+    if attacker_model_params is None:
+        attacker_model_params = dict()
+    try:
+        model = getattr(models, surrogate_model_name)(**attacker_model_params)
+        model = model.to(device)
+        if path:
+            model.load_state_dict(torch.load(path, map_location=torch.device(device)))
+        model.train(train_mode)
+        return model
+    except AttributeError:
+        raise ValueError(f"Surrogate model with name {surrogate_model_name} is not implemented")
+
+
 def get_model(
     model_name: str,
     model_params: Dict,
