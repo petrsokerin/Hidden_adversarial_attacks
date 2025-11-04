@@ -8,7 +8,7 @@ author: ''
 
 # model_id_start: 100
 # model_id_finish: 101
-model_id: 100
+model_id: 210
 
 batch_size: 64
 device: 'cuda:0'
@@ -37,7 +37,7 @@ training_params:
   criterion_params: None
   optimizer_name: Adam
   optimizer_params:
-    lr: 0.0001
+    lr: 0.001 # 0.0001
   scheduler_name: StepLR
   scheduler_params:
     step_size: 30

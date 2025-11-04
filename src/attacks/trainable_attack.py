@@ -11,7 +11,7 @@ from src.utils import req_grad
 class TrainAttack(BaseIterativeAttack, TrainableBatchIterativeAttack):
     def __init__(
         self,
-        model: torch.nn.Module,
+        model: torch.nn.Module,  # learning_target_model - модель для обучения генератора
         gen_model: torch.nn.Module,
         criterion: torch.nn.Module,
         estimator: BaseEstimator,
