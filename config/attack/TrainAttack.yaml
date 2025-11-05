@@ -4,8 +4,8 @@ named_params: [eps]
 is_trainable: True
 
 attack_params:
-  train_eps: 2
-  eps: 2
+  train_eps: 0.5
+  eps: 0.6
   n_steps: 1
   is_clamp: False
 
@@ -22,7 +22,7 @@ training_params:
     step_size: 30
     gamma: 0.8
   n_epochs: 50
-  alpha_l2: 0.01
+  alpha_l2: 0.001
   early_stop_patience: 50
   print_every: 5
   train_self_supervised: False

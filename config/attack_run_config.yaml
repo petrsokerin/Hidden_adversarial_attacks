@@ -22,13 +22,13 @@ disc_path: results/${dataset.name}/${learning_target_model.name}/discriminator/f
 save_path: results/${dataset.name}/${learning_target_model.name}/attack/${attack.short_name}${exp_name}
 
 model_id_attack: 110
-model_id_learning: 210
+model_id_learning: 110
 model_id_inference: 110
-model_id_gen_attack: 621
+model_id_gen_attack: 71103
 load_weights_classifier: False
 load_weights_learning: False
 load_weights_inference: False
-load_weights_gen_attack: True
+load_weights_gen_attack: False
 
 hydra:
   mode: RUN #MULTIRUN
@@ -38,7 +38,7 @@ hydra:
 
 defaults:
   - dataset: PowerCons
-  - model@gen_attack_model: GenLSTM
+  - model@gen_attack_model: GenPatchTST
   - model@attack_model: LSTM  # для обратной совместимости с обычными атаками
   - model@learning_target_model: LSTM  # для генеративных атак (может отличаться от attack_model)
   - model@inference_target_model: LSTM  # для генеративных атак
