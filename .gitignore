@@ -15,5 +15,5 @@ checkpoints/*
 data/*
 datasets/*
 *credentials
-outputs/*\
+outputs/*
 config/*
