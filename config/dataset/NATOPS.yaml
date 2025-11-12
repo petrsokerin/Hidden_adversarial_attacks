@@ -1,9 +1,0 @@
-name: NATOPS
-num_classes: 6
-num_dim: 24
-seq_len: 51
-total_object_count: 360
-train:
-  object_count: 180
-test:
-  object_count: 180
