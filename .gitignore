@@ -16,4 +16,4 @@ data/*
 datasets/*
 *credentials
 outputs/*
-config/*
+# config/*
