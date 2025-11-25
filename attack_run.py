@@ -15,6 +15,7 @@ from src.estimation.estimators import AttackEstimator
 from src.utils import fix_seed, save_attack_metrics, save_config, save_compiled_config,weights_from_clearml_by_name
 # from src.training.train_attacker import train_atk_model
 from src.training.train import GenAttackTrainer
+from src.visualization.attack_visualizer import save_attack_visualizations
 
 warnings.filterwarnings("ignore")
 
@@ -359,6 +360,54 @@ def main(cfg: DictConfig):
 
     # Применяем атаку и получаем атакованные данные
     X_adv = attack.apply_attack(test_loader, logger)
+
+    # Визуализация результатов атаки
+    if not cfg["test_run"]:
+        vis_model = inference_target_model or attack_model
+        if vis_model is None:
+            print("Visualization skipped: no model available.")
+        else:
+            was_training = vis_model.training
+            vis_model.eval()
+
+            X_orig_vis = test_loader.dataset.X
+            if X_orig_vis.dim() == 2:
+                X_orig_vis = X_orig_vis.unsqueeze(-1)
+
+            X_adv_vis = X_adv
+            if X_adv_vis.dim() == 2:
+                X_adv_vis = X_adv_vis.unsqueeze(-1)
+
+            with torch.no_grad():
+                y_pred_orig_vis = vis_model(X_orig_vis.to(device))
+                y_pred_adv_vis = vis_model(X_adv_vis.to(device))
+
+            if was_training:
+                vis_model.train()
+
+            def _scalar_preds(preds: torch.Tensor) -> torch.Tensor:
+                if preds.dim() == 1:
+                    return preds
+                if preds.shape[-1] == 1:
+                    return preds.squeeze(-1)
+                return torch.softmax(preds, dim=-1).max(dim=-1).values
+
+            y_pred_orig_vis = _scalar_preds(y_pred_orig_vis)
+            y_pred_adv_vis = _scalar_preds(y_pred_adv_vis)
+
+            vis_save_dir = os.path.join(
+                cfg["save_path"], "visualizations", attack_save_name
+            )
+            max_samples = cfg.visualization_max_samples if "visualization_max_samples" in cfg else 5
+            save_attack_visualizations(
+                vis_save_dir,
+                X_orig_vis.cpu(),
+                X_adv_vis.cpu(),
+                test_loader.dataset.y.cpu(),
+                y_pred_orig_vis.cpu(),
+                y_pred_adv_vis.cpu(),
+                max_samples=max_samples,
+            )
 
     # Выводим финальные метрики после атаки на inference модели
     if not cfg["test_run"] and inference_target_model is not None:
