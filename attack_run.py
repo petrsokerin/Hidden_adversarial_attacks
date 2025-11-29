@@ -4,6 +4,7 @@ import warnings
 import time
 import hydra
 import torch
+import numpy as np
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -361,6 +362,14 @@ def main(cfg: DictConfig):
     # Применяем атаку и получаем атакованные данные
     X_adv = attack.apply_attack(test_loader, logger)
 
+    # Сохраняем исходные и атакованные данные для последующей визуализации/анализов (t-SNE/UMAP)
+    if not cfg["test_run"]:
+        arrays_save_dir = os.path.join(cfg["save_path"], "visualizations", attack_save_name)
+        os.makedirs(arrays_save_dir, exist_ok=True)
+        np.save(os.path.join(arrays_save_dir, "X_orig.npy"), test_loader.dataset.X.cpu().numpy())
+        np.save(os.path.join(arrays_save_dir, "X_adv.npy"), X_adv.cpu().numpy())
+        np.save(os.path.join(arrays_save_dir, "y_true.npy"), test_loader.dataset.y.cpu().numpy())
+
     # Визуализация результатов атаки
     if not cfg["test_run"]:
         vis_model = inference_target_model or attack_model
@@ -489,10 +498,6 @@ def main(cfg: DictConfig):
                 file_path = os.path.join(target_folder, file_name)
                 if os.path.isfile(file_path):
                     os.remove(file_path)
-
-
-    
-    
 
 if __name__ == "__main__":
     main()
