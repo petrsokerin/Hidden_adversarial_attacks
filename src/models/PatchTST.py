@@ -32,9 +32,12 @@ class PatchTST(BaseModel):
     
 
 
-class GenPatchTST(BaseModel):
+class GenPatchTSTOld(BaseModel):
     """
-    PatchTST-based surrogate model for generating adversarial perturbations.
+    OLD VERSION - PatchTST-based surrogate model with CONST SHIFT PROBLEM.
+    
+    This version has a bug: it uses expand() which creates identical values
+    for all time steps (CONST SHIFT PROBLEM).
     
     Architecture: Input -> PatchTST -> Activation -> Linear -> Output
     """
@@ -89,3 +92,18 @@ class GenPatchTST(BaseModel):
         h = h.unsqueeze(1).expand(-1, L, -1)
         return self.fc(self.act(h))
 
+
+class GenPatchTST(BaseModel):
+    def __init__(self, activation_type: str = "tanh", c_in=1, **kwargs) -> None:
+        super().__init__()
+        self.model = mdls.PatchTST(c_in=c_in, **kwargs).float()
+        # self.final_activation = Activation(activation_type)
+        self.c_in = c_in
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        # X: (B, L, C) - входная последовательность
+        X = X.transpose(1, 2)  # (B, C, L)
+        output = self.model(X)  # (B, C, L) если c_out=C и pred_dim=L
+        output = output.transpose(1, 2)  # (B, L, C)
+        # return self.final_activation(output)
+        return output

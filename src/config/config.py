@@ -64,8 +64,11 @@ def get_model(
         model = getattr(models, model_name)(**model_params)
         model = model.to(device)
         if path:
-            
-            model.load_state_dict(torch.load(path, map_location=torch.device(device)))
+            if os.path.exists(path):
+                model.load_state_dict(torch.load(path, map_location=torch.device(device)))
+                print(f"Successfully loaded model weights from {path}")
+            else:
+                print(f"Warning: Model weights file not found at {path}. Creating model from scratch.")
         model.train(train_mode)
         return model
     except AttributeError:
