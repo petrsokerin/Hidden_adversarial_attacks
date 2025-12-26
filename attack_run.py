@@ -402,7 +402,8 @@ def main(cfg: DictConfig):
                 y_pred_orig_classes.numpy(), 
                 X_orig.numpy(), 
                 X_adv.numpy(), 
-                0
+                0,
+                elapsed_time=0
             )
             
             # Выводим метрики

@@ -98,7 +98,8 @@ class AttackEstimator(BaseEstimator):
         self.batch_size = batch_size
         self.n_classes = n_classes
 
-        self.metrics_names = list(self.metrics.keys()) + ["EFF", "FR", "L1", "ACC_CORRECT", "ACC_ORIG_ADV", "ROUGHNESS", "ROUGHNESS_NORM"]
+        self.metrics_names = list(self.metrics.keys()) + ["EFF", "FR", "L1", "ACC_CORRECT", "ACC_ORIG_ADV", "ROUGHNESS",
+                                                          "ROUGHNESS_NORM", "TIME"]
 
         self.calculate_hid = bool(disc_models)
         if disc_models:
@@ -249,6 +250,7 @@ class AttackEstimator(BaseEstimator):
         X_orig: np.ndarray,
         X_adv: np.ndarray,
         step_id: int,
+        elapsed_time,
     ) -> List[float]:
         # assert y_true.shape == y_pred.shape
         # assert X_orig.shape == X_adv.shape
@@ -263,6 +265,7 @@ class AttackEstimator(BaseEstimator):
         metrics['ACC_CORRECT'] =  self.accuracy_correct_predicted(y_true, y_pred_classes, y_pred_orig)
         metrics['ROUGHNESS'] = calculate_roughness(X_adv)
         metrics['ROUGHNESS_NORM'] = metrics['ROUGHNESS']/calculate_roughness(X_orig)
+        metrics["TIME"] = elapsed_time
 
         if self.calculate_hid:
             metric_hid = self.calculate_hiddeness(X_orig, X_adv, step_id)
@@ -273,4 +276,4 @@ class AttackEstimator(BaseEstimator):
 
         return_order_metrics = [metrics[name] for name in self.metrics_names]
         return return_order_metrics
-    
+
