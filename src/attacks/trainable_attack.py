@@ -46,14 +46,16 @@ class TrainAttack(BaseIterativeAttack, TrainableBatchIterativeAttack):
         if mode=='train':
             self.gen_model.train()
             delta_tilte = self.gen_model(X)
-            delta_norm = (delta_tilte - delta_tilte.mean(dim=0)) / (delta_tilte.std() + 1e-5)
-            delta_norm = torch.tanh(delta_tilte)
+            delta_norm = (delta_tilte - delta_tilte.mean(dim=0)) / (delta_tilte.std(dim=0) + 1e-5)
+            delta_norm = torch.tanh(delta_norm)
             delta = self.train_eps * delta_norm
             # print(torch.norm(delta), torch.norm(delta_norm), torch.norm(X))
         else:
             self.gen_model.eval()
             delta_tilte = self.gen_model(X)
-            delta = self.eps * torch.sign(delta_tilte)
+            delta_norm = (delta_tilte - delta_tilte.mean(dim=0)) / (delta_tilte.std(dim=0) + 1e-5)
+            # Use a smooth, input-dependent perturbation to avoid sign collapse.
+            delta = self.eps * torch.tanh(delta_norm)
             # print(torch.norm(delta))
 
         if self.is_clamped:

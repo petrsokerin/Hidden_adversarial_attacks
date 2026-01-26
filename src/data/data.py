@@ -53,7 +53,7 @@ def load_UCR(dataset: str) -> Tuple[np.ndarray]:
     # Normalization for non-normalized datasets
     # To keep the amplitude information, we do not normalize values over
     # individual time series, but on the whole dataset
-    if dataset not in [
+    if dataset in [
         "AllGestureWiimoteX",
         "AllGestureWiimoteY",
         "AllGestureWiimoteZ",
