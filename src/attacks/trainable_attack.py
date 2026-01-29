@@ -5,7 +5,7 @@ import torch
 from src.attacks.base_attacks import BaseIterativeAttack
 from src.attacks.procedures import TrainableBatchIterativeAttack
 from src.estimation import BaseEstimator
-from src.utils import req_grad 
+from src.utils import req_grad
 
 
 class TrainAttack(BaseIterativeAttack, TrainableBatchIterativeAttack):
@@ -24,8 +24,7 @@ class TrainAttack(BaseIterativeAttack, TrainableBatchIterativeAttack):
         *args,
         **kwargs,
     ) -> None:
-        
-        
+
         BaseIterativeAttack.__init__(self, model=model, n_steps=n_steps, n_classes=n_classes)
         TrainableBatchIterativeAttack.__init__(self, gen_model=gen_model, estimator=estimator, logger=logger, n_classes=n_classes)
         self.criterion = criterion
@@ -43,7 +42,7 @@ class TrainAttack(BaseIterativeAttack, TrainableBatchIterativeAttack):
         self.model
 
     def step(self, X: torch.Tensor, y_true: torch.Tensor, mode='val') -> torch.Tensor:
-        if mode=='train':
+        if mode == 'train':
             self.gen_model.train()
             delta_tilte = self.gen_model(X)
             delta_norm = (delta_tilte - delta_tilte.mean(dim=0)) / (delta_tilte.std() + 1e-5)
@@ -58,7 +57,11 @@ class TrainAttack(BaseIterativeAttack, TrainableBatchIterativeAttack):
 
         if self.is_clamped:
             delta = torch.clamp(delta, -1, 1)
-        
+
         X_adv = X + delta
 
         return X_adv
+
+    def update_data_batch_size(self, data_size: int, batch_size: int):
+        self.data_size = data_size
+        self.batch_size = batch_size
