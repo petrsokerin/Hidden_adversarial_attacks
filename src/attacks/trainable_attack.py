@@ -45,17 +45,17 @@ class TrainAttack(BaseIterativeAttack, TrainableBatchIterativeAttack):
     def step(self, X: torch.Tensor, y_true: torch.Tensor, mode='val') -> torch.Tensor:
         if mode=='train':
             self.gen_model.train()
-            delta_tilte = self.gen_model(X)
-            delta_norm = (delta_tilte - delta_tilte.mean(dim=0)) / (delta_tilte.std(dim=0) + 1e-5)
-            delta_norm = torch.tanh(delta_norm)
-            delta = self.train_eps * delta_norm
-            # print(torch.norm(delta), torch.norm(delta_norm), torch.norm(X))
+            delta_raw = self.gen_model(X)
+            # delta_normalized = (delta_raw - delta_raw.mean(dim=0)) / (delta_raw.std(dim=0) + 1e-5)  # for l_2 norm
+            delta_normalized = torch.tanh(delta_raw)  # for l_infty norm
+            delta = self.train_eps * delta_normalized
+            # print(torch.norm(delta), torch.norm(delta_normalized), torch.norm(X))
         else:
             self.gen_model.eval()
-            delta_tilte = self.gen_model(X)
-            delta_norm = (delta_tilte - delta_tilte.mean(dim=0)) / (delta_tilte.std(dim=0) + 1e-5)
-            # Use a smooth, input-dependent perturbation to avoid sign collapse.
-            delta = self.eps * torch.tanh(delta_norm)
+            delta_raw = self.gen_model(X)
+            # delta_normalized = (delta_raw - delta_raw.mean(dim=0)) / (delta_raw.std(dim=0) + 1e-5)  # for l_2 norm
+            # delta = self.eps * torch.tanh(delta_raw)
+            delta = self.eps * torch.sign(delta_raw)  # maximize l_2 product with gradient in B_infty(eps)
             # print(torch.norm(delta))
 
         if self.is_clamped:
