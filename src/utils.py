@@ -109,17 +109,63 @@ def update_dict_params(original_params: Dict, new_params: Dict) -> Dict:
     return final_best_params
 
 
+# def update_params_with_attack_params(params: Dict, new_params: Dict) -> Dict:
+#     if "attack_params" in params:
+#         for param in new_params:
+#             if param == "attack_params":
+#                 params["attack_params"].update(new_params["attack_params"])
+#             else:
+#                 params[param] = new_params[param]
+#     else:
+#         params.update(new_params)
+#     return params
+
+
+# def update_params_with_attack_params(params: Dict, new_params: Dict) -> Dict:
+#     trainer_level_params = {'gen_model_name', 'gen_model_params', 'gen_model_path', 
+#                             'n_epochs', 'alpha_l2', 'criterion_name', 'optimizer_name', 
+#                             'scheduler_name', 'early_stop_patience', 'logger', 'print_every',
+#                             'device', 'seed', 'multiclass', 'train_self_supervised'}
+    
+#     if "attack_params" in params:
+#         for param in new_params:
+#             if param == "attack_params":
+#                 params["attack_params"].update(new_params["attack_params"])
+#             elif param in trainer_level_params or param in params:
+#                 params[param] = new_params[param]
+#             else:
+#                 # Параметр атаки
+#                 params["attack_params"][param] = new_params[param]
+#     else:
+#         params.update(new_params)
+#     return params
+
 def update_params_with_attack_params(params: Dict, new_params: Dict) -> Dict:
+    trainer_level_params = {'gen_model_name', 'gen_model_params', 'gen_model_path', 
+                            'n_epochs', 'alpha_l2', 'criterion_name', 'optimizer_name', 
+                            'scheduler_name', 'early_stop_patience', 'logger', 'print_every',
+                            'device', 'seed', 'multiclass', 'train_self_supervised'}
+    
+    # Параметры, которые относятся к gen_model (архитектуре генератора)
+    gen_model_param_names = set()
+    if "gen_model_params" in params and params["gen_model_params"]:
+        gen_model_param_names = set(params["gen_model_params"].keys())
+    
     if "attack_params" in params:
         for param in new_params:
             if param == "attack_params":
                 params["attack_params"].update(new_params["attack_params"])
-            else:
+            elif param in gen_model_param_names:
+                # Параметр архитектуры генератора
+                params["gen_model_params"][param] = new_params[param]
+            elif param in trainer_level_params or param in params:
                 params[param] = new_params[param]
+            else:
+                # Параметр атаки
+                params["attack_params"][param] = new_params[param]
     else:
         params.update(new_params)
     return params
-
 
 def collect_default_params(params_vary: DictConfig) -> Dict:
     initial_model_parameters = {}

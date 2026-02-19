@@ -16,6 +16,9 @@ from src.utils import fix_seed, save_attack_metrics, save_config, save_compiled_
 # from src.training.train_attacker import train_atk_model
 from src.training.train import GenAttackTrainer
 
+import yaml
+from omegaconf import OmegaConf
+
 warnings.filterwarnings("ignore")
 
 CONFIG_NAME = "attack_run_config"
@@ -290,20 +293,35 @@ def main(cfg: DictConfig):
             print(f"Warning: No path specified, will train from scratch")
         print(f"===============================\n")
         
-        gen_model = get_model(
-            cfg["gen_attack_model"]["name"],
-            cfg["gen_attack_model"]["params"],
-            device=device,
-            path=gen_attack_model_path,
-        )
+        # gen_model = get_model(
+        #     cfg["gen_attack_model"]["name"],
+        #     cfg["gen_attack_model"]["params"],
+        #     device=device,
+        #     path=gen_attack_model_path,
+        # )
+        # attack_params['gen_model'] = gen_model
 
         # Для генеративных атак используем learning_target_model вместо attack_model
         attack_params['model'] = learning_target_model
-        attack_params['gen_model'] = gen_model
         
         if gen_model_loaded:
             print(f"✓ Gen attack model loaded successfully. Skipping training.")
-            attack = get_attack(cfg["attack"]["name"], attack_params)
+            # attack = get_attack(cfg["attack"]["name"], attack_params)
+            trainer_params = dict(cfg["attack"]["training_params"])
+            trainer_params.update({
+                "attack_name": cfg["attack"]["name"],
+                "attack_params": attack_params,
+                "logger": None,
+                "print_every": cfg["attack"]["training_params"]["print_every"],
+                "device": device,
+                "seed": cfg['model_id_attack'],
+                "train_self_supervised": cfg["attack"]["training_params"]["train_self_supervised"],
+                "gen_model_name": cfg["gen_attack_model"]["name"],
+                "gen_model_params": cfg["gen_attack_model"]["params"],
+                "gen_model_path": gen_attack_model_path,
+            })
+            attack_trainer = GenAttackTrainer.initialize_with_params(**trainer_params)
+            attack = attack_trainer.attack
         else:
             # Обучаем модель только если она не была загружена
             training_train_loader = DataLoader(
@@ -324,6 +342,9 @@ def main(cfg: DictConfig):
                 "device": device,
                 "seed": cfg['model_id_attack'],
                 "train_self_supervised": cfg["attack"]["training_params"]["train_self_supervised"],
+                "gen_model_name": cfg["gen_attack_model"]["name"],  # ДОБАВИТЬ
+                "gen_model_params": cfg["gen_attack_model"]["params"],  # ДОБАВИТЬ
+                "gen_model_path": gen_attack_model_path if gen_model_loaded else None,  # ДОБАВИТЬ
             }
             if cfg["enable_optimization"]:
                 const_trainer_params['logger'] = None
@@ -335,7 +356,9 @@ def main(cfg: DictConfig):
                 trainer_params.update(const_trainer_params)
                 attack_trainer = GenAttackTrainer.initialize_with_params(**trainer_params)
 
-            attack = attack_trainer.train_model(training_train_loader, training_test_loader)
+            # attack = attack_trainer.train_model(training_train_loader, training_test_loader)
+            attack_trainer.train_model(training_train_loader, training_test_loader)
+            attack = attack_trainer.attack
             
             # Сохраняем веса генеративной модели атаки и метрики после обучения
             if not cfg["test_run"]:
@@ -348,6 +371,39 @@ def main(cfg: DictConfig):
                     task=task if cfg['log_clearml'] else None
                 )
                 print(f"Gen attack model weights and metrics saved to: {cfg['gen_attack_model_folder']}/{gen_attack_model_name}")
+
+                # OPTUNA CFG BLOCK START
+                # Сохраняем конфиг атакующей модели
+                attack_config_path = os.path.join(cfg["gen_attack_model_folder"], gen_attack_model_name + "_config.yaml")
+                attack_cfg = OmegaConf.to_container(cfg["attack"], resolve=True)
+                attack_cfg["gen_attack_model"] = OmegaConf.to_container(cfg["gen_attack_model"], resolve=True)
+                attack_cfg["training_params"] = OmegaConf.to_container(cfg["attack"].get("training_params", {}), resolve=True)
+                with open(attack_config_path, "w") as f:
+                    yaml.dump(attack_cfg, f, default_flow_style=False, allow_unicode=True)
+                print(f"Attack config saved to: {attack_config_path}")
+
+                # Дописываем реальные параметры из обученных объектов
+                # actual_attack_params = {}
+                # for attr in vars(attack):
+                #     val = getattr(attack, attr)
+                #     if isinstance(val, (int, float, bool, str)):
+                #         actual_attack_params[attr] = val
+                # actual_trainer_params = {
+                #     "n_epochs": attack_trainer.n_epochs,
+                #     "alpha_l2": attack_trainer.alpha_l2,
+                # }
+                # attack_cfg["actual_params"] = {
+                #     "attack": actual_attack_params,
+                #     "trainer": actual_trainer_params,
+                # }
+                # Сохраняем лучшие параметры Optuna
+                if hasattr(attack_trainer, 'optuna_best_params'):
+                    attack_cfg["optuna_best_params"] = attack_trainer.optuna_best_params
+
+                with open(attack_config_path, "w") as f:
+                    yaml.dump(attack_cfg, f, default_flow_style=False, allow_unicode=True)
+                print(f"Attack config saved to: {attack_config_path}")
+                # OPTUNA CFG BLOCK END
 
         # train_atk_model(attack.attacker, attack_model, train_loader, device=device)
 

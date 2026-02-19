@@ -434,6 +434,9 @@ class GenAttackTrainer(Trainer):
         seed: int = 0,
         multiclass: bool = False,
         train_self_supervised: bool = False,
+        gen_model_name: str = None,          # ДОБАВИТЬ
+        gen_model_params: Dict = None,       # ДОБАВИТЬ
+        gen_model_path: str = None,          # ДОБАВИТЬ
     ):
         fix_seed(seed)
         if criterion_params == "None" or not criterion_params:
@@ -442,6 +445,11 @@ class GenAttackTrainer(Trainer):
             optimizer_params = {}
         if scheduler_params == "None" or not scheduler_params:
             scheduler_params = {}
+
+        if gen_model_name:
+            attack_params = attack_params.copy() if attack_params else {}
+            gen_model = get_model(gen_model_name, gen_model_params, device=device, path=gen_model_path)
+            attack_params['gen_model'] = gen_model
 
         attack = get_attack(attack_name, attack_params)
         criterion = get_criterion(criterion_name, criterion_params)
@@ -474,7 +482,7 @@ class GenAttackTrainer(Trainer):
         transform = None,
     ):
         study = optuna.create_study(
-            direction="maximize",
+            direction="minimize", # maximize
             sampler=instantiate(optuna_params["sampler"]),
             pruner=instantiate(optuna_params["pruner"]),
         )
@@ -499,7 +507,11 @@ class GenAttackTrainer(Trainer):
         best_params = update_dict_params(default_params, best_params)
         best_params = update_params_with_attack_params(const_params, best_params)
         print("Best parameters are - %s", best_params)
-        return GenAttackTrainer.initialize_with_params(**best_params)
+        # return GenAttackTrainer.initialize_with_params(**best_params)
+        trainer = GenAttackTrainer.initialize_with_params(**best_params)
+        trainer.optuna_best_params = study.best_params.copy()  # <-- fix optuna
+        return trainer
+        
 
     @staticmethod
     def objective(
@@ -518,7 +530,7 @@ class GenAttackTrainer(Trainer):
         )
 
         model = GenAttackTrainer.initialize_with_params(**initial_model_parameters)
-        last_epoch_metrics = model.train_model(train_loader, valid_loader, transform)
+        last_epoch_metrics = model.train_model(train_loader, valid_loader) # transform in args
         return last_epoch_metrics[optim_metric]
 
     def _attack_criterion(self, X_adv: torch.Tensor, X: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
@@ -587,8 +599,7 @@ class GenAttackTrainer(Trainer):
 
         metrics_names = ['loss'] +self.estimator.get_metrics_names()
         test_metrics_epoch = {name: val for name, val in zip(metrics_names, test_metrics_epoch)}
-        return self.attack
-
+        return test_metrics_epoch # self.attack
 
 class DiscTrainer(Trainer):
     def __init__(
