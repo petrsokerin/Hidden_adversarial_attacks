@@ -5,6 +5,7 @@ import time
 import hydra
 import torch
 import numpy as np
+import yaml
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -245,29 +246,33 @@ def main(cfg: DictConfig):
         # Добавляем параметры атаки (attack_add_name уже сформирован выше)
         gen_attack_model_name = gen_attack_base_name + attack_add_name
         
-        # Определяем источник загрузки (clearml или локально)
-        # Путь всегда формируется, независимо от флага (как для других моделей)
-        if cfg.get('load_weights_gen_attack', False) and cfg.get('project_weights_gen_attack'):
-            # Загружаем из clearml
-            project_name = cfg['project_weights_gen_attack']
-            task_name = gen_attack_model_name
-            try:
-                path = weights_from_clearml_by_name(project_name=project_name, task_name=task_name)
-                gen_attack_model_path = os.path.join(path)
-                gen_attack_model_from_clearml = True
-            except Exception as e:
-                print(f"Warning: Could not load gen attack model weights from clearml: {e}. Trying local path.")
+        # Определяем источник загрузки (clearml/локально) только если загрузка включена.
+        if cfg.get('load_weights_gen_attack', False):
+            if cfg.get('project_weights_gen_attack'):
+                # Загружаем из clearml
+                project_name = cfg['project_weights_gen_attack']
+                task_name = gen_attack_model_name
+                try:
+                    path = weights_from_clearml_by_name(project_name=project_name, task_name=task_name)
+                    gen_attack_model_path = os.path.join(path)
+                    gen_attack_model_from_clearml = True
+                except Exception as e:
+                    print(f"Warning: Could not load gen attack model weights from clearml: {e}. Trying local path.")
+                    gen_attack_model_path = os.path.join(
+                        cfg["gen_attack_model_folder"],
+                        f"{gen_attack_model_name}.pt"
+                    )
+                    gen_attack_model_from_clearml = False
+            else:
+                # Загружаем локально, если не указан ClearML-проект
                 gen_attack_model_path = os.path.join(
                     cfg["gen_attack_model_folder"],
                     f"{gen_attack_model_name}.pt"
                 )
                 gen_attack_model_from_clearml = False
         else:
-            # Загружаем локально (по умолчанию, как и для других моделей)
-            gen_attack_model_path = os.path.join(
-                cfg["gen_attack_model_folder"],
-                f"{gen_attack_model_name}.pt"
-            )
+            # Явно отключаем загрузку весов генератора и всегда учим с нуля.
+            gen_attack_model_path = None
             gen_attack_model_from_clearml = False
         
         # Проверяем существование файла и информируем пользователя
@@ -289,7 +294,7 @@ def main(cfg: DictConfig):
             print(f"  Will train from scratch.")
             gen_attack_model_path = None  # Не передаем путь, чтобы модель создалась с нуля
         else:
-            print(f"Warning: No path specified, will train from scratch")
+            print("Gen attack weights loading is disabled, will train from scratch")
         print(f"===============================\n")
         
         gen_model = get_model(
@@ -318,19 +323,28 @@ def main(cfg: DictConfig):
 
             trainer_logger = SummaryWriter(cfg["save_path"] + "/training_tensorboard")
 
-            const_trainer_params = {
-                "attack_name":  cfg["attack"]["name"],
-                "attack_params": attack_params,
-                "logger": trainer_logger,
-                "print_every": cfg["attack"]["training_params"]["print_every"],
-                "device": device,
-                "seed": cfg['model_id_attack'],
-                "train_self_supervised": cfg["attack"]["training_params"]["train_self_supervised"],
-            }
+            # Start from attack training config so optimizer/scheduler settings are
+            # available for both normal training and Optuna objective trials.
+            const_trainer_params = dict(cfg["attack"]["training_params"])
+            const_trainer_params.update(
+                {
+                    "attack_name": cfg["attack"]["name"],
+                    "attack_params": attack_params,
+                    "logger": trainer_logger,
+                    "device": device,
+                    "seed": cfg["model_id_attack"],
+                }
+            )
             if cfg["enable_optimization"]:
                 const_trainer_params['logger'] = None
                 attack_trainer = GenAttackTrainer.initialize_with_optimization(
-                    training_train_loader, training_test_loader, cfg["optuna_optimizer"], const_trainer_params
+                    training_train_loader,
+                    training_test_loader,
+                    cfg["optuna_optimizer"],
+                    const_trainer_params,
+                    objective_eval_loader=test_loader,
+                    objective_eval_model=inference_target_model,
+                    objective_use_final_metrics=True,
                 )
             else:
                 trainer_params = dict(cfg["attack"]["training_params"])
@@ -350,6 +364,31 @@ def main(cfg: DictConfig):
                     task=task if cfg['log_clearml'] else None
                 )
                 print(f"Gen attack model weights and metrics saved to: {cfg['gen_attack_model_folder']}/{gen_attack_model_name}")
+
+                if cfg["enable_optimization"] and hasattr(attack_trainer, "optuna_best_params_nested"):
+                    best_optuna_payload = {
+                        "metric": attack_trainer.optuna_best_metric,
+                        "direction": attack_trainer.optuna_direction,
+                        "best_value": float(attack_trainer.optuna_best_value),
+                        "best_params_flat": attack_trainer.optuna_best_params_flat,
+                        "best_params_nested": attack_trainer.optuna_best_params_nested,
+                    }
+
+                    optuna_best_path_gen = os.path.join(
+                        cfg["gen_attack_model_folder"],
+                        f"{gen_attack_model_name}__optuna_best.yaml",
+                    )
+                    with open(optuna_best_path_gen, "w") as file:
+                        yaml.safe_dump(best_optuna_payload, file, sort_keys=False)
+                    print(f"Optuna best config saved to: {optuna_best_path_gen}")
+
+                    optuna_best_path_res = os.path.join(
+                        cfg["save_path"],
+                        f"{attack_save_name}__optuna_best.yaml",
+                    )
+                    with open(optuna_best_path_res, "w") as file:
+                        yaml.safe_dump(best_optuna_payload, file, sort_keys=False)
+                    print(f"Optuna best config saved to: {optuna_best_path_res}")
 
         # train_atk_model(attack.attacker, attack_model, train_loader, device=device)
 
