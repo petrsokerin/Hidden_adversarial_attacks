@@ -1,12 +1,12 @@
 name: TrainAttack
 short_name: train_attack
-named_params: [eps]
+named_params: [train_eps, eps, n_steps]
 is_trainable: True
 
 attack_params:
   train_eps: 1
   eps: 1
-  n_steps: 1
+  n_steps: 5
   is_clamp: False
 
 batch_size: 64
@@ -21,7 +21,7 @@ training_params:
   scheduler_params:
     step_size: 30
     gamma: 0.8
-  n_epochs: 5
+  n_epochs: 30
   alpha_l2: 0.001
   early_stop_patience: 10
   print_every: 1
@@ -29,11 +29,44 @@ training_params:
 
 
 hyperparameters_vary:
-  eps:
+  attack_params:
+    train_eps:
+      optuna_type: float
+      low: 0.05
+      high: 2.0
+      log: True
+    eps:
+      optuna_type: float
+      low: 0.01
+      high: 0.5
+      log: True
+    n_steps:
+      optuna_type: int
+      low: 1
+      high: 10
+  optimizer_name:
+    optuna_type: choice
+    choices:
+      - Adam
+      - AdamW
+  optimizer_params:
+    lr:
+      optuna_type: float
+      low: 0.0001
+      high: 0.01
+      log: True
+  scheduler_params:
+    step_size:
+      optuna_type: int
+      low: 10
+      high: 40
+      step: 10
+    gamma:
+      optuna_type: float
+      low: 0.5
+      high: 0.95
+  alpha_l2:
     optuna_type: float
-    low: 0.01
-    high: 0.5
+    low: 0.00001
+    high: 0.01
     log: True
-  n_steps:
-    optuna_type: const
-    value: 5
