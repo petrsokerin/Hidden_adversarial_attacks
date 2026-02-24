@@ -451,20 +451,24 @@ def main(cfg: DictConfig):
                 X_adv = X_adv.unsqueeze(-1)
             
             # Вычисляем метрики через estimator (как в procedures.py)
-            metrics_line = inference_estimator.estimate(
-                y_true.numpy(), 
-                y_pred_adv.cpu().numpy(), 
-                y_pred_adv_classes.numpy(), 
-                y_pred_orig_classes.numpy(), 
-                X_orig.numpy(), 
-                X_adv.numpy(), 
-                0,
-                elapsed_time=0
-            )
-            
-            # Выводим метрики
-            for metric_name, metric_value in zip(inference_estimator.metrics_names, metrics_line):
-                print(f"  {metric_name}: {metric_value:.4f}")
+            # metrics_line = inference_estimator.estimate(
+            #     y_true.numpy(),
+            #     y_pred_adv.cpu().numpy(),
+            #     y_pred_adv_classes.numpy(),
+            #     y_pred_orig_classes.numpy(),
+            #     X_orig.numpy(),
+            #     X_adv.numpy(),
+            #     0,
+            #     elapsed_time=0
+            # )
+            #
+            # # Выводим метрики
+            # for metric_name, metric_value in zip(inference_estimator.metrics_names, metrics_line):
+            #     print(f"  {metric_name}: {metric_value:.4f}")
+
+            attack_metrics = attack.get_metrics()
+            print(attack_metrics.to_string())
+
     elif not cfg["test_run"]:
         print(f"\nFinal attack metrics on learning_target_model ({cfg['learning_target_model']['name']}):")
         attack_metrics = attack.get_metrics()
