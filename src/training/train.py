@@ -547,13 +547,18 @@ class GenAttackTrainer(Trainer):
     def _train_step(self, X: torch.Tensor, labels: torch.Tensor) -> Tuple[torch.Tensor]:
         self.optimizer.zero_grad()
 
-        X_adv = self.attack.get_train_noise(X)
+        X_adv = X
+        for i in range(self.attack.n_steps):
+            if i < self.attack.n_steps - 1:
+                with torch.no_grad():
+                    X_adv = self.attack.step(X_adv, None, mode='train')
+            else:
+                X_adv = self.attack.step(X_adv, None, mode='train')
 
         if isinstance(self.criterion, torch.nn.CrossEntropyLoss):
             labels = labels.squeeze(-1).long()
         
         loss, logits = self._attack_criterion(X_adv, X, labels)
-
         loss.backward()
         self.optimizer.step()
 
@@ -561,12 +566,14 @@ class GenAttackTrainer(Trainer):
 
     def _valid_step(self, X: torch.Tensor, labels: torch.Tensor) -> Tuple[torch.Tensor]:
         with torch.no_grad():
-            delta = self.attack.get_train_noise(X)
+            X_adv = X
+            for i in range(self.attack.n_steps):
+                X_adv = self.attack.step(X_adv, None, mode='train')
             
             if isinstance(self.criterion, torch.nn.CrossEntropyLoss):
                 labels = labels.squeeze(-1).long()
             
-            loss, logits = self._attack_criterion(delta, X, labels)
+            loss, logits = self._attack_criterion(X_adv, X, labels)
         return -loss, logits
     
     def train_model(
@@ -752,9 +759,16 @@ class DiscTrainer(Trainer):
             const_params, initial_model_parameters
         )
 
-        model = DiscTrainer.initialize_with_params(**initial_model_parameters)
-        last_epoch_metrics = model.train_model(train_loader, valid_loader, transform)
-        return last_epoch_metrics[optim_metric]
+        # model = DiscTrainer.initialize_with_params(**initial_model_parameters)
+        # last_epoch_metrics = model.train_model(train_loader, valid_loader, transform)
+        # return last_epoch_metrics[optim_metric]
+        try:
+            model = GenAttackTrainer.initialize_with_params(**initial_model_parameters)
+            last_epoch_metrics = model.train_model(train_loader, valid_loader)
+            return last_epoch_metrics[optim_metric]
+        except torch.cuda.OutOfMemoryError:
+            torch.cuda.empty_cache()
+            raise optuna.TrialPruned(f"CUDA OOM for params: {trial.params}")
 
     def _generate_adversarial_data(
         self, loader: DataLoader, transform=None, train=False

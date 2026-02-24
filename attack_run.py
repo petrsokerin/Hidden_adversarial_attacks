@@ -4,6 +4,9 @@ import warnings
 import time
 import hydra
 import torch
+import numpy as np
+import yaml
+from omegaconf import OmegaConf
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -16,8 +19,6 @@ from src.utils import fix_seed, save_attack_metrics, save_config, save_compiled_
 # from src.training.train_attacker import train_atk_model
 from src.training.train import GenAttackTrainer
 
-import yaml
-from omegaconf import OmegaConf
 
 warnings.filterwarnings("ignore")
 
@@ -292,14 +293,7 @@ def main(cfg: DictConfig):
         else:
             print(f"Warning: No path specified, will train from scratch")
         print(f"===============================\n")
-        
-        # gen_model = get_model(
-        #     cfg["gen_attack_model"]["name"],
-        #     cfg["gen_attack_model"]["params"],
-        #     device=device,
-        #     path=gen_attack_model_path,
-        # )
-        # attack_params['gen_model'] = gen_model
+
 
         # Для генеративных атак используем learning_target_model вместо attack_model
         attack_params['model'] = learning_target_model
@@ -334,7 +328,8 @@ def main(cfg: DictConfig):
 
             trainer_logger = SummaryWriter(cfg["save_path"] + "/training_tensorboard")
 
-            const_trainer_params = {
+            const_trainer_params = dict(cfg["attack"]["training_params"])  # <-- базовые training_params
+            const_trainer_params.update({
                 "attack_name":  cfg["attack"]["name"],
                 "attack_params": attack_params,
                 "logger": trainer_logger,
@@ -342,10 +337,11 @@ def main(cfg: DictConfig):
                 "device": device,
                 "seed": cfg['model_id_attack'],
                 "train_self_supervised": cfg["attack"]["training_params"]["train_self_supervised"],
-                "gen_model_name": cfg["gen_attack_model"]["name"],  # ДОБАВИТЬ
-                "gen_model_params": cfg["gen_attack_model"]["params"],  # ДОБАВИТЬ
-                "gen_model_path": gen_attack_model_path if gen_model_loaded else None,  # ДОБАВИТЬ
-            }
+                "gen_model_name": cfg["gen_attack_model"]["name"],
+                "gen_model_params": cfg["gen_attack_model"]["params"],
+                "gen_model_path": gen_attack_model_path if gen_model_loaded else None,
+            })
+
             if cfg["enable_optimization"]:
                 const_trainer_params['logger'] = None
                 attack_trainer = GenAttackTrainer.initialize_with_optimization(
@@ -382,28 +378,32 @@ def main(cfg: DictConfig):
                     yaml.dump(attack_cfg, f, default_flow_style=False, allow_unicode=True)
                 print(f"Attack config saved to: {attack_config_path}")
 
-                # Дописываем реальные параметры из обученных объектов
-                # actual_attack_params = {}
-                # for attr in vars(attack):
-                #     val = getattr(attack, attr)
-                #     if isinstance(val, (int, float, bool, str)):
-                #         actual_attack_params[attr] = val
-                # actual_trainer_params = {
-                #     "n_epochs": attack_trainer.n_epochs,
-                #     "alpha_l2": attack_trainer.alpha_l2,
-                # }
-                # attack_cfg["actual_params"] = {
-                #     "attack": actual_attack_params,
-                #     "trainer": actual_trainer_params,
-                # }
+
                 # Сохраняем лучшие параметры Optuna
                 if hasattr(attack_trainer, 'optuna_best_params'):
                     attack_cfg["optuna_best_params"] = attack_trainer.optuna_best_params
+                
+                # Сохраняем реальные training_params из обученного трейнера
+                attack_cfg["actual_training_params"] = {
+                    "n_epochs": attack_trainer.n_epochs,
+                    "alpha_l2": attack_trainer.alpha_l2,
+                    "optimizer_name": type(attack_trainer.optimizer).__name__,
+                    "optimizer_params": {
+                        "lr": attack_trainer.optimizer.param_groups[0]["lr"],
+                    },
+                    "scheduler_name": type(attack_trainer.scheduler).__name__ if attack_trainer.scheduler else "None",
+                }
+                if attack_trainer.scheduler and hasattr(attack_trainer.scheduler, 'gamma'):
+                    attack_cfg["actual_training_params"]["scheduler_params"] = {
+                        "gamma": attack_trainer.scheduler.gamma,
+                        "step_size": attack_trainer.scheduler.step_size,
+                    }
 
                 with open(attack_config_path, "w") as f:
                     yaml.dump(attack_cfg, f, default_flow_style=False, allow_unicode=True)
                 print(f"Attack config saved to: {attack_config_path}")
-                # OPTUNA CFG BLOCK END
+
+                 # OPTUNA CFG BLOCK END
 
         # train_atk_model(attack.attacker, attack_model, train_loader, device=device)
 
@@ -468,9 +468,11 @@ def main(cfg: DictConfig):
     elif not cfg["test_run"]:
         print(f"\nFinal attack metrics on learning_target_model ({cfg['learning_target_model']['name']}):")
         attack_metrics = attack.get_metrics()
-        for metric_name, metric_value in attack_metrics.items():
-            if isinstance(metric_value, (int, float)):
-                print(f"  {metric_name}: {metric_value:.4f}")
+        if not attack_metrics.empty:
+            last_row = attack_metrics.iloc[-1]
+            for metric_name, metric_value in last_row.items():
+                if isinstance(metric_value, (int, float, np.floating)):
+                    print(f"  {metric_name}: {metric_value:.4f}")
 
     end_time = time.time()
     total_time = end_time - start_time

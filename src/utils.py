@@ -109,42 +109,18 @@ def update_dict_params(original_params: Dict, new_params: Dict) -> Dict:
     return final_best_params
 
 
-# def update_params_with_attack_params(params: Dict, new_params: Dict) -> Dict:
-#     if "attack_params" in params:
-#         for param in new_params:
-#             if param == "attack_params":
-#                 params["attack_params"].update(new_params["attack_params"])
-#             else:
-#                 params[param] = new_params[param]
-#     else:
-#         params.update(new_params)
-#     return params
-
-
-# def update_params_with_attack_params(params: Dict, new_params: Dict) -> Dict:
-#     trainer_level_params = {'gen_model_name', 'gen_model_params', 'gen_model_path', 
-#                             'n_epochs', 'alpha_l2', 'criterion_name', 'optimizer_name', 
-#                             'scheduler_name', 'early_stop_patience', 'logger', 'print_every',
-#                             'device', 'seed', 'multiclass', 'train_self_supervised'}
-    
-#     if "attack_params" in params:
-#         for param in new_params:
-#             if param == "attack_params":
-#                 params["attack_params"].update(new_params["attack_params"])
-#             elif param in trainer_level_params or param in params:
-#                 params[param] = new_params[param]
-#             else:
-#                 # Параметр атаки
-#                 params["attack_params"][param] = new_params[param]
-#     else:
-#         params.update(new_params)
-#     return params
-
 def update_params_with_attack_params(params: Dict, new_params: Dict) -> Dict:
     trainer_level_params = {'gen_model_name', 'gen_model_params', 'gen_model_path', 
                             'n_epochs', 'alpha_l2', 'criterion_name', 'optimizer_name', 
                             'scheduler_name', 'early_stop_patience', 'logger', 'print_every',
                             'device', 'seed', 'multiclass', 'train_self_supervised'}
+    
+    # Маппинг плоских имён Optuna - вложенные ключи в params
+    nested_params_mapping = {
+        'lr': ('optimizer_params', 'lr'),
+        'gamma': ('scheduler_params', 'gamma'),
+        'step_size': ('scheduler_params', 'step_size'),
+    }
     
     # Параметры, которые относятся к gen_model (архитектуре генератора)
     gen_model_param_names = set()
@@ -155,6 +131,14 @@ def update_params_with_attack_params(params: Dict, new_params: Dict) -> Dict:
         for param in new_params:
             if param == "attack_params":
                 params["attack_params"].update(new_params["attack_params"])
+            elif param in nested_params_mapping:
+                # Вложенный параметр (lr - optimizer_params.lr и т.д.)
+                parent_key, child_key = nested_params_mapping[param]
+                if parent_key not in params or not params[parent_key]:
+                    params[parent_key] = {}
+                elif isinstance(params[parent_key], str) and params[parent_key] == "None":
+                    params[parent_key] = {}
+                params[parent_key][child_key] = new_params[param]
             elif param in gen_model_param_names:
                 # Параметр архитектуры генератора
                 params["gen_model_params"][param] = new_params[param]
