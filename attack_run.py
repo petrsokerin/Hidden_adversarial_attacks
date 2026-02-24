@@ -471,10 +471,14 @@ def main(cfg: DictConfig):
 
     elif not cfg["test_run"]:
         print(f"\nFinal attack metrics on learning_target_model ({cfg['learning_target_model']['name']}):")
+
         attack_metrics = attack.get_metrics()
-        for metric_name, metric_value in attack_metrics.items():
-            if isinstance(metric_value, (int, float)):
-                print(f"  {metric_name}: {metric_value:.4f}")
+        print(attack_metrics.to_string())
+
+        # attack_metrics = attack.get_metrics()
+        # for metric_name, metric_value in attack_metrics.items():
+        #     if isinstance(metric_value, (int, float)):
+        #         print(f"  {metric_name}: {metric_value:.4f}")
 
     end_time = time.time()
     total_time = end_time - start_time
