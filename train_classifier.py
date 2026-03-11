@@ -79,13 +79,13 @@ def main(cfg: DictConfig):
         shuffle=False,
     )
 
-    device = torch.device(cfg["device"] if torch.cuda.is_available() else "cpu")
+    device = torch.device(cfg["device"])
 
     const_params = {
         "logger": logger,
         "print_every": cfg["print_every"],
         "device": device,
-        "seed": cfg['model_id'],
+        "seed": cfg['seed'],
         "train_self_supervised": cfg['train_self_supervised'],
         "n_classes": cfg["dataset"]["num_classes"]
     }

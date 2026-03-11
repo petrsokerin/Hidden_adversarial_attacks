@@ -1,0 +1,172 @@
+actual_training_params:
+  alpha_l2: 0.001
+  n_epochs: 100
+  optimizer_name: AdamW
+  optimizer_params:
+    lr: 0.0003584859224085418
+  scheduler_name: StepLR
+  scheduler_params:
+    gamma: 0.95
+    step_size: 5
+attack_params:
+  disc_alpha: 0.0
+  eps: 0.4
+  is_clamp: false
+  n_steps: 1
+  train_eps: 0.2
+  use_sigmoid: true
+batch_size: 64
+gen_attack_model:
+  attack_train_mode: true
+  hyperparameters_vary:
+    dropout:
+      high: 0.7
+      low: 0.1
+      optuna_type: float
+      step: 0.1
+  name: GenPatchTST
+  params:
+    activation: gelu
+    activation_type: tanh
+    affine: false
+    attn_dropout: 0.0
+    c_in: 1
+    c_out: 1
+    d_ff: 2048
+    d_model: 256
+    decomposition: false
+    dropout: 0.3
+    individual: false
+    kernel_size: 25
+    n_heads: 8
+    n_layers: 4
+    norm: BatchNorm
+    padding_patch: true
+    patch_len: 32
+    pre_norm: false
+    pred_dim: 150
+    res_attention: true
+    revin: true
+    seq_len: 150
+    store_attn: false
+    stride: 32
+    subtract_last: false
+hyperparameters_vary:
+  attn_dropout:
+    high: 0.3
+    low: 0.0
+    optuna_type: float
+    step: 0.05
+  d_ff:
+    choices:
+    - 512
+    - 1024
+    - 2048
+    optuna_type: choice
+  d_model:
+    choices:
+    - 128
+    - 256
+    - 512
+    optuna_type: choice
+  dropout:
+    choices:
+    - 0.1
+    - 0.3
+    - 0.6
+    optuna_type: choice
+  eps:
+    choices:
+    - 1
+    optuna_type: choice
+  gamma:
+    choices:
+    - 0.5
+    - 0.8
+    - 0.95
+    optuna_type: choice
+  lr:
+    choices:
+    - 0.001
+    - 0.01
+    - 0.0001
+    optuna_type: choice
+  n_epochs:
+    optuna_type: const
+    value: 10
+  n_heads:
+    choices:
+    - 4
+    - 8
+    optuna_type: choice
+  n_layers:
+    choices:
+    - 1
+    - 2
+    - 3
+    - 4
+    optuna_type: choice
+  n_steps:
+    choices:
+    - 1
+    optuna_type: choice
+  norm:
+    choices:
+    - BatchNorm
+    - LayerNorm
+    optuna_type: choice
+  optimizer_name:
+    choices:
+    - Adam
+    - AdamW
+    optuna_type: choice
+  patch_len:
+    choices:
+    - 16
+    - 32
+    - 64
+    - 128
+    optuna_type: choice
+  revin:
+    choices:
+    - true
+    - false
+    optuna_type: choice
+  step_size:
+    choices:
+    - 5
+    - 10
+    - 20
+    optuna_type: choice
+  stride:
+    choices:
+    - 4
+    - 8
+    - 16
+    - 32
+    optuna_type: choice
+  train_eps:
+    choices:
+    - 1
+    optuna_type: choice
+is_trainable: true
+list_reg_model_params: []
+name: TrainAttack
+named_params:
+- eps
+short_name: train_attack
+training_params:
+  alpha_l2: 0.001
+  criterion_name: BCELoss
+  criterion_params: None
+  early_stop_patience: 100
+  n_epochs: 100
+  optimizer_name: AdamW
+  optimizer_params:
+    lr: 0.001
+  print_every: 1
+  scheduler_name: StepLR
+  scheduler_params:
+    gamma: 0.95
+    step_size: 5
+  train_self_supervised: false
