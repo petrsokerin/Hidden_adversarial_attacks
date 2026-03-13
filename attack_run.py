@@ -405,7 +405,6 @@ def main(cfg: DictConfig):
 
                  # OPTUNA CFG BLOCK END
 
-        # train_atk_model(attack.attacker, attack_model, train_loader, device=device)
 
     # Заменяем модель на inference перед финальной оценкой (для генеративных атак)
     if cfg['attack'].get('is_trainable', False) and inference_target_model is not None:

@@ -434,9 +434,9 @@ class GenAttackTrainer(Trainer):
         seed: int = 0,
         multiclass: bool = False,
         train_self_supervised: bool = False,
-        gen_model_name: str = None,          # ДОБАВИТЬ
-        gen_model_params: Dict = None,       # ДОБАВИТЬ
-        gen_model_path: str = None,          # ДОБАВИТЬ
+        gen_model_name: str = None,          # optuna and hparams routing
+        gen_model_params: Dict = None,       
+        gen_model_path: str = None,          
     ):
         fix_seed(seed)
         if criterion_params == "None" or not criterion_params:
@@ -759,9 +759,7 @@ class DiscTrainer(Trainer):
             const_params, initial_model_parameters
         )
 
-        # model = DiscTrainer.initialize_with_params(**initial_model_parameters)
-        # last_epoch_metrics = model.train_model(train_loader, valid_loader, transform)
-        # return last_epoch_metrics[optim_metric]
+        # to track memory problems during optuna optimization
         try:
             model = GenAttackTrainer.initialize_with_params(**initial_model_parameters)
             last_epoch_metrics = model.train_model(train_loader, valid_loader)

@@ -115,14 +115,14 @@ def update_params_with_attack_params(params: Dict, new_params: Dict) -> Dict:
                             'scheduler_name', 'early_stop_patience', 'logger', 'print_every',
                             'device', 'seed', 'multiclass', 'train_self_supervised'}
     
-    # Маппинг плоских имён Optuna - вложенные ключи в params
+    # Optuna flat_fields_names mapping - nested keys in params
     nested_params_mapping = {
         'lr': ('optimizer_params', 'lr'),
         'gamma': ('scheduler_params', 'gamma'),
         'step_size': ('scheduler_params', 'step_size'),
     }
     
-    # Параметры, которые относятся к gen_model (архитектуре генератора)
+    #  gen_model params
     gen_model_param_names = set()
     if "gen_model_params" in params and params["gen_model_params"]:
         gen_model_param_names = set(params["gen_model_params"].keys())
@@ -132,7 +132,7 @@ def update_params_with_attack_params(params: Dict, new_params: Dict) -> Dict:
             if param == "attack_params":
                 params["attack_params"].update(new_params["attack_params"])
             elif param in nested_params_mapping:
-                # Вложенный параметр (lr - optimizer_params.lr и т.д.)
+                # nested param (lr - optimizer_params.lr and etc.)
                 parent_key, child_key = nested_params_mapping[param]
                 if parent_key not in params or not params[parent_key]:
                     params[parent_key] = {}
@@ -140,12 +140,12 @@ def update_params_with_attack_params(params: Dict, new_params: Dict) -> Dict:
                     params[parent_key] = {}
                 params[parent_key][child_key] = new_params[param]
             elif param in gen_model_param_names:
-                # Параметр архитектуры генератора
+                # gen_model params
                 params["gen_model_params"][param] = new_params[param]
             elif param in trainer_level_params or param in params:
                 params[param] = new_params[param]
             else:
-                # Параметр атаки
+                # attack params
                 params["attack_params"][param] = new_params[param]
     else:
         params.update(new_params)
