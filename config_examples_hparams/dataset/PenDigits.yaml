@@ -1,0 +1,9 @@
+name: PenDigits
+num_classes: 10
+num_dim: 2
+seq_len: 8
+total_object_count: 10992
+train:
+  object_count: 7494
+test:
+  object_count: 3498
