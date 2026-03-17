@@ -2,8 +2,8 @@ name: TST
 
 params:
   seq_len: ${dataset.seq_len}
-  c_in: 1 # по умолчанию
-  c_out: 1 # по умолчанию
+  c_in: 1 # by default
+  c_out: 1 # by default
   max_seq_len: Null
   d_model: 128
   n_heads: 16

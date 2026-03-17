@@ -11,7 +11,7 @@ from src.utils import req_grad
 class TrainAttack(BaseIterativeAttack, TrainableBatchIterativeAttack):
     def __init__(
         self,
-        model: torch.nn.Module,  # learning_target_model - модель для обучения генератора
+        model: torch.nn.Module,  # learning_target_model - model for training generator
         gen_model: torch.nn.Module,
         criterion: torch.nn.Module,
         estimator: BaseEstimator,
@@ -45,15 +45,12 @@ class TrainAttack(BaseIterativeAttack, TrainableBatchIterativeAttack):
         if mode == 'train':
             self.gen_model.train()
             delta_tilte = self.gen_model(X)
-            delta_norm = (delta_tilte - delta_tilte.mean(dim=0)) / (delta_tilte.std() + 1e-5)
             delta_norm = torch.tanh(delta_tilte)
-            delta = self.train_eps * delta_norm
-            # print(torch.norm(delta), torch.norm(delta_norm), torch.norm(X))
+            delta = (self.train_eps / self.n_steps) * delta_norm
         else:
             self.gen_model.eval()
             delta_tilte = self.gen_model(X)
-            delta = self.eps * torch.sign(delta_tilte)
-            # print(torch.norm(delta))
+            delta = (self.eps / self.n_steps) * torch.sign(delta_tilte)
 
         if self.is_clamped:
             delta = torch.clamp(delta, -1, 1)
@@ -61,6 +58,8 @@ class TrainAttack(BaseIterativeAttack, TrainableBatchIterativeAttack):
         X_adv = X + delta
 
         return X_adv
+
+
 
     def update_data_batch_size(self, data_size: int, batch_size: int):
         self.data_size = data_size

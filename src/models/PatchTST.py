@@ -101,9 +101,9 @@ class GenPatchTST(BaseModel):
         self.c_in = c_in
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        # X: (B, L, C) - входная последовательность
+        # X: (B, L, C) - input sequence
         X = X.transpose(1, 2)  # (B, C, L)
-        output = self.model(X)  # (B, C, L) если c_out=C и pred_dim=L
+        output = self.model(X)  # (B, C, L) if c_out=C and pred_dim=L
         output = output.transpose(1, 2)  # (B, L, C)
         # return self.final_activation(output)
         return output

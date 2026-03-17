@@ -1,10 +1,10 @@
 name: LSTM
 
 params:
-  hidden_dim: 50
-  n_layers: 1
+  hidden_dim: 200
+  n_layers: 2
   output_dim: 1
-  dropout: 0.0
+  dropout: 0.05
 
 hyperparameters_vary:
   dropout:

@@ -148,7 +148,7 @@ class BatchIterativeAttack:
         return self.metrics
 
     def set_inference_model(self, model: torch.nn.Module):
-        """Заменяет модель для финального инференса"""
+        """Replaces model for final inference"""
         self.model = model
 
     def apply_attack(self, loader: DataLoader, logger=None) -> torch.Tensor:
@@ -175,16 +175,19 @@ class BatchIterativeAttack:
                 step_id=0,
             )
 
+        torch.cuda.synchronize()
         attack_start_time = time.time()
         for step_id in tqdm(range(1, self.n_steps + 1)):
             if self.logging:
                 X_adv, _, y_pred = self.run_iteration_log(loader)
+                torch.cuda.synchronize()
+                elapsed_time = time.time() - attack_start_time
                 self.log_step(
                     y_true=y_true,
                     y_pred=y_pred,
                     y_pred_orig=y_pred_orig,
                     X_orig=X_orig,
-                    elapsed_time=time.time() - attack_start_time,
+                    elapsed_time=elapsed_time,
                     X_adv=X_adv,
                     step_id=step_id,
                 )

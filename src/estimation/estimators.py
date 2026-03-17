@@ -225,9 +225,6 @@ class AttackEstimator(BaseEstimator):
     @staticmethod
     def calculate_l1(X_orig: np.ndarray, X_adv: np.ndarray) -> float:
 
-        # print("sdjhfljlksjfkjsklfjklf", X_orig.shape, X_adv.shape)
-        # X_orig = X_orig.squeeze(-1)
-        # X_adv = X_adv.squeeze(-1)
 
         data_shape_no_ax0 = tuple(np.arange(1, len(X_adv.shape)))
         l1_vector = np.sum(np.abs(X_orig - X_adv), axis=data_shape_no_ax0)
