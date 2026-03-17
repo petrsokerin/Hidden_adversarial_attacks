@@ -36,13 +36,13 @@ def main(cfg: DictConfig):
         if cfg['log_clearml'] and cfg['author'] == '':
             raise ValueError("You need to set your name in config")
 
-        # Определяем имя модели для названия атаки
+        # define model name for title
         if cfg['attack'].get('is_trainable', False):
-            # Для генеративных атак используем learning_target_model
+            # for generative attacks we use learning_target_model
             model_name_for_title = cfg["learning_target_model"]["name"]
             model_id_for_title = cfg["model_id_learning"]
         else:
-            # Для обычных атак используем attack_model
+            # for regular attacks we use attack_model
             model_name_for_title = cfg["attack_model"]["name"]
             model_id_for_title = cfg["model_id_attack"]
 
@@ -87,7 +87,7 @@ def main(cfg: DictConfig):
 
     device = torch.device(cfg["device"])
 
-    # Загружаем attack_model (для обычных атак)
+    # load attack_model (for regular attacks)
     if cfg['load_weights_classifier']:
         project_name = cfg['project_weights']
         task_name = f"model_{cfg['attack_model']['name']}_{cfg['model_id_attack']}_{cfg['dataset']['name']}"
@@ -221,7 +221,7 @@ def main(cfg: DictConfig):
 
     is_learnable = cfg['attack'].get('is_trainable', False)
 
-    # Инициализируем переменные для генеративной модели атаки
+    # initialize variables for generative attack model
     gen_attack_model_path = None
     gen_attack_model_from_clearml = False
 
@@ -244,13 +244,13 @@ def main(cfg: DictConfig):
         # load-name for gen attack model weights (like other models)
         gen_attack_base_name = f"gen_attack_{cfg['gen_attack_model']['name']}_{cfg['model_id_gen_attack']}_{cfg['learning_target_model']['name']}_{cfg['dataset']['name']}_{cfg['attack']['short_name']}"
 
-        # Добавляем параметры атаки (attack_add_name уже сформирован выше)
+        # add attack parameters (attack_add_name already formed above)
         gen_attack_model_name = gen_attack_base_name + attack_named_params_str
 
-        # Определяем источник загрузки (clearml или локально)
-        # Путь всегда формируется, независимо от флага (как для других моделей)
+        # define source of loading (clearml or local)
+        # path is always formed, regardless of the flag (like for other models)
         if cfg.get('load_weights_gen_attack', False) and cfg.get('project_weights_gen_attack'):
-            # Загружаем из clearml
+            # load from clearml
             project_name = cfg['project_weights_gen_attack']
             task_name = gen_attack_model_name
             try:
@@ -265,14 +265,14 @@ def main(cfg: DictConfig):
                 )
                 gen_attack_model_from_clearml = False
         else:
-            # Загружаем локально (по умолчанию, как и для других моделей)
+            # load locally (by default, like for other models)
             gen_attack_model_path = os.path.join(
                 cfg["gen_attack_model_folder"],
                 f"{gen_attack_model_name}.pt"
             )
             gen_attack_model_from_clearml = False
 
-        # Проверяем существование файла и информируем пользователя
+        # check if file exists and inform user
         print(f"\n=== Gen Attack Model Loading ===")
         print(f"Expected model name: {gen_attack_model_name}")
         print(f"Model folder: {cfg['gen_attack_model_folder']}")
@@ -284,18 +284,18 @@ def main(cfg: DictConfig):
             gen_model_loaded = True
         elif gen_attack_model_path:
             print(f"Warning: Gen attack model weights not found at {gen_attack_model_path}")
-            # Проверяем, есть ли файлы в директории
+            # check if files exist in directory
             if os.path.isdir(cfg["gen_attack_model_folder"]):
                 existing_files = os.listdir(cfg["gen_attack_model_folder"])
                 print(f"  Existing files in directory: {existing_files}")
             print(f"  Will train from scratch.")
-            gen_attack_model_path = None  # Не передаем путь, чтобы модель создалась с нуля
+            gen_attack_model_path = None  #  no path to create model from scratch
         else:
             print(f"Warning: No path specified, will train from scratch")
         print(f"===============================\n")
 
 
-        # Для генеративных атак используем learning_target_model вместо attack_model
+        # for generative attacks we use learning_target_model instead of attack_model
         attack_params['model'] = learning_target_model
 
         if gen_model_loaded:
@@ -317,7 +317,7 @@ def main(cfg: DictConfig):
             attack_trainer = GenAttackTrainer.initialize_with_params(**trainer_params)
             attack = attack_trainer.attack
         else:
-            # Обучаем модель только если она не была загружена
+            # train model only if it was not loaded
             training_train_loader = DataLoader(
                 MyDataset(X_train, y_train), batch_size=cfg["attack"]["batch_size"], shuffle=True
             )
@@ -328,7 +328,7 @@ def main(cfg: DictConfig):
 
             trainer_logger = SummaryWriter(cfg["save_path"] + "/training_tensorboard")
 
-            const_trainer_params = dict(cfg["attack"]["training_params"])  # <-- базовые training_params
+            const_trainer_params = dict(cfg["attack"]["training_params"])  # <-- base training_params
             const_trainer_params.update({
                 "attack_name":  cfg["attack"]["name"],
                 "attack_params": attack_params,
@@ -356,7 +356,7 @@ def main(cfg: DictConfig):
             attack_trainer.train_model(training_train_loader, training_test_loader)
             attack = attack_trainer.attack
 
-            # Сохраняем веса генеративной модели атаки и метрики после обучения
+            # save weights of generative attack model and metrics after training
             if not cfg["test_run"]:
                 gen_attack_base_name = f"gen_attack_{cfg['gen_attack_model']['name']}_{cfg['model_id_gen_attack']}_{cfg['learning_target_model']['name']}_{cfg['dataset']['name']}_{cfg['attack']['short_name']}"
                 gen_attack_model_name = gen_attack_base_name + attack_named_params_str
@@ -369,7 +369,7 @@ def main(cfg: DictConfig):
                 print(f"Gen attack model weights and metrics saved to: {cfg['gen_attack_model_folder']}/{gen_attack_model_name}")
 
                 # OPTUNA CFG BLOCK START
-                # Сохраняем конфиг атакующей модели
+                # save config of attacking model
                 attack_config_path = os.path.join(cfg["gen_attack_model_folder"], gen_attack_model_name + "_config.yaml")
                 attack_cfg = OmegaConf.to_container(cfg["attack"], resolve=True)
                 attack_cfg["gen_attack_model"] = OmegaConf.to_container(cfg["gen_attack_model"], resolve=True)
@@ -379,11 +379,11 @@ def main(cfg: DictConfig):
                 print(f"Attack config saved to: {attack_config_path}")
 
 
-                # Сохраняем лучшие параметры Optuna
+                # save best Optuna parameters
                 if hasattr(attack_trainer, 'optuna_best_params'):
                     attack_cfg["optuna_best_params"] = attack_trainer.optuna_best_params
                 
-                # Сохраняем реальные training_params из обученного трейнера
+                # save actual training_params from trained trainer
                 attack_cfg["actual_training_params"] = {
                     "n_epochs": attack_trainer.n_epochs,
                     "alpha_l2": attack_trainer.alpha_l2,
@@ -406,35 +406,35 @@ def main(cfg: DictConfig):
                  # OPTUNA CFG BLOCK END
 
 
-    # Заменяем модель на inference перед финальной оценкой (для генеративных атак)
+    # replace model on inference before final evaluation (for generative attacks)
     if cfg['attack'].get('is_trainable', False) and inference_target_model is not None:
         print(f"Replacing model: {type(attack.model).__name__} -> {type(inference_target_model).__name__}")
         attack.set_inference_model(inference_target_model)
         print(f"Model replaced successfully!")
 
-    # Применяем атаку и получаем атакованные данные
+    # apply attack and get attacked data
     X_adv = attack.apply_attack(test_loader, logger)
 
-    # Выводим финальные метрики после атаки на inference модели
+    # print final metrics after attack on inference models
     if not cfg["test_run"] and inference_target_model is not None:
         print(f"\nFinal attack metrics on inference_target_model ({cfg['inference_target_model']['name']}):")
 
-        # Создаем временный estimator для inference модели
+        # create temporary estimator for inference model
         inference_estimator = AttackEstimator(
-            None,  # без discriminator check
+            None,  # no discriminator check
             cfg["metric_effect"],
             cfg["metric_hid"],
             batch_size=cfg["estimator_batch_size"],
             n_classes=cfg["dataset"]["num_classes"]
         )
 
-        # Вычисляем метрики на inference модели
+        # calculate metrics on inference models
         with torch.no_grad():
             y_true = test_loader.dataset.y
             y_pred_orig = inference_target_model(test_loader.dataset.X.unsqueeze(-1).to(device))
             y_pred_adv = inference_target_model(X_adv.to(device))
 
-            # Подготавливаем данные для estimator
+            # prepare data for estimator
             if cfg["dataset"]["num_classes"] > 2:
                 y_pred_orig_classes = y_pred_orig.argmax(dim=-1).cpu()
                 y_pred_adv_classes = y_pred_adv.argmax(dim=-1).cpu()
@@ -442,7 +442,7 @@ def main(cfg: DictConfig):
                 y_pred_orig_classes = (y_pred_orig > 0.5).float().cpu()
                 y_pred_adv_classes = (y_pred_adv > 0.5).float().cpu()
 
-            # Подготавливаем данные для estimator (как в procedures.py)
+            # prepare data for estimator (like in procedures.py)
             X_orig = test_loader.dataset.X
             if X_orig.dim() == 2:
                 X_orig = X_orig.unsqueeze(-1)

@@ -148,7 +148,7 @@ class BatchIterativeAttack:
         return self.metrics
 
     def set_inference_model(self, model: torch.nn.Module):
-        """Заменяет модель для финального инференса"""
+        """Replaces model for final inference"""
         self.model = model
 
     def apply_attack(self, loader: DataLoader, logger=None) -> torch.Tensor:

@@ -97,17 +97,6 @@ def get_optimizer(
         raise ValueError(f"Optimizer with name {optimizer_name} is not implemented")
 
 
-# def get_scheduler(
-#     scheduler_name: str, optimizer: torch.optim.Optimizer, scheduler_params: Dict = None
-# ) -> torch.optim.lr_scheduler.LRScheduler:
-#     if scheduler_params is None:
-#         scheduler_params = dict()
-#     try:
-#         return getattr(torch.optim.lr_scheduler, scheduler_name)(
-#             optimizer, **scheduler_params
-#         )
-#     except AttributeError:
-#         raise ValueError(f"Scheduler with name {scheduler_name} is not implemented")
 def get_scheduler(
     scheduler_name: str, optimizer: torch.optim.Optimizer, scheduler_params: Dict = None
 ) -> torch.optim.lr_scheduler.LRScheduler:

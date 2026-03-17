@@ -2,9 +2,9 @@ name: GenPatchTST
 
 params:
   seq_len: ${dataset.seq_len}
-  c_in: 1  # Входная размерность (1D последовательность)
-  c_out: 1  # Выходная размерность канала (1D)
-  pred_dim: ${dataset.seq_len}  # Размерность предсказания = длина последовательности
+  c_in: 1  # Input dimension (1D sequence)
+  c_out: 1  # Output dimension (1D)
+  pred_dim: ${dataset.seq_len}  # Prediction dimension = sequence length
 
 
   padding_patch: True
@@ -19,7 +19,7 @@ params:
   pre_norm: False
   res_attention: True
   store_attn: False
-  activation_type: 'tanh'  # Для генерации пертурбаций
+  activation_type: 'tanh'  # For generating perturbations
 
 
 # ============================================

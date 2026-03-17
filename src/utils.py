@@ -30,10 +30,10 @@ def save_config(path: str, config_path: str, config_name: str, config_save_name:
     date = now.strftime("%Y-%m-%d")
     time = now.strftime("%H:%M:%S")
 
-    # Создаем словарь с метаданными
+    # make dictionary with metadata
     metadata = {"date": date, "time": time}
 
-    # Создаем файл metadata.yaml в указанной директории
+    # create file metadata.yaml in specified directory
     metadata_path = os.path.join(path, "metadata.yaml")
     with open(metadata_path, "w") as f:
         yaml.dump(metadata, f)
@@ -308,6 +308,6 @@ def weights_from_clearml_by_name(project_name: str, task_name: str, load_weights
     save_name = downloaded_task.name 
     new_model_file_path = f'{loaded_clearml}/{load_weights}/{save_name}'
     shutil.move(weights, new_model_file_path)
-    print(f"Модель успешно сохранена по пути: {new_model_file_path}")
+    print(f"Model successfully saved to: {new_model_file_path}")
     return new_model_file_path
 
