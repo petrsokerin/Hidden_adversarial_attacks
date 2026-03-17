@@ -52,7 +52,7 @@ class FGSMAttack(BaseIterativeAttack, BatchIterativeAttack):
             # print(torch.norm(grad, p=1))
 
         grad_sign = torch.where(torch.isnan(grad), 0, torch.sign(grad))
-        X_adv = X.data + self.eps * grad_sign
+        X_adv = X.data + (self.eps / self.n_steps) * grad_sign
         return X_adv
 
     def update_data_batch_size(self, data_size, batch_size):
