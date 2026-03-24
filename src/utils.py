@@ -21,9 +21,19 @@ def save_config(path: str, config_path: str, config_name: str, config_save_name:
     if not os.path.isdir(path):
         os.makedirs(path)
 
-    shutil.copytree(config_path, path + "/config_folder", dirs_exist_ok=True)
+    resolved_config_path = config_path
+    if not os.path.isdir(resolved_config_path):
+        fallback_path = "config_examples"
+        if os.path.isdir(fallback_path):
+            resolved_config_path = fallback_path
+        else:
+            raise FileNotFoundError(
+                f"Config directory '{config_path}' was not found, and fallback '{fallback_path}' is also missing."
+            )
+
+    shutil.copytree(resolved_config_path, path + "/config_folder", dirs_exist_ok=True)
     shutil.copyfile(
-        f"{config_path}/{config_name}.yaml", path + "/" + config_save_name + '.yaml'
+        f"{resolved_config_path}/{config_name}.yaml", path + "/" + config_save_name + '.yaml'
     )
 
     now = datetime.now()
@@ -310,4 +320,3 @@ def weights_from_clearml_by_name(project_name: str, task_name: str, load_weights
     shutil.move(weights, new_model_file_path)
     print(f"Model successfully saved to: {new_model_file_path}")
     return new_model_file_path
-

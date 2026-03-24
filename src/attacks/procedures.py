@@ -175,12 +175,14 @@ class BatchIterativeAttack:
                 step_id=0,
             )
 
-        torch.cuda.synchronize()
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
         attack_start_time = time.time()
         for step_id in tqdm(range(1, self.n_steps + 1)):
             if self.logging:
                 X_adv, _, y_pred = self.run_iteration_log(loader)
-                torch.cuda.synchronize()
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
                 elapsed_time = time.time() - attack_start_time
                 self.log_step(
                     y_true=y_true,
