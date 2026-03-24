@@ -10,11 +10,11 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from clearml import Task
 
-from src.config import get_criterion, get_disc_list, get_model
+from src.config import get_attack, get_criterion, get_disc_list, get_model
 from src.data import MyDataset, load_data, transform_data
 from src.estimation.estimators import AttackEstimator
-from src.training.train import DiscTrainer
-from src.utils import fix_seed, save_config, save_compiled_config,weights_from_clearml_by_name
+from src.training.train import DiscTrainer, GenAttackTrainer
+from src.utils import fix_seed, save_config, save_compiled_config, weights_from_clearml_by_name
 
 warnings.filterwarnings("ignore")
 
@@ -22,6 +22,8 @@ CONFIG_NAME = "train_disc_config"
 CONFIG_PATH = "config"
 
 torch.cuda.empty_cache()
+
+
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig):
     start_time = time.time()
@@ -105,6 +107,48 @@ def main(cfg: DictConfig):
         train_mode=cfg["attack_model"]["attack_train_mode"],
     )
 
+    if cfg['attack'].get('is_trainable', False):
+        gen_attack_base_name = f"gen_attack_{cfg['gen_attack_model']['name']}_{cfg['model_id_gen_attack']}_{cfg['attack_model']['name']}_{cfg['dataset']['name']}_{cfg['attack']['short_name']}"
+        gen_attack_model_name = gen_attack_base_name + model_add_name
+
+        if cfg.get('load_weights_gen_attack', False) and cfg.get('project_weights_gen_attack'):
+            project_name = cfg['project_weights_gen_attack']
+            task_name = gen_attack_model_name
+            try:
+                path = weights_from_clearml_by_name(project_name=project_name, task_name=task_name)
+                gen_attack_model_path = os.path.join(path)
+                gen_model_loaded = True
+            except Exception as e:
+                print(f"Warning: Could not load gen attack model weights from clearml: {e}. Trying local path.")
+                gen_attack_model_path = os.path.join(
+                    cfg["gen_attack_model_folder"],
+                    f"{gen_attack_model_name}.pt"
+                )
+                gen_model_loaded = os.path.exists(gen_attack_model_path)
+        else:
+            gen_attack_model_path = os.path.join(
+                cfg["gen_attack_model_folder"],
+                f"{gen_attack_model_name}.pt"
+            )
+            gen_model_loaded = os.path.exists(gen_attack_model_path)
+
+        print(f"\n=== Gen Attack Model Loading (for discriminator training) ===")
+        print(f"Expected model name: {gen_attack_model_name}")
+        print(f"Model folder: {cfg['gen_attack_model_folder']}")
+        print(f"Full path: {gen_attack_model_path}")
+        if gen_model_loaded:
+            print(f"Found gen attack model weights, will load from: {gen_attack_model_path}")
+        else:
+            print(f"Gen attack model weights not found at {gen_attack_model_path}. Will train from scratch if needed.")
+        print(f"============================================================\n")
+
+        gen_model = get_model(
+            cfg["gen_attack_model"]["name"],
+            cfg["gen_attack_model"]["params"],
+            device=device,
+            path=gen_attack_model_path if gen_model_loaded else None,
+        )
+
     criterion = get_criterion(cfg["criterion_name"], cfg["criterion_params"])
     if cfg['load_weights_disc']:
         path = cfg['project_weights_disc']
@@ -148,6 +192,65 @@ def main(cfg: DictConfig):
             train_mode=cfg["disc_model_reg"]["attack_train_mode"],
             from_clearml=cfg['load_weights_disc']
         )
+
+    if cfg['attack'].get('is_trainable', False):
+        attack_params['model'] = attack_model
+        attack_params['gen_model'] = gen_model
+
+    if cfg['attack'].get('is_trainable', False) and not gen_model_loaded:
+        print("Gen attack model not found — training gen attack model before discriminator training.")
+
+        training_train_loader = DataLoader(
+            MyDataset(X_train, y_train), batch_size=cfg["attack"]["batch_size"], shuffle=True
+        )
+
+        training_test_loader = DataLoader(
+            MyDataset(X_test, y_test), batch_size=cfg["attack"]["batch_size"], shuffle=False
+        )
+
+        trainer_logger = SummaryWriter(cfg["save_path"] + "/training_tensorboard")
+
+        const_trainer_params = {
+            "attack_name": cfg["attack"]["name"],
+            "attack_params": attack_params,
+            "logger": trainer_logger,
+            "print_every": cfg["attack"]["training_params"]["print_every"],
+            "device": device,
+            "seed": cfg['model_id'],
+            "train_self_supervised": cfg["attack"]["training_params"]["train_self_supervised"],
+        }
+
+        if cfg["enable_optimization"]:
+            const_trainer_params['logger'] = None
+            attack_trainer = GenAttackTrainer.initialize_with_optimization(
+                training_train_loader, training_test_loader, cfg["optuna_optimizer"], const_trainer_params
+            )
+        else:
+            trainer_params = dict(cfg["attack"]["training_params"])
+            trainer_params.update(const_trainer_params)
+            attack_trainer = GenAttackTrainer.initialize_with_params(**trainer_params)
+
+        trained_attack = attack_trainer.train_model(training_train_loader, training_test_loader)
+        try:
+            trained_gen_model = trained_attack.gen_model if hasattr(trained_attack, "gen_model") else None
+            if trained_gen_model is not None:
+                attack_params['gen_model'] = trained_gen_model
+                gen_model = trained_gen_model
+                gen_model_loaded = True
+        except Exception as e:
+            print(f"Warning: couldn't extract gen_model from trained attack: {e}")
+
+        if not cfg["test_run"]:
+            gen_attack_base_name = f"gen_attack_{cfg['gen_attack_model']['name']}_{cfg['model_id_gen_attack']}_{cfg['attack_model']['name']}_{cfg['dataset']['name']}_{cfg['attack']['short_name']}"
+            gen_attack_model_name = gen_attack_base_name + model_add_name
+
+            attack_trainer.save_result(
+                save_path=cfg["gen_attack_model_folder"],
+                model_name=gen_attack_model_name,
+                task=None
+            )
+            print(f"Gen attack model weights and metrics saved to: {cfg['gen_attack_model_folder']}/{gen_attack_model_name}")
+
 
     const_params = {
             "attack_name":  cfg["attack"]["name"],
@@ -199,10 +302,7 @@ def main(cfg: DictConfig):
         logger = SummaryWriter(cfg["save_path"] + "/tensorboard")
 
     disc_trainer.train_model(train_loader, test_loader, augmentator, logger)
-    # if cfg['load_weights_classifier']:
-    #     os.remove(attack_model_path)
-    # else:
-    #     pass
+
 
     end_time = time.time()
     total_time = end_time - start_time

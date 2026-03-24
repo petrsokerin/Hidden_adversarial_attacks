@@ -5,13 +5,13 @@ import torch
 from src.attacks.base_attacks import BaseIterativeAttack
 from src.attacks.procedures import TrainableBatchIterativeAttack
 from src.estimation import BaseEstimator
-from src.utils import req_grad 
+from src.utils import req_grad
 
 
 class TrainAttack(BaseIterativeAttack, TrainableBatchIterativeAttack):
     def __init__(
         self,
-        model: torch.nn.Module,  # learning_target_model - модель для обучения генератора
+        model: torch.nn.Module,  # learning_target_model - model for training generator
         gen_model: torch.nn.Module,
         criterion: torch.nn.Module,
         estimator: BaseEstimator,
@@ -24,8 +24,7 @@ class TrainAttack(BaseIterativeAttack, TrainableBatchIterativeAttack):
         *args,
         **kwargs,
     ) -> None:
-        
-        
+
         BaseIterativeAttack.__init__(self, model=model, n_steps=n_steps, n_classes=n_classes)
         TrainableBatchIterativeAttack.__init__(self, gen_model=gen_model, estimator=estimator, logger=logger, n_classes=n_classes)
         self.criterion = criterion
@@ -43,24 +42,25 @@ class TrainAttack(BaseIterativeAttack, TrainableBatchIterativeAttack):
         self.model
 
     def step(self, X: torch.Tensor, y_true: torch.Tensor, mode='val') -> torch.Tensor:
-        if mode=='train':
+        if mode == 'train':
             self.gen_model.train()
-            delta_raw = self.gen_model(X)
-            # delta_normalized = (delta_raw - delta_raw.mean(dim=0)) / (delta_raw.std(dim=0) + 1e-5)  # for l_2 norm
-            delta_normalized = torch.tanh(delta_raw)  # for l_infty norm
-            delta = self.train_eps * delta_normalized
-            # print(torch.norm(delta), torch.norm(delta_normalized), torch.norm(X))
+            delta_tilte = self.gen_model(X)
+            delta_norm = torch.tanh(delta_tilte)
+            delta = (self.train_eps / self.n_steps) * delta_norm
         else:
             self.gen_model.eval()
-            delta_raw = self.gen_model(X)
-            # delta_normalized = (delta_raw - delta_raw.mean(dim=0)) / (delta_raw.std(dim=0) + 1e-5)  # for l_2 norm
-            # delta = self.eps * torch.tanh(delta_raw)
-            delta = self.eps * torch.sign(delta_raw)  # maximize l_2 product with gradient in B_infty(eps)
-            # print(torch.norm(delta))
+            delta_tilte = self.gen_model(X)
+            delta = (self.eps / self.n_steps) * torch.sign(delta_tilte)
 
         if self.is_clamped:
             delta = torch.clamp(delta, -1, 1)
-        
+
         X_adv = X + delta
 
         return X_adv
+
+
+
+    def update_data_batch_size(self, data_size: int, batch_size: int):
+        self.data_size = data_size
+        self.batch_size = batch_size

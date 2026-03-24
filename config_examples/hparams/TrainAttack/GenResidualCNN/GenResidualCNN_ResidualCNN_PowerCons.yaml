@@ -1,0 +1,14 @@
+attack_params:
+  train_eps: 0.20571517081508356
+  eps: 0.22136914688782386
+  n_steps: 1
+training_params:
+  optimizer_name: AdamW
+  optimizer_params:
+    lr: 0.007098936257405904
+  scheduler_params:
+    step_size: 10
+    gamma: 0.5392081848656933
+  alpha_l2: 1.1498870747119445e-05
+  gen_model_params:
+    hidden_dim: 256

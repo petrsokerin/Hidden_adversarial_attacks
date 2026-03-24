@@ -169,7 +169,7 @@ class Trainer:
         const_params: Dict,
     ):
         study = optuna.create_study(
-            direction=optuna_params.get("direction", "maximize"),
+            direction="maximize",
             sampler=instantiate(optuna_params["sampler"]),
             pruner=instantiate(optuna_params["pruner"]),
         )
@@ -434,6 +434,9 @@ class GenAttackTrainer(Trainer):
         seed: int = 0,
         multiclass: bool = False,
         train_self_supervised: bool = False,
+        gen_model_name: str = None,          # optuna and hparams routing
+        gen_model_params: Dict = None,       
+        gen_model_path: str = None,          
     ):
         fix_seed(seed)
         if criterion_params == "None" or not criterion_params:
@@ -442,6 +445,11 @@ class GenAttackTrainer(Trainer):
             optimizer_params = {}
         if scheduler_params == "None" or not scheduler_params:
             scheduler_params = {}
+
+        if gen_model_name:
+            attack_params = attack_params.copy() if attack_params else {}
+            gen_model = get_model(gen_model_name, gen_model_params, device=device, path=gen_model_path)
+            attack_params['gen_model'] = gen_model
 
         attack = get_attack(attack_name, attack_params)
         criterion = get_criterion(criterion_name, criterion_params)
@@ -466,45 +474,15 @@ class GenAttackTrainer(Trainer):
         )
 
     @staticmethod
-    def _resolve_metric_name(available_names, requested_name: str) -> str:
-        available = list(available_names)
-        if requested_name in available:
-            return requested_name
-
-        alias_map = {
-            "accuracy": "ACC",
-            "acc": "ACC",
-            "f1": "F1",
-            "roc": "ROC",
-            "pr": "PR",
-            "eff": "EFF",
-        }
-
-        requested_lower = requested_name.lower()
-        if requested_lower in alias_map and alias_map[requested_lower] in available:
-            return alias_map[requested_lower]
-
-        lower_to_original = {name.lower(): name for name in available}
-        if requested_lower in lower_to_original:
-            return lower_to_original[requested_lower]
-
-        raise ValueError(
-            f"Metric '{requested_name}' is not available. Available metrics: {available}"
-        )
-
-    @staticmethod
     def initialize_with_optimization(
         train_loader: DataLoader,
         valid_loader: DataLoader,
         optuna_params: Dict,
         const_params: Dict,
         transform = None,
-        objective_eval_loader: DataLoader = None,
-        objective_eval_model: torch.nn.Module = None,
-        objective_use_final_metrics: bool = True,
     ):
         study = optuna.create_study(
-            direction=optuna_params.get("direction", "maximize"),
+            direction="minimize", # maximize
             sampler=instantiate(optuna_params["sampler"]),
             pruner=instantiate(optuna_params["pruner"]),
         )
@@ -518,28 +496,22 @@ class GenAttackTrainer(Trainer):
                 train_loader=train_loader,
                 valid_loader=valid_loader,
                 transform=transform,
-                objective_eval_loader=objective_eval_loader,
-                objective_eval_model=objective_eval_model,
-                objective_use_final_metrics=objective_use_final_metrics,
             ),
             n_trials=optuna_params["n_trials"],
         )
 
         default_params = collect_default_params(optuna_params["hyperparameters_vary"])
         print("DEFAULT", default_params)
-        best_params_flat = study.best_params.copy()
-        print("BEST", best_params_flat)
-        best_params_nested = update_dict_params(default_params, best_params_flat)
-        best_params = update_params_with_attack_params(const_params, best_params_nested)
+        best_params = study.best_params.copy()
+        print("BEST", best_params)
+        best_params = update_dict_params(default_params, best_params)
+        best_params = update_params_with_attack_params(const_params, best_params)
         print("Best parameters are - %s", best_params)
-
+        # return GenAttackTrainer.initialize_with_params(**best_params)
         trainer = GenAttackTrainer.initialize_with_params(**best_params)
-        trainer.optuna_best_params_flat = best_params_flat
-        trainer.optuna_best_params_nested = best_params_nested
-        trainer.optuna_best_value = study.best_value
-        trainer.optuna_best_metric = optuna_params["optim_metric"]
-        trainer.optuna_direction = optuna_params.get("direction", "maximize")
+        trainer.optuna_best_params = study.best_params.copy()  # <-- fix optuna
         return trainer
+        
 
     @staticmethod
     def objective(
@@ -549,10 +521,7 @@ class GenAttackTrainer(Trainer):
         const_params: Dict,
         train_loader: DataLoader,
         valid_loader: DataLoader,
-        transform = None,
-        objective_eval_loader: DataLoader = None,
-        objective_eval_model: torch.nn.Module = None,
-        objective_use_final_metrics: bool = True,
+        transform = None
     ) -> float:
         initial_model_parameters, _ = get_optimization_dict(params_vary, trial)
         initial_model_parameters = dict(initial_model_parameters)
@@ -561,36 +530,8 @@ class GenAttackTrainer(Trainer):
         )
 
         model = GenAttackTrainer.initialize_with_params(**initial_model_parameters)
-
-        if objective_use_final_metrics:
-            attack = model.train_model(
-                train_loader,
-                valid_loader,
-                return_metrics=False,
-            )
-
-            eval_loader = objective_eval_loader if objective_eval_loader is not None else valid_loader
-
-            if objective_eval_model is not None and hasattr(attack, "set_inference_model"):
-                attack.set_inference_model(objective_eval_model)
-
-            attack.apply_attack(eval_loader, logger=None)
-            attack_metrics = attack.get_metrics()
-
-            metric_name = GenAttackTrainer._resolve_metric_name(
-                attack_metrics.columns, optim_metric
-            )
-            return float(attack_metrics.iloc[-1][metric_name])
-
-        last_epoch_metrics = model.train_model(
-            train_loader,
-            valid_loader,
-            return_metrics=True,
-        )
-        metric_name = GenAttackTrainer._resolve_metric_name(
-            last_epoch_metrics.keys(), optim_metric
-        )
-        return float(last_epoch_metrics[metric_name])
+        last_epoch_metrics = model.train_model(train_loader, valid_loader) # transform in args
+        return last_epoch_metrics[optim_metric]
 
     def _attack_criterion(self, X_adv: torch.Tensor, X: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         delta = X_adv - X
@@ -606,13 +547,18 @@ class GenAttackTrainer(Trainer):
     def _train_step(self, X: torch.Tensor, labels: torch.Tensor) -> Tuple[torch.Tensor]:
         self.optimizer.zero_grad()
 
-        X_adv = self.attack.get_train_noise(X)
+        X_adv = X
+        for i in range(self.attack.n_steps):
+            if i < self.attack.n_steps - 1:
+                with torch.no_grad():
+                    X_adv = self.attack.step(X_adv, None, mode='train')
+            else:
+                X_adv = self.attack.step(X_adv, None, mode='train')
 
         if isinstance(self.criterion, torch.nn.CrossEntropyLoss):
             labels = labels.squeeze(-1).long()
         
         loss, logits = self._attack_criterion(X_adv, X, labels)
-
         loss.backward()
         self.optimizer.step()
 
@@ -620,20 +566,19 @@ class GenAttackTrainer(Trainer):
 
     def _valid_step(self, X: torch.Tensor, labels: torch.Tensor) -> Tuple[torch.Tensor]:
         with torch.no_grad():
-            delta = self.attack.get_train_noise(X)
+            X_adv = X
+            for i in range(self.attack.n_steps):
+                X_adv = self.attack.step(X_adv, None, mode='train')
             
             if isinstance(self.criterion, torch.nn.CrossEntropyLoss):
                 labels = labels.squeeze(-1).long()
             
-            loss, logits = self._attack_criterion(delta, X, labels)
+            loss, logits = self._attack_criterion(X_adv, X, labels)
         return -loss, logits
     
     def train_model(
-        self,
-        train_loader: DataLoader,
-        valid_loader: DataLoader,
-        return_metrics: bool = False,
-    ):
+        self, train_loader: DataLoader, valid_loader: DataLoader
+    ) -> Dict[str, float]:
         if self.model.self_supervised and self.train_self_supervised:
             print("Training self-supervised model")
             X_train = train_loader.dataset.X.unsqueeze(-1).numpy()
@@ -661,10 +606,7 @@ class GenAttackTrainer(Trainer):
 
         metrics_names = ['loss'] +self.estimator.get_metrics_names()
         test_metrics_epoch = {name: val for name, val in zip(metrics_names, test_metrics_epoch)}
-        if return_metrics:
-            return test_metrics_epoch
-        return self.attack
-
+        return test_metrics_epoch # self.attack
 
 class DiscTrainer(Trainer):
     def __init__(
@@ -774,7 +716,7 @@ class DiscTrainer(Trainer):
         transform = None,
     ):
         study = optuna.create_study(
-            direction=optuna_params.get("direction", "maximize"),
+            direction="maximize",
             sampler=instantiate(optuna_params["sampler"]),
             pruner=instantiate(optuna_params["pruner"]),
         )
@@ -817,9 +759,14 @@ class DiscTrainer(Trainer):
             const_params, initial_model_parameters
         )
 
-        model = DiscTrainer.initialize_with_params(**initial_model_parameters)
-        last_epoch_metrics = model.train_model(train_loader, valid_loader, transform)
-        return last_epoch_metrics[optim_metric]
+        # to track memory problems during optuna optimization
+        try:
+            model = GenAttackTrainer.initialize_with_params(**initial_model_parameters)
+            last_epoch_metrics = model.train_model(train_loader, valid_loader)
+            return last_epoch_metrics[optim_metric]
+        except torch.cuda.OutOfMemoryError:
+            torch.cuda.empty_cache()
+            raise optuna.TrialPruned(f"CUDA OOM for params: {trial.params}")
 
     def _generate_adversarial_data(
         self, loader: DataLoader, transform=None, train=False

@@ -13,11 +13,13 @@ project_weights_disc: 'AA_train_discriminator_GOLDEN'
 delete_weights_disc: False
 
 model_folder: checkpoints/${dataset.name}/${attack_model.name}/${exp_model_name}
+gen_attack_model_folder: checkpoints/${dataset.name}/gen_attack/${exp_model_name}
 disc_path: results/${dataset.name}/${attack_model.name}/discriminator/fgsm_attack
 save_path: results/${dataset.name}/${attack_model.name}/discriminator/${attack.short_name}${exp_name}
 
 model_id_attack: 100
 model_id: 100
+model_id_gen_attack: 173
 
 train_self_supervised: True
 
@@ -25,10 +27,12 @@ defaults:
   - dataset: PowerCons
   - model: ResidualCNN
   - model@attack_model: ResidualCNN
+  - model@gen_attack_model: GenPatchTST
   - model@disc_model_reg: ResidualCNN
   - model@disc_model_check: ResidualCNN
+  - model@gen_attack_model: GenResidualCNN
   # - attack_disc@attack: FGSM
-  - attack@attack: PGD
+  - attack@attack: TrainAttack
 
 criterion_name: BCELoss
 criterion_params: null

@@ -1,3 +1,4 @@
+import time
 from typing import Tuple
 
 import numpy as np
@@ -30,6 +31,7 @@ class BatchIterativeAttack:
         y_pred: torch.Tensor,
         y_pred_orig: torch.Tensor,
         X_orig: torch.Tensor,
+        elapsed_time,
         X_adv: torch.Tensor = None,
         step_id: int = 0,
     ) -> None:
@@ -50,7 +52,7 @@ class BatchIterativeAttack:
         X_adv = X_adv.detach().numpy()
 
         metrics_line = self.estimator.estimate(
-            y_true, y_pred, y_pred_classes, y_pred_orig_classes, X_orig, X_adv, step_id
+            y_true, y_pred, y_pred_classes, y_pred_orig_classes, X_orig, X_adv, step_id, elapsed_time
         )
 
         for metric_name, metric_val in zip(self.estimator.metrics_names, metrics_line):
@@ -146,7 +148,7 @@ class BatchIterativeAttack:
         return self.metrics
 
     def set_inference_model(self, model: torch.nn.Module):
-        """Заменяет модель для финального инференса"""
+        """Replaces model for final inference"""
         self.model = model
 
     def apply_attack(self, loader: DataLoader, logger=None) -> torch.Tensor:
@@ -168,18 +170,26 @@ class BatchIterativeAttack:
                 y_pred=y_pred_orig,
                 y_pred_orig=y_pred_orig,
                 X_orig=X_orig,
+                elapsed_time=0,
                 X_adv=X_orig,
                 step_id=0,
             )
 
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+        attack_start_time = time.time()
         for step_id in tqdm(range(1, self.n_steps + 1)):
             if self.logging:
                 X_adv, _, y_pred = self.run_iteration_log(loader)
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
+                elapsed_time = time.time() - attack_start_time
                 self.log_step(
                     y_true=y_true,
                     y_pred=y_pred,
                     y_pred_orig=y_pred_orig,
                     X_orig=X_orig,
+                    elapsed_time=elapsed_time,
                     X_adv=X_adv,
                     step_id=step_id,
                 )
@@ -360,7 +370,7 @@ class KLLL2IterativeAttack(ClippedBatchIterativeAttack):
 
 class TrainableBatchIterativeAttack(BatchIterativeAttack):
     def __init__(
-        self, 
+        self,
         gen_model: torch.nn.Module,
         estimator: BaseEstimator=None,
         logger=None,
