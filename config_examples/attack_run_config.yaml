@@ -1,36 +1,50 @@
 slice: False
-use_disc_check: True
+use_disc_check: False
 test_run: False # If true results will be not saved!!!!
-exp_name: '_test'
-exp_model_name: 'test'
+exp_name: 'test'
 exp_disc_name: _test
 log_clearml: False
 clearml_project: "AA_attack_run"
 author: '' # Petr, Dima, Sophie
-load_weights_classifier: False
+# load_weights_classifier: False
 load_weights_disc: False
 project_weights: 'AA_train_classifier_GOLDEN'
 project_weights_disc: 'AA_train_discriminator_GOLDEN'
+project_weights_gen_attack: 'AA_attack_run_GOLDEN'
 delete_weights_disc: False
 
-model_folder: checkpoints/${dataset.name}/${attack_model.name}/${exp_model_name}
-disc_path: results/${dataset.name}/${attack_model.name}/discriminator/fgsm_attack${exp_disc_name}
-save_path: results/${dataset.name}/${attack_model.name}/attack/${attack.short_name}${exp_name}
+model_folder: checkpoints/${dataset.name}/${attack_model.name}_seed=${seed}/${exp_name}
+learning_model_folder: checkpoints/${dataset.name}/${learning_target_model.name}_seed=${seed}/${exp_name}
+inference_model_folder: checkpoints/${dataset.name}/${inference_target_model.name}_seed=${seed}/${exp_name}
+gen_attack_model_folder: checkpoints/${dataset.name}/gen_${gen_attack_model.name}_seed=${seed}/${exp_name}
+disc_path: results/${dataset.name}/${learning_target_model.name}/discriminator/fgsm_attack${exp_disc_name}
+save_path: results/${exp_name}/${dataset.name}_${learning_target_model.name}/${attack.short_name}/${oc.select:gen_attack_model.name,}_attack_seed=${seed}
 
-model_id_attack: 100
+seed: 1
 
-hydra:
-  mode: RUN #MULTIRUN
-  sweeper:
-    params:
-      ++attack.attack_params.eps: 0.01,0.03
+model_id_attack: ${model_id_learning}
+model_id_learning: 1
+model_id_inference: ${model_id_learning}
+model_id_gen_attack: 87
+
+load_weights_classifier: False
+load_weights_learning: False
+load_weights_inference: False
+load_weights_gen_attack: False
+
+
+attack.attack_params.eps: 0.3
 
 defaults:
-  - dataset: PowerCons
-  - model@attack_model: ResidualCNN
+  - dataset: GunPoint
   - model@disc_model_reg: ResidualCNN
   - model@disc_model_check: ResidualCNN
-  - attack: FGSMDisc
+  - model@gen_attack_model: GenPatchTST
+  - model@attack_model: ${model@learning_target_model}  # for backward compatibility with regular attacks
+  - model@learning_target_model: LSTM  # for generative attacks (may be different from attack_model)
+  - model@inference_target_model: ${model@learning_target_model}  # for generative attacks
+  - attack: TrainAttack
+  - optional hparams@attack: ${attack}/${model@gen_attack_model}/${model@gen_attack_model}_${model@learning_target_model}_${dataset}
 
 criterion_name: BCELoss
 criterion_params: null
@@ -43,16 +57,17 @@ metric_effect: F1
 metric_hid: ROC_AUC_DISC
 
 list_check_model_params:
-  - model_ResidualCNN_100_PowerCons_attack_fgsm_attack__eps=0.03__n_steps=10
+  - model_ResidualCNN_100_PowerCons_attack_fgsm_attack__eps=0.03__n_steps=3
 
 enable_optimization: False
 optuna_optimizer:
-  n_trials: 5
+  n_trials: 30
+  direction: maximize # minimize
   sampler:
     _target_: optuna.samplers.TPESampler
-    seed: 0
+    seed: ${seed}
   pruner:
     _target_: optuna.pruners.MedianPruner
-  optim_metric: F1
+  optim_metric: accuracy
   hyperparameters_vary:
     ${attack.hyperparameters_vary}

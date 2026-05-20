@@ -44,7 +44,7 @@ class BaseIterativeAttack(ABC):
         attack_class = self.__class__
 
         study = optuna.create_study(
-            direction="maximize",
+            direction=optuna_params.get("direction", "maximize"),
             sampler=instantiate(optuna_params["sampler"]),
             pruner=instantiate(optuna_params["pruner"]),
         )

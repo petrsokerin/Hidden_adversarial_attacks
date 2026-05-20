@@ -21,19 +21,29 @@ def save_config(path: str, config_path: str, config_name: str, config_save_name:
     if not os.path.isdir(path):
         os.makedirs(path)
 
-    shutil.copytree(config_path, path + "/config_folder", dirs_exist_ok=True)
+    resolved_config_path = config_path
+    if not os.path.isdir(resolved_config_path):
+        fallback_path = "config_examples"
+        if os.path.isdir(fallback_path):
+            resolved_config_path = fallback_path
+        else:
+            raise FileNotFoundError(
+                f"Config directory '{config_path}' was not found, and fallback '{fallback_path}' is also missing."
+            )
+
+    shutil.copytree(resolved_config_path, path + "/config_folder", dirs_exist_ok=True)
     shutil.copyfile(
-        f"{config_path}/{config_name}.yaml", path + "/" + config_save_name + '.yaml'
+        f"{resolved_config_path}/{config_name}.yaml", path + "/" + config_save_name + '.yaml'
     )
 
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
     time = now.strftime("%H:%M:%S")
 
-    # Создаем словарь с метаданными
+    # make dictionary with metadata
     metadata = {"date": date, "time": time}
 
-    # Создаем файл metadata.yaml в указанной директории
+    # create file metadata.yaml in specified directory
     metadata_path = os.path.join(path, "metadata.yaml")
     with open(metadata_path, "w") as f:
         yaml.dump(metadata, f)
@@ -110,16 +120,46 @@ def update_dict_params(original_params: Dict, new_params: Dict) -> Dict:
 
 
 def update_params_with_attack_params(params: Dict, new_params: Dict) -> Dict:
+    trainer_level_params = {'gen_model_name', 'gen_model_params', 'gen_model_path', 
+                            'n_epochs', 'alpha_l2', 'criterion_name', 'optimizer_name', 
+                            'scheduler_name', 'early_stop_patience', 'logger', 'print_every',
+                            'device', 'seed', 'multiclass', 'train_self_supervised'}
+    
+    # Optuna flat_fields_names mapping - nested keys in params
+    nested_params_mapping = {
+        'lr': ('optimizer_params', 'lr'),
+        'gamma': ('scheduler_params', 'gamma'),
+        'step_size': ('scheduler_params', 'step_size'),
+    }
+    
+    #  gen_model params
+    gen_model_param_names = set()
+    if "gen_model_params" in params and params["gen_model_params"]:
+        gen_model_param_names = set(params["gen_model_params"].keys())
+    
     if "attack_params" in params:
         for param in new_params:
             if param == "attack_params":
                 params["attack_params"].update(new_params["attack_params"])
-            else:
+            elif param in nested_params_mapping:
+                # nested param (lr - optimizer_params.lr and etc.)
+                parent_key, child_key = nested_params_mapping[param]
+                if parent_key not in params or not params[parent_key]:
+                    params[parent_key] = {}
+                elif isinstance(params[parent_key], str) and params[parent_key] == "None":
+                    params[parent_key] = {}
+                params[parent_key][child_key] = new_params[param]
+            elif param in gen_model_param_names:
+                # gen_model params
+                params["gen_model_params"][param] = new_params[param]
+            elif param in trainer_level_params or param in params:
                 params[param] = new_params[param]
+            else:
+                # attack params
+                params["attack_params"][param] = new_params[param]
     else:
         params.update(new_params)
     return params
-
 
 def collect_default_params(params_vary: DictConfig) -> Dict:
     initial_model_parameters = {}
@@ -278,6 +318,5 @@ def weights_from_clearml_by_name(project_name: str, task_name: str, load_weights
     save_name = downloaded_task.name 
     new_model_file_path = f'{loaded_clearml}/{load_weights}/{save_name}'
     shutil.move(weights, new_model_file_path)
-    print(f"Модель успешно сохранена по пути: {new_model_file_path}")
+    print(f"Model successfully saved to: {new_model_file_path}")
     return new_model_file_path
-
