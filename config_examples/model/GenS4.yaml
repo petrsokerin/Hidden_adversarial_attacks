@@ -1,0 +1,29 @@
+name: GenS4
+
+params:
+  c_in: 1 # ${dataset.num_dim} if multivariate
+  c_out: 1 # usually equal to c_in for perturbation generation
+  hidden_dim: 256
+  dropout: 0.0
+  activation_type: linear
+
+hyperparameters_vary:
+  c_in:
+    optuna_type: const
+    value: 1
+  c_out:
+    optuna_type: const
+    value: 1
+  hidden_dim:
+    optuna_type: choice
+    choices: [64, 128, 256]
+  dropout:
+    optuna_type: float
+    low: 0.1
+    high: 0.7
+    step: 0.1
+  activation_type:
+    optuna_type: const
+    value: linear
+
+attack_train_mode: True
